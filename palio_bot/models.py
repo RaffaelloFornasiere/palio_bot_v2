@@ -24,7 +24,7 @@ class ToolUseContent(BaseModel):
 
 class ToolResultContent(BaseModel):
     type: Literal["tool_result"] = "tool_result"
-    tool_result: Any
+    tool_result: "ToolResult"
     tool_use_id: str
 
 
@@ -62,7 +62,7 @@ class Message(BaseModel):
 
     @classmethod
     def tool_result(
-        cls, *, role: Role, tool_result: Any, tool_use_id: str
+        cls, *, role: Role, tool_result: "ToolResult", tool_use_id: str
     ) -> "Message":
         """Convenience method to create a tool result message."""
         return cls(

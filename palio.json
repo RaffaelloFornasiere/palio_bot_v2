@@ -23,14 +23,6 @@
       "description": "Torneo di calcio a cinque con girone all’italiana. Le prime quattro classificate disputano le finali. La vittoria è premiata con 3 punti, il pareggio con 1 punto e la sconfitta con 0 punti. Le partite sono suddivise in 2 tempi da 20 minuti con 5 minuti di pausa. Obbligatorio indossare parastinchi e scarpe da calcetto/ginnastica senza tacchetti.",
       "measure_unit": "points",
       "status": "in-progress",
-      "results": [
-        {
-          "team1": "Villa",
-          "team2": "Sottomonte",
-          "score1": 1,
-          "score2": 2
-        }
-      ]
     },
     {
       "game_id": "G03",
