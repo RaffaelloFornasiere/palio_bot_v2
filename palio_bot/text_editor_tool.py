@@ -67,11 +67,19 @@ class TextEditorTool:
             with open(self.file_path, 'r', encoding='utf-8') as f:
                 current_content = f.read()
             
-            # Check if old_string exists
+            # Check if old_string exists and count occurrences
             if old_string not in current_content:
                 return ToolResult(
                     success=False,
                     error=f"Stringa non trovata: '{old_string}'"
+                )
+            
+            # Check for multiple occurrences
+            occurrence_count = current_content.count(old_string)
+            if occurrence_count > 1:
+                return ToolResult(
+                    success=False,
+                    error=f"Trovate {occurrence_count} occorrenze di '{old_string}'. Usa una stringa più specifica per sostituire una sola occorrenza."
                 )
             
             # Backup current content for undo

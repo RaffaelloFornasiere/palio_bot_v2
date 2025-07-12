@@ -22,12 +22,38 @@
       "type": "round-robin",
       "description": "Torneo di calcio a cinque con girone all’italiana. Le prime quattro classificate disputano le finali. La vittoria è premiata con 3 punti, il pareggio con 1 punto e la sconfitta con 0 punti. Le partite sono suddivise in 2 tempi da 20 minuti con 5 minuti di pausa. Obbligatorio indossare parastinchi e scarpe da calcetto/ginnastica senza tacchetti.",
       "measure_unit": "points",
-      "status": "not-started"
+      "status": "in-progress",
+      "matches": [
+        {
+          "team1": "Sottocastello",
+          "team2": "Villa",
+          "score1": 3,
+          "score2": 2,
+          "points1": 3,
+          "points2": 0
+        },
+        {
+          "team1": "Sornico",
+          "team2": "Sottomonte",
+          "score1": 2,
+          "score2": 1,
+          "points1": 3,
+          "points2": 0
+        },
+        {
+          "team1": "Villa",
+          "team2": "Sornico",
+          "score1": 5,
+          "score2": 0,
+          "points1": 3,
+          "points2": 0
+        }
+      ]
     },
     {
       "game_id": "G03",
       "name": "Taglio del Tronco",
-      "type": "time-based",
+      "type": "score-based",
       "description": "Il gioco consiste nel tagliare un tronco con una sega. Due concorrenti impugnano la sega, mentre un terzo borghesano tiene fermo il tronco. Si disputano due manches: una per gli uomini e una per le donne. Il tempo massimo per il taglio è fissato dalla C.P. e, se non ultimato, verranno misurati i cm tagliati.",
       "measure_unit": "time",
       "status": "not-started"
@@ -59,7 +85,7 @@
     {
       "game_id": "G07",
       "name": "Staffetta",
-      "type": "time-based",
+      "type": "score-based",
       "description": "Staffetta con 4 concorrenti per borgo (2 maschi e 2 femmine). La staffetta segue un percorso stabilito e si effettuano 3 cambi. Vince la squadra che impiega meno tempo a effettuare il percorso. Ogni concorrente sarà seguito da un responsabile di un borgo avversario.",
       "measure_unit": "time",
       "status": "not-started"
@@ -75,7 +101,7 @@
     {
       "game_id": "G09",
       "name": "Bocce",
-      "type": "points-based",
+      "type": "score-based",
       "description": "Ogni squadra è composta da 2 giocatori (un maschio e una femmina), non tesserati FIB, che giocano con tre bocce a testa tipo Petanque. Le partite hanno una durata di 30 minuti o al raggiungimento dei 9 punti. La squadra vincente guadagna due punti, in caso di pareggio un punto per squadra, più la differenza punti.",
       "measure_unit": "points",
       "status": "not-started"
@@ -99,7 +125,7 @@
     {
       "game_id": "G12",
       "name": "Corsa coi Sacchi",
-      "type": "time-based",
+      "type": "score-based",
       "description": "Staffetta con 4 giocatori per borgo (2 uomini e 2 donne). Tutti i borghi partecipano contemporaneamente. I giocatori devono saltellare all’interno di un sacco di juta. La classifica è stabilita in base all’ordine di arrivo. Ogni penalità comporta 5 secondi aggiunti al tempo totale.",
       "measure_unit": "time_seconds",
       "status": "not-started"
@@ -115,7 +141,7 @@
     {
       "game_id": "G14",
       "name": "Strade Mate",
-      "type": "time-based",
+      "type": "score-based",
       "description": "Il percorso è formato da 5 tappe. Ogni squadra è composta da tre elementi (almeno uno di sesso differente). Due componenti della squadra sono bendati, mentre il terzo non bendato fa da guida. Lo scopo è completare il percorso nel minor tempo possibile. Gli altri borghi possono creare rumore per rallentare.",
       "measure_unit": "time_seconds",
       "status": "not-started"
@@ -123,7 +149,7 @@
     {
       "game_id": "G15",
       "name": "Intesa Vincente",
-      "type": "points-based",
+      "type": "score-based",
       "description": "Ogni squadra è composta da tre giocatori. Due concorrenti devono far indovinare una parola al terzo, ponendogli una domanda alternativamente una sola parola a testa. Si svolgono due match da sessanta secondi. Ogni risposta corretta vale un punto, ogni errore sottrae un punto. La squadra con il punteggio maggiore vince.",
       "measure_unit": "points",
       "status": "not-started"

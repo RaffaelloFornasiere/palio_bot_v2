@@ -40,42 +40,58 @@ class System:
         Returns:
             The final assistant response message
         """
-        # Create new session if none exists
-        if self.active_session is None:
-            self._create_session()
-        
-        # Add user message to session
-        user_msg = Message.text(role="user", text=user_message)
-        self.active_session.add_message(user_msg)
-        
-        # Get current palio.json content as context
-        context = self._get_palio_context()
-        
-        # Process messages through agent
-        response_messages = await self.agent.process_messages(
-            messages=self.active_session.messages,
-            context=context
-        )
-        
-        # Add all response messages to session
-        for msg in response_messages:
-            self.active_session.add_message(msg)
-        
-        # Save session after interaction
-        self._save_session()
-        
-        # Return the final assistant message (last text message)
-        for msg in reversed(response_messages):
-            if msg.role == "assistant" and any(
-                isinstance(content, TextContent) for content in msg.content
-            ):
-                return msg
-        
-        # Fallback: return last message
-        return response_messages[-1] if response_messages else Message.text(
-            role="assistant", 
-            text="Nessuna risposta disponibile."
-        )
+        try:
+            # Create new session if none exists
+            if self.active_session is None:
+                print("🔧 Creating new session...")
+                self._create_session()
+            
+            # Add user message to session
+            print("📝 Adding user message to session...")
+            user_msg = Message.text(role="user", text=user_message)
+            self.active_session.add_message(user_msg)
+            
+            # Get current palio.json content as context
+            print("📄 Getting palio.json context...")
+            context = self._get_palio_context()
+            
+            # Process messages through agent
+            print("🤖 Processing messages through agent...")
+            response_messages = await self.agent.process_messages(
+                messages=self.active_session.messages,
+                context=context
+            )
+            
+            print(f"📨 Received {len(response_messages)} response messages")
+            
+            # Add all response messages to session
+            for msg in response_messages:
+                self.active_session.add_message(msg)
+            
+            # Save session after interaction
+            print("💾 Saving session...")
+            self._save_session()
+            
+            # Return the final assistant message (last text message)
+            for msg in reversed(response_messages):
+                if msg.role == "assistant" and any(
+                    isinstance(content, TextContent) for content in msg.content
+                ):
+                    print("✅ Found assistant text message")
+                    return msg
+            
+            # Fallback: return last message
+            print("⚠️ No assistant text message found, returning last message")
+            return response_messages[-1] if response_messages else Message.text(
+                role="assistant", 
+                text="Nessuna risposta disponibile."
+            )
+            
+        except Exception as e:
+            print(f"💥 Error in send_message: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
     
     def close_session(self) -> None:
         """Close the active session normally, keeping all changes."""
@@ -117,7 +133,9 @@ class System:
         
         # Create backup of current palio.json
         if self.palio_file_path.exists():
-            self.palio_backup_path = Path(f"palio_backup_{session_id}.json")
+            backup_dir = Path("backups")
+            backup_dir.mkdir(exist_ok=True)
+            self.palio_backup_path = backup_dir / f"palio_backup_{session_id}.json"
             shutil.copy2(self.palio_file_path, self.palio_backup_path)
     
     def _save_session(self) -> None:
@@ -126,7 +144,7 @@ class System:
             return
         
         with open(self.session_file_path, 'w', encoding='utf-8') as f:
-            json.dump(self.active_session.model_dump(), f, ensure_ascii=False, indent=2)
+            json.dump(self.active_session.model_dump(mode='json'), f, ensure_ascii=False, indent=2)
     
     def _load_session(self) -> None:
         """Load session from file if it exists."""
@@ -140,8 +158,8 @@ class System:
             self.active_session = Session.model_validate(session_data)
             
             # Look for corresponding backup file
-            backup_pattern = f"palio_backup_{self.active_session.id}.json"
-            backup_path = Path(backup_pattern)
+            backup_dir = Path("backups")
+            backup_path = backup_dir / f"palio_backup_{self.active_session.id}.json"
             if backup_path.exists():
                 self.palio_backup_path = backup_path
                 
@@ -159,7 +177,7 @@ class System:
             with open(self.palio_file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            return [TextContent(text=f"Contenuto attuale di {self.palio_file_path.name}:\n{content}")]
+            return [TextContent(text=f"Contenuto attuale di {self.palio_file_path.name}:\n```json\n{content}```")]
             
         except Exception as e:
             return [TextContent(text=f"Errore nel leggere {self.palio_file_path.name}: {str(e)}")]

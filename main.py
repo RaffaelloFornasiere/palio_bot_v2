@@ -2,19 +2,36 @@
 
 import asyncio
 import sys
+import os
 from pathlib import Path
-
+from dotenv import load_dotenv
 from palio_bot.container import Container
 from palio_bot.models import TextContent
 
+load_dotenv()
 
 async def main():
     """Main CLI function."""
     print("🎭 Palio Bot - Sistema di gestione dati palio")
     print("=" * 50)
     
-    # Initialize container
-    container = Container()
+    # Check for LLM provider from environment
+    llm_provider = os.getenv("LLM_PROVIDER", "llamacpp")
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    
+    # Initialize container with appropriate provider
+    if llm_provider == "anthropic":
+        if not anthropic_api_key:
+            print("❌ Errore: ANTHROPIC_API_KEY non trovata nell'ambiente")
+            print("   Imposta la variabile d'ambiente ANTHROPIC_API_KEY per usare Anthropic")
+            print("   oppure usa LLM_PROVIDER=llamacpp per usare il modello locale")
+            sys.exit(1)
+        print(f"🤖 Usando Anthropic Claude come LLM provider")
+        container = Container(llm_provider="anthropic", anthropic_api_key=anthropic_api_key)
+    else:
+        print(f"🤖 Usando LlamaCPP locale come LLM provider")
+        container = Container(llm_provider="llamacpp")
+    
     await container.init_container()
     system = container.system()
     
@@ -87,9 +104,13 @@ async def main():
                         break
                 else:
                     print("Nessuna risposta testuale disponibile.")
+                    print(f"Contenuto ricevuto: {[type(c).__name__ for c in response.content]}")
                     
             except Exception as e:
+                import traceback
                 print(f"❌ Errore: {str(e)}")
+                print(f"📋 Dettagli errore:")
+                print(traceback.format_exc())
                 
         except KeyboardInterrupt:
             print("\n\n👋 Interrotto dall'utente. Arrivederci!")

@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from .base_client import BaseLLMClient
-from ..models import Message, TextContent, ToolUseContent, Tool
+from ..models import Message, TextContent, ToolUseContent, ToolResultContent, Tool
 
 
 class LlamaCPPClient(BaseLLMClient):
@@ -49,8 +49,10 @@ class LlamaCPPClient(BaseLLMClient):
         if tools:
             payload["tools"] = self._convert_tools_to_openai(tools)
             payload["tool_choice"] = "auto"
+
+        payload["cache_prompt"] = True  # Enable caching for LlamaCPP
         
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=300.0) as client:
             response = await client.post(
                 self.chat_endpoint,
                 json=payload,
@@ -92,6 +94,37 @@ class LlamaCPPClient(BaseLLMClient):
             if msg.role == "event":
                 continue  # Skip event messages for LLM
                 
+            # Handle messages with ToolResultContent specially in OpenAI format
+            if any(isinstance(content, ToolResultContent) for content in msg.content):
+                # OpenAI format requires tool results as separate "tool" role messages
+                for content in msg.content:
+                    if isinstance(content, ToolResultContent):
+                        tool_msg = {
+                            "role": "tool",
+                            "tool_call_id": content.tool_use_id,
+                            "content": ""
+                        }
+                        
+                        # Format tool result content
+                        if content.tool_result.success:
+                            result_text = ""
+                            if content.tool_result.message:
+                                result_text = content.tool_result.message
+                            if content.tool_result.data:
+                                if result_text:
+                                    result_text += "\n"
+                                result_text += json.dumps(content.tool_result.data, indent=2)
+                            tool_msg["content"] = result_text or "Success"
+                        else:
+                            # Use error field for error messages when success=False
+                            error_msg = f"Tool error: {content.tool_result.error or content.tool_result.message or 'Unknown error'}"
+                            if content.tool_result.data:
+                                error_msg += f"\n{json.dumps(content.tool_result.data, indent=2)}"
+                            tool_msg["content"] = error_msg
+                        
+                        openai_messages.append(tool_msg)
+                continue
+            
             openai_msg = {"role": msg.role}
             
             # Handle different content types
@@ -119,7 +152,6 @@ class LlamaCPPClient(BaseLLMClient):
                                 "arguments": json.dumps(content.tool_parameters)
                             }
                         })
-                    # ToolResultContent is handled differently in OpenAI format
                 
                 if content_parts:
                     openai_msg["content"] = content_parts if len(content_parts) > 1 else content_parts[0]["text"]
@@ -127,6 +159,9 @@ class LlamaCPPClient(BaseLLMClient):
                     openai_msg["tool_calls"] = tool_calls
                     if "content" not in openai_msg:
                         openai_msg["content"] = None
+                else:
+                    # Ensure all messages have content field
+                    openai_msg["content"] = ""
             
             openai_messages.append(openai_msg)
         
