@@ -12,7 +12,7 @@ from .models import Tool, ToolResult
 class JSONEditorTool:
     """Tool for editing JSON files using JSONPath expressions."""
     
-    def __init__(self, file_path: str = "palio.json"):
+    def __init__(self, file_path: str = "palio_updated.json"):
         self.file_path = Path(file_path)
         self._last_content: Optional[str] = None
     
@@ -466,7 +466,7 @@ class JSONEditorTool:
             )
 
 
-def create_json_editor_tools(file_path: str = "palio.json") -> Dict[str, Tool]:
+def create_json_editor_tools(file_path: str = "palio_updated.json") -> Dict[str, Tool]:
     """Create all JSON editor tools for the given file."""
     editor = JSONEditorTool(file_path)
     

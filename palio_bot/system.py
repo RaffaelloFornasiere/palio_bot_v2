@@ -23,7 +23,7 @@ class System:
         self.palio_file_path = Path(palio_file_path)
         self.session_file_path = Path(session_file_path)
         self.active_session: Optional[Session] = None
-        self.palio_backup_path: Optional[Path] = None
+        self.palio_updated_path = Path("palio_updated.json")
         
         # Load existing session if available
         self._load_session()
@@ -94,29 +94,31 @@ class System:
             raise
     
     def close_session(self) -> None:
-        """Close the active session normally, keeping all changes."""
+        """Close the active session normally, copying palio_updated.json to palio.json."""
         if self.active_session is None:
             return
         
+        # Copy palio_updated.json to palio.json
+        if self.palio_updated_path.exists():
+            shutil.copy2(self.palio_updated_path, self.palio_file_path)
+            self.palio_updated_path.unlink()  # Remove palio_updated.json
+        
         self.active_session = None
-        self.palio_backup_path = None
         
         # Remove session file
         if self.session_file_path.exists():
             self.session_file_path.unlink()
     
     def cancel_session(self) -> None:
-        """Cancel the active session and rollback to previous state."""
+        """Cancel the active session and discard changes in palio_updated.json."""
         if self.active_session is None:
             return
         
-        # Restore palio.json from backup if exists
-        if self.palio_backup_path and self.palio_backup_path.exists():
-            shutil.copy2(self.palio_backup_path, self.palio_file_path)
-            self.palio_backup_path.unlink()  # Remove backup
+        # Simply remove palio_updated.json to discard changes
+        if self.palio_updated_path.exists():
+            self.palio_updated_path.unlink()
         
         self.active_session = None
-        self.palio_backup_path = None
         
         # Remove session file
         if self.session_file_path.exists():
@@ -127,16 +129,17 @@ class System:
         return self.active_session
     
     def _create_session(self) -> None:
-        """Create a new session and backup current palio.json state."""
+        """Create a new session and copy palio.json to palio_updated.json."""
         session_id = str(uuid.uuid4())
         self.active_session = Session(id=session_id)
         
-        # Create backup of current palio.json
+        # Copy palio.json to palio_updated.json for editing
         if self.palio_file_path.exists():
-            backup_dir = Path("backups")
-            backup_dir.mkdir(exist_ok=True)
-            self.palio_backup_path = backup_dir / f"palio_backup_{session_id}.json"
-            shutil.copy2(self.palio_file_path, self.palio_backup_path)
+            shutil.copy2(self.palio_file_path, self.palio_updated_path)
+        else:
+            # Create empty palio_updated.json if palio.json doesn't exist
+            with open(self.palio_updated_path, 'w', encoding='utf-8') as f:
+                json.dump({}, f)
     
     def _save_session(self) -> None:
         """Save the current session to file."""
@@ -157,11 +160,10 @@ class System:
             
             self.active_session = Session.model_validate(session_data)
             
-            # Look for corresponding backup file
-            backup_dir = Path("backups")
-            backup_path = backup_dir / f"palio_backup_{self.active_session.id}.json"
-            if backup_path.exists():
-                self.palio_backup_path = backup_path
+            # Check if palio_updated.json exists (session was interrupted)
+            if not self.palio_updated_path.exists() and self.palio_file_path.exists():
+                # Recreate palio_updated.json from palio.json
+                shutil.copy2(self.palio_file_path, self.palio_updated_path)
                 
         except Exception as e:
             # If session loading fails, remove corrupted file
@@ -169,7 +171,7 @@ class System:
             print(f"Sessione corrotta rimossa: {e}")
     
     def _get_palio_context(self) -> List[TextContent]:
-        """Get current palio.json content as context."""
+        """Get original palio.json content as context (not palio_updated.json)."""
         if not self.palio_file_path.exists():
             return [TextContent(text="File palio.json non trovato.")]
         

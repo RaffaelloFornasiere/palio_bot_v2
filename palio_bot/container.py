@@ -59,9 +59,9 @@ class Container:
         """Get or create tools based on configuration."""
         if self._tools is None:
             if self.use_json_editor:
-                self._tools = create_json_editor_tools(file_path=self.palio_file_path)
+                self._tools = create_json_editor_tools(file_path="palio_updated.json")
             else:
-                self._tools = create_text_editor_tools(file_path=self.palio_file_path)
+                self._tools = create_text_editor_tools(file_path="palio_updated.json")
         return self._tools
 
     def agent(self) -> Agent:

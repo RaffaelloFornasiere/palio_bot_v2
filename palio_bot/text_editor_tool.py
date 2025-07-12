@@ -11,7 +11,7 @@ from .models import Tool, ToolResult
 class TextEditorTool:
     """Tool for editing the palio.json file with view, str_replace, insert, and undo operations."""
     
-    def __init__(self, file_path: str = "palio.json"):
+    def __init__(self, file_path: str = "palio_updated.json"):
         self.file_path = Path(file_path)
         self.backup_path = Path(f"{file_path}.backup")
         self._last_content: Optional[str] = None
@@ -205,7 +205,7 @@ class TextEditorTool:
             )
 
 
-def create_text_editor_tools(file_path: str = "palio.json") -> Dict[str, Tool]:
+def create_text_editor_tools(file_path: str = "palio_updated.json") -> Dict[str, Tool]:
     """Create all text editor tools for the given file."""
     editor = TextEditorTool(file_path)
     
