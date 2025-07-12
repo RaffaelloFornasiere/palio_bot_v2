@@ -21,3 +21,5 @@ backups/
 session.json
 
 .env
+
+palio_updated.json
