@@ -1,173 +1,192 @@
-"""CLI for the palio bot system."""
+"""CLI with event system for real-time updates."""
 
 import asyncio
-import sys
 import os
+import json
 from pathlib import Path
-from dotenv import load_dotenv
+from rich.console import Console
+from rich.prompt import Prompt
+from rich.panel import Panel
+from rich.markdown import Markdown
+
 from palio_bot.container import Container
 from palio_bot.models import TextContent
 
-load_dotenv()
+
+console = Console()
+
+
+def print_welcome():
+    """Print welcome message."""
+    console.print(Panel.fit(
+        "[bold cyan]🎭 Palio Bot - Sistema di Gestione Dati[/bold cyan]\n\n"
+        "Benvenuto! Sono qui per aiutarti a gestire i dati del palio.\n"
+        "Posso aggiornare eventi, risultati e classifiche.\n\n"
+        "[dim]Comandi speciali:[/dim]\n"
+        "[green]/close[/green] - Chiudi sessione salvando modifiche\n"
+        "[yellow]/cancel[/yellow] - Annulla sessione scartando modifiche\n"
+        "[blue]/status[/blue] - Mostra stato sistema\n"
+        "[red]/quit[/red] - Esci dal programma",
+        title="Sistema Palio Bot",
+        border_style="cyan"
+    ))
+
+
+def print_status(system):
+    """Print system status."""
+    session = system.get_active_session()
+    
+    if session:
+        console.print(f"\n[green]✓ Sessione attiva:[/green] {session.id}")
+        console.print(f"[green]✓ Messaggi:[/green] {len(session.messages)}")
+        
+        # Check if palio_updated.json exists
+        updated_path = Path("palio_updated.json")
+        if updated_path.exists():
+            console.print(f"[green]✓ File temporaneo:[/green] palio_updated.json presente")
+        else:
+            console.print(f"[yellow]⚠ File temporaneo:[/yellow] palio_updated.json non trovato")
+    else:
+        console.print("\n[yellow]⚠ Nessuna sessione attiva[/yellow]")
+    
+    # Check palio.json
+    palio_path = Path("palio.json")
+    if palio_path.exists():
+        console.print(f"[green]✓ File dati:[/green] palio.json presente")
+    else:
+        console.print(f"[red]✗ File dati:[/red] palio.json non trovato")
+
+
+async def handle_commands(command: str, system, container) -> bool:
+    """Handle special commands. Returns True if should continue, False to exit."""
+    command = command.lower().strip()
+    
+    if command == "/quit":
+        if system.get_active_session():
+            console.print("\n[yellow]⚠ Sessione attiva presente.[/yellow]")
+            console.print("Usa [green]/close[/green] per salvare o [yellow]/cancel[/yellow] per annullare.")
+            return True
+        return False
+    
+    elif command == "/close":
+        if system.get_active_session():
+            system.close_session()
+            console.print("\n[green]✓ Sessione chiusa e modifiche salvate in palio.json[/green]")
+        else:
+            console.print("\n[yellow]Nessuna sessione da chiudere[/yellow]")
+        return True
+    
+    elif command == "/cancel":
+        if system.get_active_session():
+            system.cancel_session()
+            console.print("\n[yellow]✓ Sessione annullata, modifiche scartate[/yellow]")
+        else:
+            console.print("\n[yellow]Nessuna sessione da annullare[/yellow]")
+        return True
+    
+    elif command == "/status":
+        print_status(system)
+        return True
+    
+    else:
+        console.print(f"\n[red]Comando non riconosciuto: {command}[/red]")
+        return True
+
+
+def ensure_palio_json_exists():
+    """Ensure palio.json exists with a basic structure."""
+    palio_path = Path("palio.json")
+    if not palio_path.exists():
+        console.print("\n[yellow]File palio.json non trovato. Creazione file base...[/yellow]")
+        
+        basic_structure = {
+            "palio": {
+                "anno": 2024,
+                "borghi": ["villa", "salt", "badia", "sottocastello"],
+                "eventi": []
+            }
+        }
+        
+        with open(palio_path, 'w', encoding='utf-8') as f:
+            json.dump(basic_structure, f, ensure_ascii=False, indent=2)
+        
+        console.print("[green]✓ File palio.json creato con struttura base[/green]")
+
 
 async def main():
-    """Main CLI function."""
-    print("🎭 Palio Bot - Sistema di gestione dati palio")
-    print("=" * 50)
+    """Main CLI entry point with event system."""
+    print_welcome()
+    ensure_palio_json_exists()
     
-    # Check for LLM provider from environment
+    # Get configuration from environment or use defaults
+    llamacpp_url = os.getenv("LLAMACPP_URL", "http://mac-studio.local:11454")
     llm_provider = os.getenv("LLM_PROVIDER", "llamacpp")
     anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
     
-    # Initialize container with appropriate provider
-    if llm_provider == "anthropic":
-        if not anthropic_api_key:
-            print("❌ Errore: ANTHROPIC_API_KEY non trovata nell'ambiente")
-            print("   Imposta la variabile d'ambiente ANTHROPIC_API_KEY per usare Anthropic")
-            print("   oppure usa LLM_PROVIDER=llamacpp per usare il modello locale")
-            sys.exit(1)
-        print(f"🤖 Usando Anthropic Claude come LLM provider")
-        container = Container(llm_provider="anthropic", anthropic_api_key=anthropic_api_key)
-    else:
-        print(f"🤖 Usando LlamaCPP locale come LLM provider")
-        container = Container(llm_provider="llamacpp")
+    # Create container and initialize
+    console.print("\n[dim]Inizializzazione sistema...[/dim]")
+    container = Container(
+        llamacpp_url=llamacpp_url,
+        llm_provider=llm_provider,
+        anthropic_api_key=anthropic_api_key,
+        use_json_editor=True  # Use JSON editor by default
+    )
     
-    await container.init_container()
+    try:
+        await container.init_container()
+    except Exception as e:
+        console.print(f"\n[red]Errore durante l'inizializzazione: {e}[/red]")
+        return
+    
+    # Get services
     system = container.system()
+    cli_consumer = container.cli_consumer()
     
-    # Check if palio.json exists, create basic one if not
-    palio_path = Path("palio.json")
-    if not palio_path.exists():
-        print("📄 Creando palio.json di base...")
-        basic_palio = {
-            "palio": {
-                "anno": 2024,
-                "eventi": [],
-                "contrade": []
-            }
-        }
-        import json
-        with open(palio_path, 'w', encoding='utf-8') as f:
-            json.dump(basic_palio, f, ensure_ascii=False, indent=2)
-        print(f"✅ Creato {palio_path}")
+    console.print("[green]✓ Sistema inizializzato[/green]")
     
-    # Show current session status
-    active_session = system.get_active_session()
-    if active_session:
-        print(f"📝 Sessione attiva: {active_session.id}")
-        print(f"   Messaggi: {len(active_session.messages)}")
-    else:
-        print("📝 Nessuna sessione attiva")
-    
-    print("\nComandi disponibili:")
-    print("  - Scrivi un messaggio per interagire con l'assistente")
-    print("  - '/close' per chiudere la sessione")
-    print("  - '/cancel' per annullare la sessione e ripristinare backup")
-    print("  - '/status' per vedere lo stato del sistema")
-    print("  - '/quit' per uscire")
-    print()
-    
+    # Main interaction loop
     while True:
         try:
             # Get user input
-            user_input = input("👤 Tu: ").strip()
+            user_input = Prompt.ask("\n[bold cyan]>[/bold cyan]")
             
-            if not user_input:
+            if not user_input.strip():
                 continue
             
-            # Handle commands
-            if user_input == "/quit":
-                print("👋 Arrivederci!")
-                break
-            elif user_input == "/close":
-                system.close_session()
-                print("✅ Sessione chiusa")
-                continue
-            elif user_input == "/cancel":
-                system.cancel_session()
-                print("↩️  Sessione annullata e backup ripristinato")
-                continue
-            elif user_input == "/status":
-                await show_status(system)
+            # Handle special commands
+            if user_input.startswith("/"):
+                should_continue = await handle_commands(user_input, system, container)
+                if not should_continue:
+                    break
                 continue
             
-            # Send message to system
-            print("🤖 Assistente: ", end="", flush=True)
+            # Set current session for CLI consumer
+            if system.active_session:
+                cli_consumer.current_session_id = system.active_session.id
             
+            # Process message - events will be displayed in real-time
             try:
-                response = await system.send_message(user_input)
-                
-                # Print assistant response
-                for content in response.content:
-                    if isinstance(content, TextContent):
-                        print(content.text)
-                        break
-                else:
-                    print("Nessuna risposta testuale disponibile.")
-                    print(f"Contenuto ricevuto: {[type(c).__name__ for c in response.content]}")
-                    
+                await system.send_message(user_input)
             except Exception as e:
+                console.print(f"\n[red]Errore: {e}[/red]")
                 import traceback
-                print(f"❌ Errore: {str(e)}")
-                print(f"📋 Dettagli errore:")
-                print(traceback.format_exc())
+                console.print(f"[dim]{traceback.format_exc()}[/dim]")
                 
         except KeyboardInterrupt:
-            print("\n\n👋 Interrotto dall'utente. Arrivederci!")
-            break
-        except EOFError:
-            print("\n\n👋 Arrivederci!")
-            break
-
-
-async def show_status(system):
-    """Show system status."""
-    print("\n📊 Stato del sistema:")
-    print("-" * 30)
+            console.print("\n\n[yellow]Interruzione da tastiera[/yellow]")
+            if system.get_active_session():
+                console.print("Usa [green]/close[/green] per salvare o [yellow]/cancel[/yellow] per annullare.")
+            else:
+                break
+        except Exception as e:
+            console.print(f"\n[red]Errore inaspettato: {e}[/red]")
+            import traceback
+            console.print(f"[dim]{traceback.format_exc()}[/dim]")
     
-    # Session info
-    active_session = system.get_active_session()
-    if active_session:
-        print(f"📝 Sessione attiva: {active_session.id}")
-        print(f"   Creata: {active_session.creation_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"   Messaggi: {len(active_session.messages)}")
-        
-        # Count message types
-        user_msgs = sum(1 for msg in active_session.messages if msg.role == "user")
-        assistant_msgs = sum(1 for msg in active_session.messages if msg.role == "assistant")
-        print(f"   - Utente: {user_msgs}")
-        print(f"   - Assistente: {assistant_msgs}")
-    else:
-        print("📝 Nessuna sessione attiva")
-    
-    # File info
-    palio_path = Path("palio.json")
-    if palio_path.exists():
-        size = palio_path.stat().st_size
-        print(f"📄 palio.json: {size} bytes")
-    else:
-        print("📄 palio.json: Non trovato")
-    
-    session_path = Path("session.json")
-    if session_path.exists():
-        size = session_path.stat().st_size
-        print(f"💾 session.json: {size} bytes")
-    else:
-        print("💾 session.json: Non trovato")
-    
-    # Backup info
-    backup_files = list(Path(".").glob("palio_backup_*.json"))
-    if backup_files:
-        print(f"🔄 Backup files: {len(backup_files)}")
-    else:
-        print("🔄 Nessun backup trovato")
-    
-    print()
+    # Cleanup
+    await container.stream().stop_processing()
+    console.print("\n[cyan]Arrivederci! 👋[/cyan]")
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n👋 Arrivederci!")
-        sys.exit(0)
+    asyncio.run(main())

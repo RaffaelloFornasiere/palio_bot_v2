@@ -1,4 +1,4 @@
-"""System coordinator for managing sessions and agent interactions."""
+"""System coordinator with event streaming support."""
 
 import json
 import uuid
@@ -8,18 +8,21 @@ from typing import Dict, List, Optional
 
 from .models import Message, Session, TextContent, Tool
 from .agent import Agent
+from .stream import Stream
 
 
 class System:
-    """Main coordinator that manages sessions and orchestrates agent interactions."""
+    """Main coordinator that manages sessions and orchestrates agent interactions with event streaming."""
     
     def __init__(
         self, 
-        agent: Agent, 
+        agent: Agent,
+        stream: Stream,
         palio_file_path: str = "palio.json",
         session_file_path: str = "session.json"
     ):
         self.agent = agent
+        self.stream = stream
         self.palio_file_path = Path(palio_file_path)
         self.session_file_path = Path(session_file_path)
         self.active_session: Optional[Session] = None
@@ -29,7 +32,7 @@ class System:
         self._load_session()
     
     async def send_message(self, user_message: str) -> Message:
-        """Send a message to the system.
+        """Send a message to the system with event streaming.
         
         If there's an active session, continue the conversation.
         Otherwise, create a new session.
@@ -43,53 +46,32 @@ class System:
         try:
             # Create new session if none exists
             if self.active_session is None:
-                print("🔧 Creating new session...")
                 self._create_session()
             
-            # Add user message to session
-            print("📝 Adding user message to session...")
-            user_msg = Message.text(role="user", text=user_message)
-            self.active_session.add_message(user_msg)
-            
             # Get current palio.json content as context
-            print("📄 Getting palio.json context...")
-            context = self._get_palio_context()
+            context = self._get_palio_context_string()
             
-            # Process messages through agent
-            print("🤖 Processing messages through agent...")
-            response_messages = await self.agent.process_messages(
-                messages=self.active_session.messages,
+            # Process message through agent with events
+            # The agent will emit events during processing
+            response_message = await self.agent.run(
+                message=user_message,
+                session_id=self.active_session.id,
                 context=context
             )
             
-            print(f"📨 Received {len(response_messages)} response messages")
-            
-            # Add all response messages to session
-            for msg in response_messages:
-                self.active_session.add_message(msg)
+            # Add messages to session for persistence
+            user_msg = Message.text(role="user", text=user_message)
+            self.active_session.add_message(user_msg)
+            self.active_session.add_message(response_message)
             
             # Save session after interaction
-            print("💾 Saving session...")
             self._save_session()
             
-            # Return the final assistant message (last text message)
-            for msg in reversed(response_messages):
-                if msg.role == "assistant" and any(
-                    isinstance(content, TextContent) for content in msg.content
-                ):
-                    print("✅ Found assistant text message")
-                    return msg
-            
-            # Fallback: return last message
-            print("⚠️ No assistant text message found, returning last message")
-            return response_messages[-1] if response_messages else Message.text(
-                role="assistant", 
-                text="Nessuna risposta disponibile."
-            )
+            return response_message
             
         except Exception as e:
-            print(f"💥 Error in send_message: {str(e)}")
             import traceback
+            print(f"Error in send_message: {str(e)}")
             traceback.print_exc()
             raise
     
@@ -170,16 +152,16 @@ class System:
             self.session_file_path.unlink()
             print(f"Sessione corrotta rimossa: {e}")
     
-    def _get_palio_context(self) -> List[TextContent]:
-        """Get original palio.json content as context (not palio_updated.json)."""
+    def _get_palio_context_string(self) -> str:
+        """Get original palio.json content as a string context."""
         if not self.palio_file_path.exists():
-            return [TextContent(text="File palio.json non trovato.")]
+            return "File palio.json non trovato."
         
         try:
             with open(self.palio_file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            return [TextContent(text=f"Contenuto attuale di {self.palio_file_path.name}:\n```json\n{content}```")]
+            return f"Contenuto attuale di {self.palio_file_path.name}:\n```json\n{content}```"
             
         except Exception as e:
-            return [TextContent(text=f"Errore nel leggere {self.palio_file_path.name}: {str(e)}")]
+            return f"Errore nel leggere {self.palio_file_path.name}: {str(e)}"

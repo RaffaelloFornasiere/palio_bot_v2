@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Telegram bot per la gestione del Palio
+Telegram bot per la gestione del Palio con event system
 """
 
 import asyncio
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -25,11 +25,13 @@ class PalioTelegramBot:
         self.allowed_user_id = allowed_user_id
         self.container: Optional[Container] = None
         self.user_sessions: Dict[int, Session] = {}
+        self.chat_consumers: Dict[int, Any] = {}  # chat_id -> TelegramConsumer
         
     async def initialize(self):
         """Initialize the container and system"""
         self.container = Container()
         await self.container.init_container()
+        logger.info("Container initialized with event system")
         
     def check_user_authorized(self, user_id: int) -> bool:
         """Check if user is authorized"""
@@ -71,6 +73,7 @@ class PalioTelegramBot:
             "• Eventi\n"
             "• Statistiche\n\n"
             "Scrivimi un messaggio per iniziare!\n\n"
+            "🆕 *Novità*: Ora vedrai gli aggiornamenti in tempo reale!\n\n"
             "Comandi disponibili:\n"
             "/status - Mostra lo stato del sistema\n"
             "/cancel - Annulla le modifiche della sessione corrente\n"
@@ -93,19 +96,21 @@ class PalioTelegramBot:
         
         try:
             # Check if user has active session
-            if hasattr(system, 'session') and system.session:
+            if system.active_session:
                 await update.message.reply_text(
                     f"📊 *Stato Sistema*\n\n"
                     f"✅ Sistema attivo\n"
-                    f"📝 Sessione: `{system.session.id[:8]}...`\n"
-                    f"💬 Messaggi: {len(system.session.messages)}",
+                    f"📝 Sessione: `{system.active_session.id[:8]}...`\n"
+                    f"💬 Messaggi: {len(system.active_session.messages)}\n"
+                    f"🔄 Event streaming: ✅ Attivo",
                     parse_mode='Markdown'
                 )
             else:
                 await update.message.reply_text(
                     "📊 *Stato Sistema*\n\n"
                     "✅ Sistema attivo\n"
-                    "❌ Nessuna sessione attiva",
+                    "❌ Nessuna sessione attiva\n"
+                    "🔄 Event streaming: ✅ Attivo",
                     parse_mode='Markdown'
                 )
         except Exception as e:
@@ -157,7 +162,7 @@ class PalioTelegramBot:
             await update.message.reply_text(f"❌ Errore: {str(e)}")
             
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle regular text messages"""
+        """Handle regular text messages with event streaming"""
         if not self.check_user_authorized(update.effective_user.id):
             await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
             return
@@ -168,35 +173,25 @@ class PalioTelegramBot:
             
         system = self.container.system()
         user_message = update.message.text
+        chat_id = update.effective_chat.id
         
-        # Send typing action
-        await context.bot.send_chat_action(
-            chat_id=update.effective_chat.id,
-            action="typing"
-        )
+        # Create or get Telegram consumer for this chat
+        if chat_id not in self.chat_consumers:
+            consumer = self.container.create_telegram_consumer(
+                bot=context.bot,
+                chat_id=chat_id
+            )
+            self.chat_consumers[chat_id] = consumer
+            logger.info(f"Created Telegram consumer for chat {chat_id}")
         
         try:
             # Process message through the system
+            # Events will be sent to Telegram consumer automatically
             response = await system.send_message(user_message)
             
-            # Extract text from response
-            response_text = ""
-            for content in response.content:
-                if hasattr(content, 'text'):
-                    response_text += content.text
-                    
-            # Send response
-            if response_text:
-                # Split long messages
-                max_length = 4096
-                for i in range(0, len(response_text), max_length):
-                    await update.message.reply_text(
-                        response_text[i:i+max_length],
-                        parse_mode='Markdown'
-                    )
-            else:
-                await update.message.reply_text("✅ Operazione completata")
-                
+            # The final response is already sent by the TelegramConsumer
+            # through the AgentCompleteEvent
+            
         except Exception as e:
             logger.error(f"Error processing message: {e}", exc_info=True)
             await update.message.reply_text(
@@ -260,12 +255,12 @@ def main():
     # Initialize bot before starting
     async def post_init(application: Application) -> None:
         await bot.initialize()
-        logger.info("Bot initialized successfully")
+        logger.info("Bot initialized successfully with event system")
     
     application.post_init = post_init
     
     # Run the bot
-    logger.info("Starting bot...")
+    logger.info("Starting bot with event system...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':

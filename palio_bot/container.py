@@ -1,19 +1,23 @@
-"""Simple dependency container for the palio bot application."""
+"""Dependency container with event system integration."""
 
-from typing import Dict, Optional, Literal, Union
+from typing import Dict, Optional, Literal
 
 from .agent import Agent
 from .system import System
+from .stream import Stream
+from .cli_consumer import CLIConsumer
+from .telegram_consumer import TelegramConsumer
 from .text_editor_tool import create_text_editor_tools
 from .json_editor_tool import create_json_editor_tools
 from .llm_clients.llamacpp_client import LlamaCPPClient
 from .llm_clients.anthropic_client import AnthropicClient
 from .llm_clients.base_client import BaseLLMClient
 from .models import Tool
+from telegram import Bot
 
 
 class Container:
-    """Simple dependency container for the application."""
+    """Dependency container with event streaming support."""
 
     def __init__(
         self, 
@@ -41,8 +45,10 @@ class Container:
         # Initialize all services lazily
         self._llm_client: Optional[BaseLLMClient] = None
         self._tools: Optional[Dict[str, Tool]] = None
+        self._stream: Optional[Stream] = None
         self._agent: Optional[Agent] = None
         self._system: Optional[System] = None
+        self._cli_consumer: Optional[CLIConsumer] = None
 
     def llm_client(self) -> BaseLLMClient:
         """Get or create LLM client based on configured provider."""
@@ -64,32 +70,58 @@ class Container:
                 self._tools = create_text_editor_tools(file_path="palio_updated.json")
         return self._tools
 
+    def stream(self) -> Stream:
+        """Get or create event stream."""
+        if self._stream is None:
+            self._stream = Stream()
+        return self._stream
+
     def agent(self) -> Agent:
-        """Get or create agent."""
+        """Get or create agent with event support."""
         if self._agent is None:
             self._agent = Agent(
                 llm_client=self.llm_client(),
-                tools=self.tools()
+                tools=self.tools(),
+                stream=self.stream()
             )
         return self._agent
 
     def system(self) -> System:
-        """Get or create system."""
+        """Get or create system with event support."""
         if self._system is None:
             self._system = System(
                 agent=self.agent(),
+                stream=self.stream(),
                 palio_file_path=self.palio_file_path,
                 session_file_path="session.json"
             )
         return self._system
+    
+    def cli_consumer(self) -> CLIConsumer:
+        """Get or create CLI consumer."""
+        if self._cli_consumer is None:
+            self._cli_consumer = CLIConsumer()
+            # Auto-register with stream
+            self.stream().add_consumer(self._cli_consumer)
+        return self._cli_consumer
+    
+    def create_telegram_consumer(self, bot: Bot, chat_id: int) -> TelegramConsumer:
+        """Create a new Telegram consumer for a specific chat.
+        
+        Note: Telegram consumers are created per-chat, not singleton.
+        """
+        consumer = TelegramConsumer(bot, chat_id)
+        self.stream().add_consumer(consumer)
+        return consumer
 
     async def init_container(self) -> None:
-        """Initialize the container by creating all services."""
-        # Initialize all services to ensure they're created
+        """Initialize the container by creating all services and starting event processing."""
+        # Initialize core services
         self.llm_client()
         self.tools()
+        self.stream()
         self.agent()
         self.system()
         
-        # All initialization is done during service creation
-        # No additional setup needed for this simple system
+        # Start event processing
+        await self.stream().start_processing()

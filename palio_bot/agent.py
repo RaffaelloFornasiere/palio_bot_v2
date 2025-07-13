@@ -1,30 +1,115 @@
-"""Agent implementation for processing messages with tool execution loop."""
+"""Agent implementation with event production for real-time updates."""
 
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .models import Message, TextContent, ToolUseContent, ToolResultContent, Tool, ToolResult
 from .llm_clients.base_client import BaseLLMClient
+from .interfaces import Producer
+from .stream import Stream
+from .events import (
+    UserMessageEvent, AgentUpdateEvent, ToolUseEvent, 
+    ToolResultEvent, AgentCompleteEvent, ErrorEvent
+)
 
 
-class Agent:
-    """Agent that processes messages through LLM and executes tools in a loop."""
+class Agent(Producer):
+    """Agent that processes messages and emits events during execution."""
     
-    def __init__(self, llm_client: BaseLLMClient, tools: Dict[str, Tool]):
+    def __init__(
+        self, 
+        llm_client: BaseLLMClient, 
+        tools: Dict[str, Tool],
+        stream: Stream
+    ):
+        super().__init__(stream)
         self.llm_client = llm_client
         self.tools = tools  # Dict[tool_name, Tool]
         self.system_prompt = self._get_system_prompt()
     
-    async def process_messages(
+    async def run(
+        self, 
+        message: str,
+        session_id: str,
+        context: Optional[str] = None
+    ) -> Message:
+        """Process message and emit events during execution.
+        
+        Args:
+            message: User message to process
+            session_id: Session ID for event tracking
+            context: Optional context (e.g., current palio.json content)
+            
+        Returns:
+            Final Message from the agent
+        """
+        try:
+            # Emit user message event
+            await self.produce(UserMessageEvent(
+                session_id=session_id,
+                content=message
+            ))
+            
+            # Convert context to TextContent if provided
+            context_list = []
+            if context:
+                context_list.append(TextContent(type="text", text=context))
+            
+            # Start with user message
+            messages = [Message.text(role="user", text=message)]
+            
+            # Process through tool loop
+            result_messages = await self._process_with_events(
+                messages, context_list, session_id
+            )
+            
+            # Find the final assistant message with text
+            final_message = None
+            for msg in reversed(result_messages):
+                if msg.role == "assistant":
+                    for content in msg.content:
+                        if isinstance(content, TextContent):
+                            final_message = msg
+                            break
+                    if final_message:
+                        break
+            
+            if final_message:
+                # Emit completion event
+                final_text = " ".join(
+                    c.text for c in final_message.content 
+                    if isinstance(c, TextContent)
+                )
+                await self.produce(AgentCompleteEvent(
+                    session_id=session_id,
+                    final_message=final_text
+                ))
+                return final_message
+            else:
+                raise ValueError("No final text response from agent")
+                
+        except Exception as e:
+            # Emit error event
+            import traceback
+            await self.produce(ErrorEvent(
+                session_id=session_id,
+                error=str(e),
+                traceback=traceback.format_exc()
+            ))
+            raise
+    
+    async def _process_with_events(
         self, 
         messages: List[Message], 
-        context: List[TextContent]
+        context: List[TextContent],
+        session_id: str
     ) -> List[Message]:
-        """Process messages through LLM with tool execution loop.
+        """Process messages through LLM with tool execution loop, emitting events.
         
         Args:
             messages: List of messages in the conversation
-            context: List of TextContent for additional context (e.g., palio.json content)
+            context: List of TextContent for additional context
+            session_id: Session ID for event tracking
             
         Returns:
             List of messages generated during processing
@@ -42,35 +127,55 @@ class Agent:
                 tools=list(self.tools.values())
             )
             
+            # Emit agent update event
+            await self.produce(AgentUpdateEvent(
+                session_id=session_id,
+                message=response_message
+            ))
+            
             # Add LLM response to results and current conversation
             result_messages.append(response_message)
             current_messages.append(response_message)
             
             # Check if response contains tool calls
-            has_tool_calls = any(
-                isinstance(content, ToolUseContent) 
-                for content in response_message.content
-            )
+            tool_uses = [
+                content for content in response_message.content
+                if isinstance(content, ToolUseContent)
+            ]
             
-            if not has_tool_calls:
+            if not tool_uses:
                 # LLM responded with text only, end the loop
                 break
             
-            # Execute any tool calls in the response
-            for content in response_message.content:
-                if isinstance(content, ToolUseContent):
-                    tool_result = await self._execute_tool(content)
-                    
-                    # Create tool result message
-                    result_message = Message.tool_result(
-                        role="user",
-                        tool_result=tool_result,
-                        tool_use_id=content.tool_use_id
-                    )
-                    
-                    # Add to results and current conversation
-                    result_messages.append(result_message)
-                    current_messages.append(result_message)
+            # Process tool uses
+            for tool_use in tool_uses:
+                # Emit tool use event
+                await self.produce(ToolUseEvent(
+                    session_id=session_id,
+                    tool_name=tool_use.tool_name,
+                    parameters=tool_use.tool_parameters
+                ))
+                
+                # Execute tool
+                tool_result = await self._execute_tool(tool_use)
+                
+                # Emit tool result event
+                await self.produce(ToolResultEvent(
+                    session_id=session_id,
+                    tool_name=tool_use.tool_name,
+                    result=tool_result
+                ))
+                
+                # Create tool result message
+                result_message = Message.tool_result(
+                    role="user",
+                    tool_result=tool_result,
+                    tool_use_id=tool_use.tool_use_id
+                )
+                
+                # Add to results and current conversation
+                result_messages.append(result_message)
+                current_messages.append(result_message)
         
         return result_messages
     
@@ -108,7 +213,6 @@ class Agent:
     
     def _get_system_prompt(self) -> str:
         """Get the system prompt for palio data management."""
-        # Check which tools are available
         return """Sei un assistente per la gestione dei dati del palio (festival medievale) in formato JSON.
 
 Il tuo ruolo è aiutare ad aggiornare e mantenere il file palio.json basandoti su richieste in linguaggio naturale.
