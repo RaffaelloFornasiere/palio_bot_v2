@@ -55,95 +55,65 @@
       "endTime": "15:00"
     },
     {
-      "event": "CALCETTO",
-      "startTime": "20:00",
-      "endTime": "21:00"
-    },
-    {
-      "event": "sottocastello-salt",
+      "event": "Calcetto (sottocastello-salt)",
       "startTime": "21:00",
       "endTime": "22:00"
     },
     {
-      "event": "villa-sottomonte",
+      "event": "Calcetto (villa-sottomonte)",
       "startTime": "22:00",
       "endTime": "23:00"
     }
   ],
   "Monday, 4": [
     {
-      "event": "CALCETTO",
-      "startTime": "20:00",
-      "endTime": "21:00"
-    },
-    {
-      "event": "sottomonte-sottocastello",
+      "event": "Calcetto (sottomonte-sottocastello)",
       "startTime": "21:00",
       "endTime": "22:00"
     },
     {
-      "event": "sornico-salt",
+      "event": "Calcetto (sornico-salt)",
       "startTime": "22:00",
       "endTime": "23:00"
     }
   ],
   "Tuesday, 5": [
     {
-      "event": "CALCETTO",
-      "startTime": "20:00",
-      "endTime": "21:00"
-    },
-    {
-      "event": "sornico-villa",
+      "event": "Calcetto (sornico-villa)",
       "startTime": "21:00",
       "endTime": "22:00"
     },
     {
-      "event": "salt-sottomonte",
+      "event": "Calcetto (salt-sottomonte)",
       "startTime": "22:00",
       "endTime": "23:00"
     }
   ],
   "Wednesday, 6": [
     {
-      "event": "CALCETTO",
-      "startTime": "20:00",
-      "endTime": "21:00"
-    },
-    {
-      "event": "villa-salt",
+      "event": "Calcetto (villa-salt)",
       "startTime": "21:00",
       "endTime": "22:00"
     },
     {
-      "event": "sornico-sottocastello",
+      "event": "Calcetto (sornico-sottocastello)",
       "startTime": "22:00",
       "endTime": "23:00"
     }
   ],
   "Thursday, 7": [
     {
-      "event": "CALCETTO",
-      "startTime": "20:00",
-      "endTime": "21:00"
-    },
-    {
-      "event": "sottocastello-villa",
+      "event": "Calcetto (sottocastello-villa)",
       "startTime": "21:00",
       "endTime": "22:00"
     },
     {
-      "event": "sottomonte-sornico",
+      "event": "Calcetto (sottomonte-sornico)",
       "startTime": "22:00",
       "endTime": "23:00"
     }
   ],
   "Friday, 8": [
-    {
-      "event": "CALCETTO",
-      "startTime": "20:00",
-      "endTime": "21:00"
-    },
     {
       "event": "semifinali",
       "startTime": "21:00",
