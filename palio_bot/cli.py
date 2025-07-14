@@ -3,6 +3,8 @@
 import asyncio
 import os
 import json
+import argparse
+import logging
 from pathlib import Path
 from rich.console import Console
 from rich.prompt import Prompt
@@ -11,9 +13,11 @@ from rich.markdown import Markdown
 
 from palio_bot.container import Container
 from palio_bot.models import TextContent
+from palio_bot.logging_config import setup_logging, get_logger
 
 
 console = Console()
+logger = get_logger(__name__)
 
 
 def print_welcome():
@@ -60,6 +64,7 @@ def print_status(system):
 async def handle_commands(command: str, system, container) -> bool:
     """Handle special commands. Returns True if should continue, False to exit."""
     command = command.lower().strip()
+    cli_consumer = container.cli_consumer()
     
     if command == "/quit":
         if system.get_active_session():
@@ -71,6 +76,7 @@ async def handle_commands(command: str, system, container) -> bool:
     elif command == "/close":
         if system.get_active_session():
             system.close_session()
+            cli_consumer.current_session_id = None  # Reset session ID
             console.print("\n[green]✓ Sessione chiusa e modifiche salvate in palio.json[/green]")
         else:
             console.print("\n[yellow]Nessuna sessione da chiudere[/yellow]")
@@ -79,6 +85,7 @@ async def handle_commands(command: str, system, container) -> bool:
     elif command == "/cancel":
         if system.get_active_session():
             system.cancel_session()
+            cli_consumer.current_session_id = None  # Reset session ID
             console.print("\n[yellow]✓ Sessione annullata, modifiche scartate[/yellow]")
         else:
             console.print("\n[yellow]Nessuna sessione da annullare[/yellow]")
@@ -115,6 +122,18 @@ def ensure_palio_json_exists():
 
 async def main():
     """Main CLI entry point with event system."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Palio Bot CLI")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--no-log-file", action="store_true", help="Disable logging to file")
+    args = parser.parse_args()
+    
+    # Setup logging
+    setup_logging(debug=args.debug, log_file=not args.no_log_file)
+    
+    logger.info("Starting Palio Bot CLI")
+    logger.debug(f"Debug mode: {args.debug}")
+    
     print_welcome()
     ensure_palio_json_exists()
     
@@ -135,7 +154,10 @@ async def main():
     try:
         await container.init_container()
     except Exception as e:
+        logger.error(f"Failed to initialize container: {e}", exc_info=True)
         console.print(f"\n[red]Errore durante l'inizializzazione: {e}[/red]")
+        if args.debug:
+            console.print("[dim]Controlla i log per maggiori dettagli[/dim]")
         return
     
     # Get services
@@ -160,32 +182,37 @@ async def main():
                     break
                 continue
             
-            # Set current session for CLI consumer
-            if system.active_session:
-                cli_consumer.current_session_id = system.active_session.id
-            
             # Process message - events will be displayed in real-time
             try:
+                # The CLI consumer will automatically adopt the session ID from the first event
                 await system.send_message(user_input)
             except Exception as e:
+                logger.error(f"Error processing message: {e}", exc_info=True)
                 console.print(f"\n[red]Errore: {e}[/red]")
-                import traceback
-                console.print(f"[dim]{traceback.format_exc()}[/dim]")
+                if args.debug:
+                    import traceback
+                    console.print(f"[dim]{traceback.format_exc()}[/dim]")
                 
         except KeyboardInterrupt:
+            logger.info("Keyboard interrupt")
             console.print("\n\n[yellow]Interruzione da tastiera[/yellow]")
             if system.get_active_session():
-                console.print("Usa [green]/close[/green] per salvare o [yellow]/cancel[/yellow] per annullare.")
+                system.cancel_session()
+                console.print("\n[yellow]✓ Sessione annullata, modifiche scartate[/yellow]")
             else:
                 break
         except Exception as e:
+            logger.error(f"Unexpected error in main loop: {e}", exc_info=True)
             console.print(f"\n[red]Errore inaspettato: {e}[/red]")
-            import traceback
-            console.print(f"[dim]{traceback.format_exc()}[/dim]")
+            if args.debug:
+                import traceback
+                console.print(f"[dim]{traceback.format_exc()}[/dim]")
     
     # Cleanup
+    logger.info("Shutting down...")
     await container.stream().stop_processing()
     console.print("\n[cyan]Arrivederci! 👋[/cyan]")
+    logger.info("Palio Bot CLI stopped")
 
 
 if __name__ == "__main__":

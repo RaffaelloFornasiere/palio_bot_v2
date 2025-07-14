@@ -4,6 +4,7 @@ Simplified async stream without immediate/queued distinction.
 """
 import asyncio
 import logging
+import traceback
 from typing import List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -21,6 +22,9 @@ class Stream:
         self.event_queue: asyncio.Queue['Event'] = asyncio.Queue()
         self._processing_task: Optional[asyncio.Task] = None
         self._shutdown: bool = False
+        self._events_processed = 0
+        self._events_failed = 0
+        logger.info("Stream initialized")
         
     def add_consumer(self, consumer: 'Consumer') -> None:
         """Add a consumer to process events."""
@@ -35,8 +39,11 @@ class Stream:
         
     async def put_event(self, event: 'Event') -> None:
         """Put an event into the stream."""
-        await self.event_queue.put(event)
-        logger.debug(f"Event queued: {event.type} (session: {event.session_id})")
+        try:
+            await self.event_queue.put(event)
+            logger.info(f"📥 Event queued: {event.type} (session: {event.session_id[:8]}...) - Queue size: {self.event_queue.qsize()}")
+        except Exception as e:
+            logger.error(f"Failed to queue event {event.type}: {e}", exc_info=True)
         
     async def start_processing(self) -> None:
         """Start processing events."""
@@ -72,23 +79,31 @@ class Stream:
                 # Check for shutdown sentinel
                 if event.type == "_StopEvent":
                     self.event_queue.task_done()
+                    logger.info("Received stop event, shutting down")
                     break
                 
-                logger.debug(f"Processing event: {event.type}")
+                logger.info(f"📤 Processing event: {event.type} (session: {event.session_id[:8]}...)")
+                self._events_processed += 1
                 
                 # Send to all consumers
+                consumer_count = 0
                 for consumer in self.consumers:
                     try:
                         if consumer.filter(event):
-                            logger.debug(
-                                f"Dispatching {event.type} to {consumer.__class__.__name__}"
-                            )
+                            consumer_name = consumer.__class__.__name__
+                            logger.debug(f"  → Dispatching to {consumer_name}")
                             await consumer.consume(event)
+                            consumer_count += 1
+                            logger.debug(f"  ✓ {consumer_name} processed successfully")
                     except Exception as e:
+                        consumer_name = consumer.__class__.__name__
+                        self._events_failed += 1
                         logger.error(
-                            f"Error in consumer {consumer.__class__.__name__}: {e}",
+                            f"  ✗ Error in consumer {consumer_name}: {e}",
                             exc_info=True
                         )
+                
+                logger.info(f"  Event dispatched to {consumer_count}/{len(self.consumers)} consumers")
                         
                 self.event_queue.task_done()
                 
@@ -96,4 +111,8 @@ class Stream:
                 logger.info("Event processing loop cancelled")
                 break
             except Exception as e:
+                self._events_failed += 1
                 logger.error(f"Unexpected error in event processing loop: {e}", exc_info=True)
+                logger.error(f"Traceback:\n{traceback.format_exc()}")
+        
+        logger.info(f"Event processing stopped. Total processed: {self._events_processed}, Failed: {self._events_failed}")

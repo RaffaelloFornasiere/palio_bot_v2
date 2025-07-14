@@ -1,6 +1,7 @@
 """Agent implementation with event production for real-time updates."""
 
 import uuid
+import logging
 from typing import Any, Dict, List, Optional
 
 from .models import Message, TextContent, ToolUseContent, ToolResultContent, Tool, ToolResult
@@ -11,6 +12,8 @@ from .events import (
     UserMessageEvent, AgentUpdateEvent, ToolUseEvent, 
     ToolResultEvent, AgentCompleteEvent, ErrorEvent
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Agent(Producer):
@@ -26,6 +29,7 @@ class Agent(Producer):
         self.llm_client = llm_client
         self.tools = tools  # Dict[tool_name, Tool]
         self.system_prompt = self._get_system_prompt()
+        logger.info(f"Agent initialized with {len(tools)} tools: {list(tools.keys())}")
     
     async def run(
         self, 
@@ -43,8 +47,11 @@ class Agent(Producer):
         Returns:
             Final Message from the agent
         """
+        logger.info(f"\n{'='*60}\nAgent.run() called\nSession: {session_id}\nMessage: {message}\n{'='*60}")
+        
         try:
             # Emit user message event
+            logger.debug("Producing UserMessageEvent")
             await self.produce(UserMessageEvent(
                 session_id=session_id,
                 content=message
@@ -59,9 +66,11 @@ class Agent(Producer):
             messages = [Message.text(role="user", text=message)]
             
             # Process through tool loop
+            logger.info("Starting agent processing loop")
             result_messages = await self._process_with_events(
                 messages, context_list, session_id
             )
+            logger.info(f"Agent processing complete. Generated {len(result_messages)} messages")
             
             # Find the final assistant message with text
             final_message = None
@@ -80,21 +89,27 @@ class Agent(Producer):
                     c.text for c in final_message.content 
                     if isinstance(c, TextContent)
                 )
+                logger.info(f"Producing AgentCompleteEvent with final text: {final_text[:100]}...")
                 await self.produce(AgentCompleteEvent(
                     session_id=session_id,
                     final_message=final_text
                 ))
+                logger.info("Agent.run() completed successfully")
                 return final_message
             else:
+                logger.error("No final text response from agent")
                 raise ValueError("No final text response from agent")
                 
         except Exception as e:
             # Emit error event
             import traceback
+            error_traceback = traceback.format_exc()
+            logger.error(f"Error in Agent.run(): {e}\n{error_traceback}")
+            
             await self.produce(ErrorEvent(
                 session_id=session_id,
                 error=str(e),
-                traceback=traceback.format_exc()
+                traceback=error_traceback
             ))
             raise
     
@@ -118,14 +133,20 @@ class Agent(Producer):
         current_messages = messages.copy()
         
         # Continue loop until LLM responds with text only (no tool calls)
+        iteration = 0
         while True:
+            iteration += 1
+            logger.info(f"\n--- Agent loop iteration {iteration} ---")
+            
             # Get response from LLM
+            logger.info(f"Calling LLM with {len(current_messages)} messages")
             response_message = await self.llm_client.generate_message(
                 messages=current_messages,
                 system_prompt=self.system_prompt,
                 context=context,
                 tools=list(self.tools.values())
             )
+            logger.info(f"LLM response received: role={response_message.role}, content_types={[c.type for c in response_message.content]}")
             
             # Emit agent update event
             await self.produce(AgentUpdateEvent(
@@ -145,11 +166,17 @@ class Agent(Producer):
             
             if not tool_uses:
                 # LLM responded with text only, end the loop
+                logger.info("No tool uses in response. Ending agent loop.")
                 break
+            
+            logger.info(f"Found {len(tool_uses)} tool uses: {[tu.tool_name for tu in tool_uses]}")
             
             # Process tool uses
             for tool_use in tool_uses:
                 # Emit tool use event
+                logger.info(f"  Using tool: {tool_use.tool_name}")
+                logger.debug(f"  Parameters: {tool_use.tool_parameters}")
+                
                 await self.produce(ToolUseEvent(
                     session_id=session_id,
                     tool_name=tool_use.tool_name,
@@ -157,7 +184,9 @@ class Agent(Producer):
                 ))
                 
                 # Execute tool
+                logger.info(f"  Executing tool: {tool_use.tool_name}")
                 tool_result = await self._execute_tool(tool_use)
+                logger.info(f"  Tool result: success={tool_result.success}, message={tool_result.message}")
                 
                 # Emit tool result event
                 await self.produce(ToolResultEvent(
@@ -191,6 +220,7 @@ class Agent(Producer):
         tool_name = tool_use.tool_name
         
         if tool_name not in self.tools:
+            logger.error(f"Tool '{tool_name}' not found. Available tools: {list(self.tools.keys())}")
             return ToolResult(
                 success=False,
                 error=f"Tool '{tool_name}' not found",
@@ -199,9 +229,12 @@ class Agent(Producer):
         
         try:
             tool = self.tools[tool_name]
+            logger.debug(f"Calling tool function with parameters: {tool_use.tool_parameters}")
             result = tool.call(**tool_use.tool_parameters)
+            logger.debug(f"Tool returned: {result}")
             return result
         except Exception as e:
+            logger.error(f"Tool execution failed: {e}", exc_info=True)
             return ToolResult(
                 success=False,
                 error=f"Tool execution failed: {str(e)}",

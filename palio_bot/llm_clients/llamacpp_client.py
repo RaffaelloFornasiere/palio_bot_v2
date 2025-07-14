@@ -41,7 +41,7 @@ class LlamaCPPClient(BaseLLMClient):
         payload = {
             "messages": openai_messages,
             "temperature": 0.7,
-            "max_tokens": 2048,
+            "max_tokens": 16384,
             "stream": False
         }
         

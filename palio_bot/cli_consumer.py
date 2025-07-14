@@ -1,6 +1,7 @@
 """CLI Consumer for displaying events in the terminal."""
 
 import json
+import logging
 from typing import Optional
 from rich.console import Console
 from rich.markdown import Markdown
@@ -13,6 +14,8 @@ from .events import (
 )
 from .models import TextContent, ToolUseContent
 
+logger = logging.getLogger(__name__)
+
 
 class CLIConsumer:
     """Consumer that displays events in the terminal with rich formatting."""
@@ -20,31 +23,50 @@ class CLIConsumer:
     def __init__(self):
         self.current_session_id: Optional[str] = None
         self.console = Console()
+        logger.info("CLIConsumer initialized")
         
     def filter(self, event: Event) -> bool:
         """Process events for current session."""
-        return event.session_id == self.current_session_id
+        # If we don't have a session ID yet, accept the first event and set our session ID
+        if self.current_session_id is None:
+            logger.info(f"No current session ID, accepting event from session {event.session_id[:8]}... and setting as current")
+            self.current_session_id = event.session_id
+            return True
+            
+        should_process = event.session_id == self.current_session_id
+        if not should_process:
+            logger.debug(f"Filtering out event {event.type} for session {event.session_id[:8]}... (current: {self.current_session_id[:8] if self.current_session_id else 'None'})")
+        return should_process
         
     async def consume(self, event: Event) -> None:
         """Display event in terminal with rich formatting."""
-        if isinstance(event, UserMessageEvent):
-            self._display_user_message(event)
-            
-        elif isinstance(event, AgentUpdateEvent):
-            self._display_agent_update(event)
+        logger.debug(f"CLIConsumer consuming event: {event.type}")
+        
+        try:
+            if isinstance(event, UserMessageEvent):
+                self._display_user_message(event)
+
+            elif isinstance(event, AgentUpdateEvent):
+                self._display_agent_update(event)
+
+            elif isinstance(event, ToolUseEvent):
+                self._display_tool_use(event)
+
+            elif isinstance(event, ToolResultEvent):
+                self._display_tool_result(event)
+
+            elif isinstance(event, AgentCompleteEvent):
+                # Final message already displayed via AgentUpdateEvent
+                pass
+
+            elif isinstance(event, ErrorEvent):
+                self._display_error(event)
                 
-        elif isinstance(event, ToolUseEvent):
-            self._display_tool_use(event)
+            logger.debug(f"CLIConsumer finished consuming {event.type}")
             
-        elif isinstance(event, ToolResultEvent):
-            self._display_tool_result(event)
-            
-        elif isinstance(event, AgentCompleteEvent):
-            # Final message already displayed via AgentUpdateEvent
-            pass
-                
-        elif isinstance(event, ErrorEvent):
-            self._display_error(event)
+        except Exception as e:
+            logger.error(f"Error in CLIConsumer.consume: {e}", exc_info=True)
+            self.console.print(f"[red]Error displaying event: {e}[/red]")
     
     def _display_user_message(self, event: UserMessageEvent) -> None:
         """Display user message."""
