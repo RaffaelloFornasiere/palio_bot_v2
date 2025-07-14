@@ -22,11 +22,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Path to palio.json file
-PALIO_FILE_PATH = Path(__file__).parent / "palio.json"
+# Path to palio.json file - now relative to the package root
+PALIO_FILE_PATH = Path(__file__).parent.parent.parent / "palio.json"
 
-# Path to React build directory
-REACT_BUILD_PATH = Path(__file__).parent / "website" / "build"
+# Path to React build directory - now relative to the package root
+REACT_BUILD_PATH = Path(__file__).parent.parent.parent / "website" / "build"
 
 @app.get("/palio")
 async def get_palio_data():
@@ -80,6 +80,10 @@ if REACT_BUILD_PATH.exists() and REACT_BUILD_PATH.is_dir():
         else:
             raise HTTPException(status_code=404, detail="React app not found")
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the API server"""
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+if __name__ == "__main__":
+    main()
