@@ -15,6 +15,7 @@ from .llm_clients.anthropic_client import AnthropicClient
 from .llm_clients.base_client import BaseLLMClient
 from palio_bot.agent.models import Tool
 from palio_bot.config import Config
+from palio_bot.services.audio_transcription import AudioTranscriptionService
 from telegram import Bot
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ class Container:
         self._agent: Optional[Agent] = None
         self._system: Optional[System] = None
         self._cli_consumer: Optional[CLIConsumer] = None
+        self._audio_transcription_service: Optional[AudioTranscriptionService] = None
         
         logger.info(f"Container initialized with provider={llm_provider}, json_editor={use_json_editor}")
 
@@ -130,6 +132,14 @@ class Container:
         consumer = TelegramConsumer(bot, chat_id)
         self.stream().add_consumer(consumer)
         return consumer
+    
+    def audio_transcription_service(self) -> AudioTranscriptionService:
+        """Get or create audio transcription service."""
+        if self._audio_transcription_service is None:
+            logger.info("Creating audio transcription service")
+            self._audio_transcription_service = AudioTranscriptionService(self.config)
+            logger.info("Audio transcription service created")
+        return self._audio_transcription_service
 
     async def init_container(self) -> None:
         """Initialize the container by creating all services and starting event processing."""

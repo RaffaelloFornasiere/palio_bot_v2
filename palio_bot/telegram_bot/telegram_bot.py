@@ -197,6 +197,75 @@ class PalioTelegramBot:
                 f"❌ Errore durante l'elaborazione:\n`{str(e)}`",
                 parse_mode='Markdown'
             )
+    
+    async def handle_voice_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle voice messages with transcription"""
+        if not self.check_user_authorized(update.effective_user.id):
+            await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
+            return
+            
+        if not self.container:
+            await update.message.reply_text("❌ Sistema non inizializzato")
+            return
+            
+        # Get audio transcription service
+        audio_service = self.container.audio_transcription_service()
+        
+        if not audio_service.is_available():
+            await update.message.reply_text(
+                "❌ Servizio di trascrizione audio non disponibile.\n"
+                "Assicurati che GROQ_API_KEY sia configurata correttamente."
+            )
+            return
+            
+        # Send processing message
+        processing_message = await update.message.reply_text("🎤 Trascrizione audio in corso...")
+        
+        try:
+            # Get voice file
+            voice_file = await context.bot.get_file(update.message.voice.file_id)
+            
+            # Transcribe audio
+            transcription = await audio_service.download_and_transcribe(
+                voice_file.file_id, 
+                context.bot
+            )
+            
+            if transcription:
+                # Delete processing message
+                await processing_message.delete()
+                
+                # Send transcription and process as text message
+                await update.message.reply_text(
+                    f"📝 *Trascrizione:*\n_{transcription}_",
+                    parse_mode='Markdown'
+                )
+                
+                # Process transcription as regular text message
+                system = self.container.system()
+                chat_id = update.effective_chat.id
+                
+                # Create or get Telegram consumer for this chat
+                if chat_id not in self.chat_consumers:
+                    consumer = self.container.create_telegram_consumer(
+                        bot=context.bot,
+                        chat_id=chat_id
+                    )
+                    self.chat_consumers[chat_id] = consumer
+                    logger.info(f"Created Telegram consumer for chat {chat_id}")
+                
+                # Process transcribed message through the system
+                await system.send_message(transcription)
+                
+            else:
+                await processing_message.edit_text("❌ Errore nella trascrizione audio")
+                
+        except Exception as e:
+            logger.error(f"Error processing voice message: {e}", exc_info=True)
+            await processing_message.edit_text(
+                f"❌ Errore durante la trascrizione:\n`{str(e)}`",
+                parse_mode='Markdown'
+            )
             
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Log errors caused by updates"""
@@ -247,6 +316,7 @@ def main():
     application.add_handler(CommandHandler("cancel", bot.cancel))
     application.add_handler(CommandHandler("close", bot.close))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
+    application.add_handler(MessageHandler(filters.VOICE, bot.handle_voice_message))
     
     # Add error handler
     application.add_error_handler(bot.error_handler)

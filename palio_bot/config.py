@@ -28,6 +28,9 @@ class Config:
     # llama.cpp Configuration
     llama_cpp_url: str = "http://mac-studio.local:11454"
 
+    # Groq Configuration
+    groq_api_key: str | None = os.getenv("GROQ_API_KEY")
+    
     # General LLM Configuration
     llm_provider: str = "llamacpp"
     max_tokens: int = 8192

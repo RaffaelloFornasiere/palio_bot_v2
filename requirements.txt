@@ -7,3 +7,5 @@ anthropic
 fastapi
 uvicorn
 rich
+groq
+pydub

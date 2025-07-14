@@ -1,32 +1,73 @@
 {
   "game_scores": {
     "G01": {
-      "status": "completed",
-      "scores": {
-        "Villa": 180,
-        "Salt": 130,
-        "Sottocastello": 200,
-        "Sornico": 90,
-        "Sottomonte": 170
-      }
+      "status": "not-started",
+      "scores": {}
+    },
+    "G02": {
+      "status": "not-started",
+      "scores": {}
+    },
+    "G03": {
+      "status": "not-started",
+      "scores": {}
     },
     "G04": {
-      "status": "in-progress",
-      "rounds": [
-        {
-          "Villa": 15,
-          "Salt": 10
-        },
-        {
-          "Sottocastello": 20,
-          "Sornico": 5
-        },
-        {
-          "Sottomonte": 25,
-          "Villa": 10
-        }
-      ]
+      "status": "not-started",
+      "rounds": []
+    },
+    "G05": {
+      "status": "not-started",
+      "scores": {}
+    },
+    "G06": {
+      "status": "not-started",
+      "scores": {}
+    },
+    "G07": {
+      "status": "not-started",
+      "scores": {}
+    },
+    "G08": {
+      "status": "not-started",
+      "rounds": []
+    },
+    "G09": {
+      "status": "not-started",
+      "rounds": []
+    },
+    "G10": {
+      "status": "not-started",
+      "rounds": []
+    },
+    "G11": {
+      "status": "not-started",
+      "scores": {}
+    },
+    "G12": {
+      "status": "not-started",
+      "rounds": []
+    },
+    "G13": {
+      "status": "not-started",
+      "rounds": []
+    },
+    "G14": {
+      "status": "not-started",
+      "scores": {}
+    },
+    "G15": {
+      "status": "not-started",
+      "rounds": []
+    },
+    "G16": {
+      "status": "not-started",
+      "scores": {}
+    },
+    "G17": {
+      "status": "not-started",
+      "rounds": []
     }
   },
-  "last_updated": "2025-07-12T15:38:35.849993Z"
+  "last_updated": "2025-07-14T17:27:06.038040Z"
 }

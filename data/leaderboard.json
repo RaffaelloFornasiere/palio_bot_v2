@@ -7,22 +7,11 @@
     "Villa"
   ],
   "points": {
-    "Villa": 140,
-    "Salt": 120,
-    "Sottocastello": 180,
-    "Sornico": 100,
-    "Sottomonte": 160
+    "Salt": 0,
+    "Sornico": 0,
+    "Sottocastello": 0,
+    "Sottomonte": 0,
+    "Villa": 0
   },
-  "game_leaderboards": {
-    "G01": {
-      "name": "Briscola Maschile e Femminile",
-      "leaderboard": {
-        "Villa": 10,
-        "Salt": 7,
-        "Sottocastello": 5,
-        "Sornico": 3,
-        "Sottomonte": 0
-      }
-    }
-  }
+  "game_leaderboards": {}
 }

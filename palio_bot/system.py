@@ -12,6 +12,7 @@ from palio_bot.agent.models import Message, Session, AgentContextBlock
 from palio_bot.agent.agent import Agent
 from palio_bot.stream.stream import Stream
 from palio_bot.config import Config
+from palio_bot.leaderboard_updater import LeaderboardUpdater
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +115,20 @@ class System:
             shutil.copy2(self.palio_updated_path, self.palio_games_status_path)
             self.palio_updated_path.unlink()  # Remove palio_updated.json
             logger.info("Changes saved to palio.json")
+            
+            # Update leaderboard with completed games
+            try:
+                logger.info("Updating leaderboard with completed games")
+                leaderboard_updater = LeaderboardUpdater(
+                    self.palio_file_path,
+                    self.palio_games_status_path,
+                    self.leader_board_file_path
+                )
+                leaderboard_updater.update_leaderboard()
+                logger.info("Leaderboard updated successfully")
+            except Exception as e:
+                logger.error(f"Error updating leaderboard: {e}")
+                # Don't raise the exception to avoid breaking session closure
         else:
             logger.warning("palio_updated.json not found, nothing to save")
         
