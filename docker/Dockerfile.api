@@ -32,9 +32,11 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the API server and palio.json
-COPY api_server.py .
-COPY palio.json .
+# Copy the entire project
+COPY . .
+
+# Install the package in development mode
+RUN pip install -e .
 
 # Copy React build from previous stage
 COPY --from=react-builder /app/website/build /app/website/build
@@ -46,11 +48,10 @@ RUN mkdir -p /app/data
 ENV PYTHONPATH=/app
 ENV PALIO_FILE_PATH=/app/data/palio.json
 
-# Copy palio.json to data directory
-RUN cp palio.json /app/data/palio.json
+# palio.json is already in /app/data/ from COPY . .
 
 # Expose port for API
 EXPOSE 8000
 
 # Command to run the API server
-CMD ["python", "api_server.py"]
+CMD ["python", "-m", "palio_bot.api.api_server"]

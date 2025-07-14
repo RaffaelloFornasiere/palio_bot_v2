@@ -31,4 +31,4 @@ ENV SESSION_FILE_PATH=/app/data/session.json
 EXPOSE 8001
 
 # Command to run the telegram bot
-CMD ["python", "-m", "palio_bot.telegram_bot"]
+CMD ["python", "-m", "palio_bot.telegram_bot.telegram_bot"]
