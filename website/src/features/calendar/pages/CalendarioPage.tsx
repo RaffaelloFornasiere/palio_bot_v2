@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box } from '@mui/material';
 import WeeklyCalendar from '../components/WeeklyCalendar';
+import { apiCall } from '../../../utils/api';
 
 interface GameDate {
   start_datetime: string;
@@ -34,7 +35,7 @@ const CalendarioPage: React.FC = () => {
 
   useEffect(() => {
     // Load palio data from API
-    fetch('/palio')
+    apiCall('/palio')
       .then(response => response.json())
       .then((data: PalioData) => {
         // Transform the data to match our component's expected format

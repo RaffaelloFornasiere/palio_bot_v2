@@ -28,7 +28,7 @@ services:
     container_name: palio-api-server
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "22025:8000"
     environment:
       - PALIO_FILE_PATH=/app/data/palio.json
     volumes:

@@ -140,7 +140,7 @@ const Layout: React.FC = () => {
           width: { md: `calc(100% - ${drawerWidth}px)` },
           pt: isMobile ? 8 : 0, // Add top margin on mobile to account for AppBar
           height: isMobile ? 'calc(100vh - 64px)' : '100vh',
-          overflow: 'hidden',
+          overflow: 'auto',
         }}
       >
         <Outlet />
