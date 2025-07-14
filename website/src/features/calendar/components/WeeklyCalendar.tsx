@@ -130,7 +130,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
     <Box 
       sx={{ 
         width: '100vw', 
-        height: '100vh',
+        height: { xs: 'calc(100vh - 64px)', md: '100vh' }, // Subtract AppBar height on mobile
         maxWidth: isMobile ? '100vw' : 1200, 
         mx: 'auto', 
         px: 0,
