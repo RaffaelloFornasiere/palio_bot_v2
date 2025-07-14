@@ -221,9 +221,15 @@ const ClassificaPage: React.FC = () => {
                             />
                           </Box>
                         ) : (
-                          <Typography variant="body2" color="success.main" fontWeight="bold">
-                            🏆 In testa
-                          </Typography>
+                          entry.points > 0 ? (
+                            <Typography variant="body2" color="success.main" fontWeight="bold">
+                              🏆 In testa
+                            </Typography>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              -
+                            </Typography>
+                          )
                         )}
                       </TableCell>
                     </TableRow>
