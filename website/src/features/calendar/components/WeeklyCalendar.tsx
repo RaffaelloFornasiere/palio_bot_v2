@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Box, Typography, Paper, IconButton, useTheme, useMediaQuery, Divider } from '@mui/material';
+import { Box, Typography, Paper, IconButton, useTheme, useMediaQuery, Divider, Fade } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import AnimatedBox from './AnimatedBox';
 
 interface Event {
   id: string;
@@ -15,6 +16,8 @@ interface WeeklyCalendarProps {
 
 const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [animationDirection, setAnimationDirection] = useState<'left' | 'right'>('left');
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -69,15 +72,25 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
   const currentWeekEvents = getWeekEvents(weekDates);
 
   const goToPreviousWeek = () => {
-    const newDate = new Date(currentWeek);
-    newDate.setDate(currentWeek.getDate() - 7);
-    setCurrentWeek(newDate);
+    setAnimationDirection('left');
+    setIsTransitioning(true);
+    setTimeout(() => {
+      const newDate = new Date(currentWeek);
+      newDate.setDate(currentWeek.getDate() - 7);
+      setCurrentWeek(newDate);
+      setIsTransitioning(false);
+    }, 50);
   };
 
   const goToNextWeek = () => {
-    const newDate = new Date(currentWeek);
-    newDate.setDate(currentWeek.getDate() + 7);
-    setCurrentWeek(newDate);
+    setAnimationDirection('right');
+    setIsTransitioning(true);
+    setTimeout(() => {
+      const newDate = new Date(currentWeek);
+      newDate.setDate(currentWeek.getDate() + 7);
+      setCurrentWeek(newDate);
+      setIsTransitioning(false);
+    }, 50);
   };
 
   return (
@@ -121,7 +134,10 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
         }}
       >
         {/* Week headers */}
-        <Box
+        <AnimatedBox
+          animationKey={currentWeek.getTime()}
+          direction={animationDirection}
+          duration={0.3}
           sx={{
             display: 'flex',
             borderBottom: 1,
@@ -149,7 +165,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
               </Typography>
             </Box>
           ))}
-        </Box>
+        </AnimatedBox>
 
         {/* Events list */}
         <Box
@@ -159,21 +175,25 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
             p: isMobile ? 1 : 2,
             '&::-webkit-scrollbar': { display: 'none' },
             msOverflowStyle: 'none',
-            scrollbarWidth: 'none'
+            scrollbarWidth: 'none',
+            position: 'relative'
           }}
         >
-          {currentWeekEvents.length === 0 ? (
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
-              Nessun evento questa settimana
-            </Typography>
-          ) : (
-            currentWeekEvents.map(({ date, events: dayEvents }) => (
-              <Box key={formatDate(date)} sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-                  {date.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+          <Fade in={!isTransitioning} timeout={300}>
+            <Box>
+              {currentWeekEvents.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
+                  Nessun evento questa settimana
                 </Typography>
-                {dayEvents.map((event) => (
-                  <Paper
+              ) : (
+                currentWeekEvents.map(({ date, events: dayEvents }, dayIndex) => (
+                  <Fade key={formatDate(date)} in={!isTransitioning} timeout={300 + dayIndex * 100}>
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+                        {date.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      </Typography>
+                      {dayEvents.map((event) => (
+                        <Paper
                     key={event.id}
                     sx={{
                       p: isMobile ? 1.5 : 2,
@@ -200,13 +220,16 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
                         {event.description}
                       </Typography>
                     )}
-                  </Paper>
-                ))}
-                <Divider sx={{ mt: 2 }} />
-              </Box>
-            ))
-          )}
-        </Box>
+                      </Paper>
+                    ))}
+                    <Divider sx={{ mt: 2 }} />
+                  </Box>
+                </Fade>
+              ))
+            )}
+          </Box>
+        </Fade>
+      </Box>
       </Box>
     </Box>
   );
