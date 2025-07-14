@@ -33,8 +33,13 @@
       "rounds": []
     },
     "G09": {
-      "status": "not-started",
-      "rounds": []
+      "status": "in-progress",
+      "rounds": [
+        {
+          "Villa": 1,
+          "Sottocastello": 5
+        }
+      ]
     },
     "G10": {
       "status": "not-started",

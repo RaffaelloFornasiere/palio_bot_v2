@@ -68,7 +68,7 @@ class TelegramConsumer:
             
         # Update message to show tool use
         current = self.current_text.get(event.session_id, "")
-        tool_text = f"\n\n🔧 Using tool: `{event.tool_name}`"
+        tool_text = f"\n\n🔧 Using tool: <code>{self._escape_html(event.tool_name)}</code>"
         
         if event.parameters:
             # Show key parameters (simplified view)
@@ -158,7 +158,7 @@ class TelegramConsumer:
                 chat_id=self.chat_id,
                 message_id=self.message_stack[session_id],
                 text=text,
-                parse_mode="Markdown"
+                parse_mode="HTML"
             )
         except TelegramError as e:
             # If edit fails (e.g., text unchanged), ignore
@@ -175,18 +175,25 @@ class TelegramConsumer:
         parts = []
         
         if "path" in parameters:
-            parts.append(f"Path: `{parameters['path']}`")
+            parts.append(f"Path: <code>{self._escape_html(parameters['path'])}</code>")
         elif "json_path" in parameters:
-            parts.append(f"Path: `{parameters['json_path']}`")
+            parts.append(f"Path: <code>{self._escape_html(parameters['json_path'])}</code>")
             
         if "value" in parameters:
             value = parameters["value"]
             if isinstance(value, (dict, list)):
                 parts.append("Value: [complex object]")
             else:
-                parts.append(f"Value: `{value}`")
+                parts.append(f"Value: <code>{self._escape_html(str(value))}</code>")
                 
         if "old_string" in parameters and "new_string" in parameters:
-            parts.append(f"Replace: `{parameters['old_string'][:20]}...`")
+            parts.append(f"Replace: <code>{self._escape_html(parameters['old_string'][:20])}...</code>")
             
         return " | ".join(parts[:2])  # Limit to 2 items for brevity
+    
+    def _escape_html(self, text: str) -> str:
+        """Escape HTML special characters for Telegram HTML parse mode."""
+        return (str(text)
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;"))

@@ -169,6 +169,20 @@ const GiochiPage: React.FC = () => {
     }
   };
 
+  const sortGamesByStatus = (games: [string, GameData][]): [string, GameData][] => {
+    const statusOrder = {
+      'in-progress': 1,
+      'completed': 2,
+      'not-started': 3
+    };
+
+    return games.sort(([, gameA], [, gameB]) => {
+      const orderA = statusOrder[gameA.status] || 4;
+      const orderB = statusOrder[gameB.status] || 4;
+      return orderA - orderB;
+    });
+  };
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -205,7 +219,8 @@ const GiochiPage: React.FC = () => {
         )}
 
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
-          {gamesData && Object.entries(gamesData.game_scores).map(([gameId, gameData]) => (
+          {gamesData && sortGamesByStatus(Object.entries(gamesData.game_scores)).map(([gameId, gameData]) => (
+
             <Card key={gameId} sx={{ height: '100%' }}>
               <CardContent>
                 <Typography variant="h6" component="h2" gutterBottom>
