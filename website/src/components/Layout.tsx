@@ -138,7 +138,7 @@ const Layout: React.FC = () => {
         sx={{
           flexGrow: 1,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          mt: isMobile ? 8 : 0, // Add top margin on mobile to account for AppBar
+          pt: isMobile ? 8 : 0, // Add top margin on mobile to account for AppBar
         }}
       >
         <Outlet />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Box, Typography, Paper, IconButton, useTheme, useMediaQuery, Divider, Fade } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import AnimatedBox from './AnimatedBox';
@@ -20,6 +20,11 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Touch tracking refs for swipe gesture
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
+  const minSwipeDistance = 50; // Minimum distance for swipe to register
 
   const weekdays = isMobile 
     ? ['L', 'M', 'M', 'G', 'V', 'S', 'D']
@@ -93,17 +98,42 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
     }, 50);
   };
 
+  // Touch event handlers for swipe gesture
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    
+    const distance = touchStartX.current - touchEndX.current;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && isMobile) {
+      goToNextWeek();
+    }
+    if (isRightSwipe && isMobile) {
+      goToPreviousWeek();
+    }
+  };
+
   return (
-    <Box sx={{ 
-      width: '100vw', 
-      height: '100vh',
-      maxWidth: isMobile ? '100vw' : 1200, 
-      mx: 'auto', 
-      px: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden'
-    }}>
+    <Box 
+      sx={{ 
+        width: '100vw', 
+        height: '100vh',
+        maxWidth: isMobile ? '100vw' : 1200, 
+        mx: 'auto', 
+        px: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
       {/* Header with navigation */}
       <Box sx={{ 
         display: 'flex', 
@@ -144,6 +174,9 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
             borderColor: 'divider',
             flexShrink: 0
           }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           {weekdays.map((day, index) => (
             <Box
@@ -179,7 +212,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
             position: 'relative'
           }}
         >
-          <Fade in={!isTransitioning} timeout={300}>
+          <Fade in={!isTransitioning} timeout={500}>
             <Box>
               {currentWeekEvents.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
