@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Optional
+from typing import Optional, Dict, List
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -23,6 +23,8 @@ class CLIConsumer:
     def __init__(self):
         self.current_session_id: Optional[str] = None
         self.console = Console()
+        self.accumulated_text: dict[str, str] = {}  # session_id -> accumulated text
+        self.conversation_history: dict[str, list[str]] = {}  # session_id -> list of conversation parts
         logger.info("CLIConsumer initialized")
         
     def filter(self, event: Event) -> bool:
@@ -56,8 +58,11 @@ class CLIConsumer:
                 self._display_tool_result(event)
 
             elif isinstance(event, AgentCompleteEvent):
-                # Final message already displayed via AgentUpdateEvent
-                pass
+                # Clean up accumulated text and conversation history for this session
+                if event.session_id in self.accumulated_text:
+                    del self.accumulated_text[event.session_id]
+                if event.session_id in self.conversation_history:
+                    del self.conversation_history[event.session_id]
 
             elif isinstance(event, ErrorEvent):
                 self._display_error(event)
@@ -80,8 +85,9 @@ class CLIConsumer:
         )
     
     def _display_agent_update(self, event: AgentUpdateEvent) -> None:
-        """Display agent update (text or tool use)."""
+        """Display agent update (text or tool use) with text accumulation."""
         msg = event.message
+        session_id = event.session_id
         
         # Extract text content
         text_parts = []
@@ -90,52 +96,62 @@ class CLIConsumer:
                 text_parts.append(content.text)
         
         if text_parts:
-            # Display assistant text response
-            self.console.print()
-            text = "\n".join(text_parts)
-            # Use Markdown rendering for better formatting
-            self.console.print(
-                Panel(
-                    Markdown(text),
-                    title="[bold green]🤖 Assistant[/bold green]",
-                    border_style="green"
-                )
-            )
+            # Accumulate text across multiple AgentUpdateEvents
+            new_text = "\n".join(text_parts)
+            
+            if session_id in self.accumulated_text:
+                # Add to existing text with separator
+                self.accumulated_text[session_id] += "\n\n" + new_text
+            else:
+                # First text for this session
+                self.accumulated_text[session_id] = new_text
+            
+            # Add to conversation history
+            if session_id not in self.conversation_history:
+                self.conversation_history[session_id] = []
+            self.conversation_history[session_id].append(f"**Assistant:** {new_text}")
+            
+            # Display full conversation
+            self._display_full_conversation(session_id)
     
     def _display_tool_use(self, event: ToolUseEvent) -> None:
         """Display tool use details."""
-        self.console.print()
-        self.console.print(f"[yellow]🔧 Using tool: {event.tool_name}[/yellow]")
+        session_id = event.session_id
         
+        # Add to conversation history
+        if session_id not in self.conversation_history:
+            self.conversation_history[session_id] = []
+        
+        tool_text = f"🔧 **Using tool:** `{event.tool_name}`"
         if event.parameters:
-            # Format parameters as JSON
-            params_json = json.dumps(event.parameters, indent=2, ensure_ascii=False)
-            syntax = Syntax(params_json, "json", theme="monokai", line_numbers=False)
-            self.console.print(Panel(syntax, title="Parameters", border_style="yellow"))
+            # Show simplified parameters for history
+            params_preview = self._format_params_simple(event.parameters)
+            if params_preview:
+                tool_text += f"\n   {params_preview}"
+        
+        self.conversation_history[session_id].append(tool_text)
+        
+        # Display full conversation
+        self._display_full_conversation(session_id)
     
     def _display_tool_result(self, event: ToolResultEvent) -> None:
         """Display tool result."""
+        session_id = event.session_id
         result = event.result
         
+        # Add to conversation history
+        if session_id not in self.conversation_history:
+            self.conversation_history[session_id] = []
+        
         if result.success:
-            self.console.print(f"[green]   ✅ Success: {result.message}[/green]")
-            if result.data:
-                # Show data preview if present
-                data_str = json.dumps(result.data, indent=2, ensure_ascii=False)
-                if len(data_str) > 500:
-                    data_str = data_str[:500] + "\n... (truncated)"
-                syntax = Syntax(data_str, "json", theme="monokai", line_numbers=False)
-                self.console.print(Panel(
-                    syntax, 
-                    title="Result Data", 
-                    border_style="green",
-                    expand=False
-                ))
+            result_text = f"   ✅ **Success:** {result.message}"
         else:
-            self.console.print(f"[red]   ❌ Error: {result.error}[/red]")
-            if result.data:
-                data_str = json.dumps(result.data, indent=2, ensure_ascii=False)
-                self.console.print(f"[dim]   {data_str}[/dim]")
+            result_text = f"   ❌ **Error:** {result.error}"
+        
+        self.conversation_history[session_id].append(result_text)
+        
+        # Display full conversation
+        self._display_full_conversation(session_id)
     
     def _display_error(self, event: ErrorEvent) -> None:
         """Display error event."""
@@ -149,3 +165,45 @@ class CLIConsumer:
         )
         if event.traceback:
             self.console.print(f"[dim]{event.traceback}[/dim]")
+    
+    def _display_full_conversation(self, session_id: str) -> None:
+        """Display the full conversation history for a session."""
+        if session_id not in self.conversation_history:
+            return
+            
+        # Build conversation text
+        conversation_text = "\n\n".join(self.conversation_history[session_id])
+        
+        self.console.print()
+        self.console.print(
+            Panel(
+                Markdown(conversation_text),
+                title="[bold green]🤖 Assistant[/bold green]",
+                border_style="green"
+            )
+        )
+    
+    def _format_params_simple(self, parameters: dict) -> str:
+        """Format parameters for simple display in conversation history."""
+        if not parameters:
+            return ""
+        
+        # Show key parameters in a compact format
+        parts = []
+        
+        if "path" in parameters:
+            parts.append(f"path: `{parameters['path']}`")
+        elif "json_path" in parameters:
+            parts.append(f"path: `{parameters['json_path']}`")
+        
+        if "value" in parameters:
+            value = parameters["value"]
+            if isinstance(value, (dict, list)):
+                parts.append("value: [complex object]")
+            else:
+                value_str = str(value)
+                if len(value_str) > 50:
+                    value_str = value_str[:47] + "..."
+                parts.append(f"value: `{value_str}`")
+        
+        return " | ".join(parts[:2])  # Limit to 2 parts for brevity

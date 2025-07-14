@@ -75,17 +75,20 @@ class System:
             # Process message through agent with events
             # The agent will emit events during processing
             logger.info("Calling agent.run()")
-            response_message = await self.agent.run(
+            final_message, all_messages = await self.agent.run(
                 message=user_message,
                 session_id=self.active_session.id,
                 context=context
             )
             logger.info("Agent processing complete")
             
-            # Add messages to session for persistence
+            # Add user message to session
             user_msg = Message.text(role="user", text=user_message)
             self.active_session.add_message(user_msg)
-            self.active_session.add_message(response_message)
+            
+            # Add all agent messages (including tool calls and results) to session
+            for msg in all_messages:
+                self.active_session.add_message(msg)
             
             # Save session after interaction
             logger.debug("Saving session")
@@ -93,7 +96,7 @@ class System:
             logger.info("Session saved successfully")
             
             logger.info("System.send_message() completed successfully")
-            return response_message
+            return final_message
             
         except Exception as e:
             import traceback

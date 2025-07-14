@@ -55,7 +55,18 @@
     },
     "G13": {
       "status": "not-started",
-      "rounds": []
+      "divisions": [
+        {
+          "name": "Torneo 1",
+          "status": "not-started",
+          "rounds": []
+        },
+        {
+          "name": "Torneo 2",
+          "status": "not-started",
+          "rounds": []
+        }
+      ]
     },
     "G14": {
       "status": "not-started",
@@ -66,8 +77,22 @@
       "rounds": []
     },
     "G16": {
-      "status": "not-started",
-      "scores": {}
+      "status": "in-progress",
+      "divisions": [
+        {
+          "name": "Femminile",
+          "status": "not-started",
+          "scores": {}
+        },
+        {
+          "name": "Maschile",
+          "status": "not-started",
+          "scores": {
+            "Sottomonte": 13,
+            "Sottocastello": 139
+          }
+        }
+      ]
     },
     "G17": {
       "status": "not-started",

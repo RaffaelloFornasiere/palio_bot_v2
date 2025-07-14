@@ -53,13 +53,29 @@ class LeaderboardUpdater:
                         logger.warning(f"Game definition not found for {game_id}")
                         continue
                     
-                    # Calculate and update leaderboard for this game
-                    game_leaderboard = self._calculate_game_leaderboard(game_def, game_data)
-                    if game_leaderboard:
-                        leaderboard['game_leaderboards'][game_id] = {
-                            'name': game_def['name'],
-                            'leaderboard': game_leaderboard
-                        }
+                    # Check if game has divisions
+                    if 'divisions' in game_data:
+                        # Process each division separately
+                        for division in game_data['divisions']:
+                            if division.get('status') == 'completed':
+                                division_id = f"{game_id}_{division['name']}"
+                                logger.info(f"Processing completed division: {division_id}")
+                                
+                                # Calculate leaderboard for this division
+                                division_leaderboard = self._calculate_division_leaderboard(game_def, division)
+                                if division_leaderboard:
+                                    leaderboard['game_leaderboards'][division_id] = {
+                                        'name': f"{game_def['name']} - {division['name']}",
+                                        'leaderboard': division_leaderboard
+                                    }
+                    else:
+                        # Traditional game without divisions
+                        game_leaderboard = self._calculate_game_leaderboard(game_def, game_data)
+                        if game_leaderboard:
+                            leaderboard['game_leaderboards'][game_id] = {
+                                'name': game_def['name'],
+                                'leaderboard': game_leaderboard
+                            }
             
             # Recalculate total points
             self._recalculate_total_points(leaderboard)
@@ -89,6 +105,18 @@ class LeaderboardUpdater:
             return self._calculate_round_robin_leaderboard(game_def, game_data)
         elif game_type == 'score-based':
             return self._calculate_score_based_leaderboard(game_def, game_data)
+        else:
+            logger.warning(f"Unknown game type: {game_type}")
+            return {}
+    
+    def _calculate_division_leaderboard(self, game_def: Dict[str, Any], division_data: Dict[str, Any]) -> Dict[str, int]:
+        """Calculate leaderboard points for a specific division."""
+        game_type = game_def.get('type')
+        
+        if game_type == 'round-robin':
+            return self._calculate_round_robin_leaderboard(game_def, division_data)
+        elif game_type == 'score-based':
+            return self._calculate_score_based_leaderboard(game_def, division_data)
         else:
             logger.warning(f"Unknown game type: {game_type}")
             return {}

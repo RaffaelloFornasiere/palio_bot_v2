@@ -303,7 +303,7 @@
       "name": "I Camerieri",
       "type": "score-based",
       "description": "Lo scopo del gioco è trasportare la maggior quantità di acqua possibile su un vassoio pieno di bicchieri di plastica. Ogni borgo ha due manches di 4 minuti (3 donne nella prima, 3 uomini nella seconda). I concorrenti devono indossare abiti specifici. Gli altri borghi possono rallentare le operazioni lanciando secchiate d'acqua. La squadra con più acqua trasportata vince.",
-      "measure_unit": "water_quantity_ml",
+      "measure_unit": "water_quantity_cm",
       "lower_is_better": false,
       "dates": [
         {

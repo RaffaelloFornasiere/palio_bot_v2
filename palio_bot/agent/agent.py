@@ -36,7 +36,7 @@ class Agent(Producer):
         message: str,
         session_id: str,
         context: Optional[list[AgentContextBlock]] = None
-    ) -> Message:
+    ) -> tuple[Message, List[Message]]:
         """Process message and emit events during execution.
         
         Args:
@@ -45,7 +45,7 @@ class Agent(Producer):
             context: Optional context (e.g., current palio.json content)
             
         Returns:
-            Final Message from the agent
+            Tuple of (final Message from the agent, all messages generated during processing)
         """
         logger.info(f"\n{'='*60}\nAgent.run() called\nSession: {session_id}\nMessage: {message}\n{'='*60}")
         
@@ -92,7 +92,7 @@ class Agent(Producer):
                     final_message=final_text
                 ))
                 logger.info("Agent.run() completed successfully")
-                return final_message
+                return final_message, result_messages
             else:
                 logger.error("No final text response from agent")
                 raise ValueError("No final text response from agent")

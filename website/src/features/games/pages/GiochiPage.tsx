@@ -21,10 +21,18 @@ interface GameRound {
   [village: string]: number;
 }
 
+interface GameDivision {
+  name: string;
+  status: 'completed' | 'in-progress' | 'not-started';
+  scores?: GameScore;
+  rounds?: GameRound[];
+}
+
 interface GameData {
   status: 'completed' | 'in-progress' | 'not-started';
   scores?: GameScore;
   rounds?: GameRound[];
+  divisions?: GameDivision[];
 }
 
 interface GameLeaderboard {
@@ -119,7 +127,31 @@ const GiochiPage: React.FC = () => {
   };
 
   const getWinner = (gameData: GameData): string => {
-    if (gameData.status !== 'completed' || !gameData.scores) {
+    if (gameData.status !== 'completed') {
+      return '-';
+    }
+
+    // Handle games with divisions
+    if (gameData.divisions) {
+      const completedDivisions = gameData.divisions.filter(div => div.status === 'completed');
+      if (completedDivisions.length === 0) {
+        return '-';
+      }
+      
+      const winners = completedDivisions.map(div => {
+        if (div.scores) {
+          const maxScore = Math.max(...Object.values(div.scores));
+          const winner = Object.entries(div.scores).find(([_, score]) => score === maxScore);
+          return winner ? `${winner[0]} (${div.name})` : `- (${div.name})`;
+        }
+        return `- (${div.name})`;
+      });
+      
+      return winners.join(', ');
+    }
+
+    // Handle games without divisions
+    if (!gameData.scores) {
       return '-';
     }
 
@@ -234,6 +266,25 @@ const GiochiPage: React.FC = () => {
                     size="small"
                   />
                 </Box>
+
+                {/* Show divisions if they exist */}
+                {gameData.divisions && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <strong>Divisioni:</strong>
+                    </Typography>
+                    {gameData.divisions.map((division, index) => (
+                      <Box key={index} sx={{ ml: 1, mb: 1 }}>
+                        <Chip 
+                          label={`${division.name}: ${getStatusText(division.status)}`}
+                          color={getStatusColor(division.status) as any}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
 
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   <strong>Vincitore:</strong> {getWinner(gameData)}
