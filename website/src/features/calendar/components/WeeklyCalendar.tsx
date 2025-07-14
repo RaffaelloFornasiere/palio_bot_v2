@@ -8,6 +8,7 @@ interface Event {
   title: string;
   time: string;
   description?: string;
+  subtitle?: string;
 }
 
 interface WeeklyCalendarProps {
@@ -252,6 +253,11 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
                         {event.time}
                       </Typography>
                     </Box>
+                    {event.subtitle && (
+                      <Typography variant="body2" sx={{ opacity: 0.9, mb: 1, fontStyle: 'italic' }}>
+                        {event.subtitle}
+                      </Typography>
+                    )}
                     {event.description && (
                       <Typography variant="body2" sx={{ opacity: 0.8 }}>
                         {event.description}

@@ -2,69 +2,129 @@ import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box } from '@mui/material';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 
-interface CalendarEvent {
-  event: string;
-  startTime: string;
-  endTime: string;
+interface GameDate {
+  start_datetime: string;
+  end_datetime: string;
+  subtitle?: string;
 }
 
-interface CalendarData {
-  [key: string]: CalendarEvent[];
+interface Game {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  dates: GameDate[];
+}
+
+interface NonGameEvent {
+  name: string;
+  type: string;
+  dates: GameDate[];
+}
+
+interface PalioData {
+  competition_name: string;
+  villages: string[];
+  games: Game[];
+  non_game_events: NonGameEvent[];
 }
 
 const CalendarioPage: React.FC = () => {
-  const [events, setEvents] = useState<{ [date: string]: { id: string; title: string; time: string; description?: string }[] }>({});
+  const [events, setEvents] = useState<{ [date: string]: { id: string; title: string; time: string; description?: string; subtitle?: string }[] }>({});
 
   useEffect(() => {
-    // Load calendar.json from public folder
-    fetch('/calendar.json')
+    // Load palio data from API
+    fetch('/palio')
       .then(response => response.json())
-      .then((data: CalendarData) => {
+      .then((data: PalioData) => {
         // Transform the data to match our component's expected format
-        const transformedEvents: { [date: string]: { id: string; title: string; time: string; description?: string }[] } = {};
+        const transformedEvents: { [date: string]: { id: string; title: string; time: string; description?: string; subtitle?: string }[] } = {};
         
-        Object.entries(data).forEach(([dayKey, dayEvents]) => {
-          // Parse the day key (e.g., "Friday, 1" -> August 1st, 2025)
-          const [dayName, dayNumber] = dayKey.split(', ');
-          const day = parseInt(dayNumber);
-          
-          // Create a date for August 2025
-          // We need to find the correct date that matches both the day number AND the day name
-          let date = new Date(2025, 7, day); // August 2025 (month is 0-indexed)
-          
-          // Map day names to JavaScript day numbers (0 = Sunday, 1 = Monday, etc.)
-          const dayNameMap: { [key: string]: number } = {
-            'Sunday': 0,
-            'Monday': 1,
-            'Tuesday': 2,
-            'Wednesday': 3,
-            'Thursday': 4,
-            'Friday': 5,
-            'Saturday': 6
-          };
-          
-          // Check if the created date matches the expected day of week
-          const expectedDayOfWeek = dayNameMap[dayName];
-          const actualDayOfWeek = date.getDay();
-          
-          // If they don't match, adjust the date
-          if (expectedDayOfWeek !== actualDayOfWeek) {
-            // This might happen if the day number doesn't align with the day name in August 2025
-            console.warn(`Date mismatch: ${dayKey} doesn't align properly in August 2025`);
-          }
-          
-          // Format date as YYYY-MM-DD in local timezone
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const dayStr = String(date.getDate()).padStart(2, '0');
-          const dateString = `${year}-${month}-${dayStr}`;
-          
-          transformedEvents[dateString] = dayEvents.map((event, index) => ({
-            id: `${dateString}-${index}`,
-            title: event.event,
-            time: event.startTime,
-            description: `${event.startTime} - ${event.endTime}`
-          }));
+        // Process games
+        data.games.forEach(game => {
+          game.dates.forEach((gameDate, dateIndex) => {
+            const startDate = new Date(gameDate.start_datetime);
+            const endDate = new Date(gameDate.end_datetime);
+            
+            // Format date as YYYY-MM-DD in local timezone
+            const year = startDate.getFullYear();
+            const month = String(startDate.getMonth() + 1).padStart(2, '0');
+            const day = String(startDate.getDate()).padStart(2, '0');
+            const dateString = `${year}-${month}-${day}`;
+            
+            // Format time
+            const startTime = startDate.toLocaleTimeString('it-IT', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            });
+            const endTime = endDate.toLocaleTimeString('it-IT', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            });
+            
+            // For games with multiple dates, use game name as title and subtitle separately
+            // For games with single date, use game name as title (no subtitle)
+            const eventTitle = game.name;
+            const eventSubtitle = game.dates.length > 1 ? gameDate.subtitle : undefined;
+            
+            // Initialize array if it doesn't exist
+            if (!transformedEvents[dateString]) {
+              transformedEvents[dateString] = [];
+            }
+            
+            transformedEvents[dateString].push({
+              id: `${game.id}-${dateIndex}`,
+              title: eventTitle,
+              subtitle: eventSubtitle,
+              time: startTime,
+              description: `${startTime} - ${endTime}`
+            });
+          });
+        });
+        
+        // Process non-game events
+        data.non_game_events.forEach(event => {
+          event.dates.forEach((eventDate, dateIndex) => {
+            const startDate = new Date(eventDate.start_datetime);
+            const endDate = new Date(eventDate.end_datetime);
+            
+            // Format date as YYYY-MM-DD in local timezone
+            const year = startDate.getFullYear();
+            const month = String(startDate.getMonth() + 1).padStart(2, '0');
+            const day = String(startDate.getDate()).padStart(2, '0');
+            const dateString = `${year}-${month}-${day}`;
+            
+            // Format time
+            const startTime = startDate.toLocaleTimeString('it-IT', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            });
+            const endTime = endDate.toLocaleTimeString('it-IT', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            });
+            
+            // For non-game events, use event name as title and subtitle separately
+            const eventTitle = event.name;
+            const eventSubtitle = event.dates.length > 1 ? eventDate.subtitle : undefined;
+            
+            // Initialize array if it doesn't exist
+            if (!transformedEvents[dateString]) {
+              transformedEvents[dateString] = [];
+            }
+            
+            transformedEvents[dateString].push({
+              id: `${event.name}-${dateIndex}`,
+              title: eventTitle,
+              subtitle: eventSubtitle,
+              time: startTime,
+              description: `${startTime} - ${endTime}`
+            });
+          });
         });
         
         setEvents(transformedEvents);
