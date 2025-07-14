@@ -86,10 +86,11 @@
         },
         {
           "name": "Maschile",
-          "status": "not-started",
+          "status": "in-progress",
           "scores": {
             "Sottomonte": 13,
-            "Sottocastello": 139
+            "Sottocastello": 139,
+            "Salt": 10
           }
         }
       ]

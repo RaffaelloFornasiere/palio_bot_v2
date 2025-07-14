@@ -1,4 +1,5 @@
 start - Avvia il bot e mostra le istruzioni
 status - Mostra lo stato del sistema
+games_status - Mostra lo stato dei giochi
 cancel - Annulla le modifiche della sessione corrente
 close - Chiudi la sessione salvando le modifiche

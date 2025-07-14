@@ -30,10 +30,18 @@ interface GameRound {
   [village: string]: number;
 }
 
+interface GameDivision {
+  name: string;
+  status: 'completed' | 'in-progress' | 'not-started';
+  scores?: GameScore;
+  rounds?: GameRound[];
+}
+
 interface GameData {
   status: 'completed' | 'in-progress' | 'not-started';
   scores?: GameScore;
   rounds?: GameRound[];
+  divisions?: GameDivision[];
 }
 
 interface GameLeaderboard {
@@ -170,7 +178,44 @@ const GiocoDettagliPage: React.FC = () => {
   };
 
   const getWinner = (gameData: GameData): string => {
-    if (gameData.status !== 'completed' || !gameData.scores) {
+    if (gameData.status !== 'completed') {
+      return '-';
+    }
+
+    // Handle games with divisions
+    if (gameData.divisions && gameData.divisions.length > 0) {
+      const completedDivisions = gameData.divisions.filter(div => div.status === 'completed');
+      if (completedDivisions.length === 0) {
+        return '-';
+      }
+      
+      // Count wins per village across all divisions
+      const villageWins: { [village: string]: number } = {};
+      
+      completedDivisions.forEach(division => {
+        if (division.scores) {
+          const maxScore = Math.max(...Object.values(division.scores));
+          const winners = Object.entries(division.scores).filter(([_, score]) => score === maxScore);
+          winners.forEach(([village]) => {
+            villageWins[village] = (villageWins[village] || 0) + 1;
+          });
+        }
+      });
+      
+      // Find village with most division wins
+      const maxWins = Math.max(...Object.values(villageWins));
+      const overallWinners = Object.entries(villageWins).filter(([_, wins]) => wins === maxWins);
+      
+      if (overallWinners.length === 1) {
+        return overallWinners[0][0];
+      } else if (overallWinners.length > 1) {
+        return overallWinners.map(([village]) => village).join(', ');
+      }
+      return '-';
+    }
+
+    // Handle games without divisions
+    if (!gameData.scores) {
       return '-';
     }
 
@@ -313,8 +358,97 @@ const GiocoDettagliPage: React.FC = () => {
             )}
           </Box>
 
-          {/* Game Scores */}
-          {gameData.scores && (
+          {/* Divisions */}
+          {gameData.divisions && gameData.divisions.length > 0 && (
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Divisioni
+                </Typography>
+                
+                {gameData.divisions.map((division, divIndex) => (
+                  <Box key={divIndex} sx={{ mb: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <Typography variant="subtitle1" fontWeight="medium">
+                        {division.name}
+                      </Typography>
+                      <Chip 
+                        label={getStatusText(division.status)} 
+                        color={getStatusColor(division.status) as any}
+                        size="small"
+                      />
+                    </Box>
+                    
+                    {/* Division Scores */}
+                    {division.scores && Object.keys(division.scores).length > 0 && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Punteggi
+                        </Typography>
+                        <TableContainer component={Paper} variant="outlined">
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Borgo</TableCell>
+                                <TableCell align="right">Punteggio</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {getSortedScores(division.scores).map(([village, score]) => (
+                                <TableRow key={village}>
+                                  <TableCell>{village}</TableCell>
+                                  <TableCell align="right">{score}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Box>
+                    )}
+                    
+                    {/* Division Rounds */}
+                    {division.rounds && division.rounds.length > 0 && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Rounds
+                        </Typography>
+                        {division.rounds.map((round, roundIndex) => (
+                          <Box key={roundIndex} sx={{ mb: 1 }}>
+                            <Typography variant="body2" sx={{ mb: 0.5 }}>
+                              Round {roundIndex + 1}
+                            </Typography>
+                            <TableContainer component={Paper} variant="outlined">
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Borgo</TableCell>
+                                    <TableCell align="right">Punteggio</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {getSortedScores(round).map(([village, score]) => (
+                                    <TableRow key={village}>
+                                      <TableCell>{village}</TableCell>
+                                      <TableCell align="right">{score}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                    
+                    {divIndex < gameData.divisions!.length - 1 && <Divider sx={{ mt: 2 }} />}
+                  </Box>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Game Scores - Only show if there are no divisions or if scores exist alongside divisions */}
+          {gameData.scores && (!gameData.divisions || gameData.divisions.length === 0) && (
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -357,8 +491,8 @@ const GiocoDettagliPage: React.FC = () => {
             </Card>
           )}
 
-          {/* Rounds (for in-progress games) */}
-          {gameData.rounds && gameData.rounds.length > 0 && (
+          {/* Rounds (for in-progress games) - Only show if there are no divisions */}
+          {gameData.rounds && gameData.rounds.length > 0 && (!gameData.divisions || gameData.divisions.length === 0) && (
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>

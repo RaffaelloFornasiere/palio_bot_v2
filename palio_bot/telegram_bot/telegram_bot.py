@@ -75,6 +75,7 @@ class PalioTelegramBot:
             "🆕 *Novità*: Ora vedrai gli aggiornamenti in tempo reale!\n\n"
             "Comandi disponibili:\n"
             "/status - Mostra lo stato del sistema\n"
+            "/games_status - Mostra lo stato dei giochi\n"
             "/cancel - Annulla le modifiche della sessione corrente\n"
             "/close - Chiudi la sessione salvando le modifiche",
             parse_mode='HTML'
@@ -158,6 +159,70 @@ class PalioTelegramBot:
             )
         except Exception as e:
             logger.error(f"Error in close: {e}")
+            await update.message.reply_text(f"❌ Errore: {str(e)}")
+            
+    async def games_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /games_status command"""
+        if not self.check_user_authorized(update.effective_user.id):
+            await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
+            return
+            
+        if not self.container:
+            await update.message.reply_text("❌ Sistema non inizializzato")
+            return
+            
+        try:
+            import json
+            from pathlib import Path
+            
+            # Read games status file
+            games_status_path = Path("data/palio_games_status.json")
+            if not games_status_path.exists():
+                await update.message.reply_text("❌ File palio_games_status.json non trovato")
+                return
+                
+            with open(games_status_path, 'r', encoding='utf-8') as f:
+                games_data = json.load(f)
+                
+            # Format as pretty JSON
+            json_text = json.dumps(games_data, indent=2, ensure_ascii=False)
+            
+            # Split into chunks if too long (Telegram has message length limits)
+            max_length = 4000
+            if len(json_text) <= max_length:
+                await update.message.reply_text(
+                    f"📄 *palio_games_status.json*\n\n```json\n{json_text}\n```",
+                    parse_mode='Markdown'
+                )
+            else:
+                # Split into multiple messages
+                chunks = []
+                lines = json_text.split('\n')
+                current_chunk = []
+                current_length = 0
+                
+                for line in lines:
+                    if current_length + len(line) + 1 > max_length:
+                        chunks.append('\n'.join(current_chunk))
+                        current_chunk = [line]
+                        current_length = len(line)
+                    else:
+                        current_chunk.append(line)
+                        current_length += len(line) + 1
+                        
+                if current_chunk:
+                    chunks.append('\n'.join(current_chunk))
+                    
+                # Send chunks
+                for i, chunk in enumerate(chunks):
+                    header = f"📄 *palio_games_status.json* (parte {i+1}/{len(chunks)})\n\n" if i == 0 else ""
+                    await update.message.reply_text(
+                        f"{header}```json\n{chunk}\n```",
+                        parse_mode='Markdown'
+                    )
+            
+        except Exception as e:
+            logger.error(f"Error in games_status: {e}", exc_info=True)
             await update.message.reply_text(f"❌ Errore: {str(e)}")
             
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -313,6 +378,7 @@ def main():
     # Add handlers
     application.add_handler(CommandHandler("start", bot.start))
     application.add_handler(CommandHandler("status", bot.status))
+    application.add_handler(CommandHandler("games_status", bot.games_status))
     application.add_handler(CommandHandler("cancel", bot.cancel))
     application.add_handler(CommandHandler("close", bot.close))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
