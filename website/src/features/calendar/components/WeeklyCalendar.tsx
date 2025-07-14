@@ -22,6 +22,19 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Helper function to get adjacent weeks
+  const getPreviousWeek = (date: Date) => {
+    const prevWeek = new Date(date);
+    prevWeek.setDate(date.getDate() - 7);
+    return prevWeek;
+  };
+
+  const getNextWeek = (date: Date) => {
+    const nextWeek = new Date(date);
+    nextWeek.setDate(date.getDate() + 7);
+    return nextWeek;
+  };
+
   const weekdays = isMobile 
     ? ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
     : ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
@@ -50,6 +63,8 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
   };
 
   const weekDates = getWeekDates(currentWeek);
+  const prevWeekDates = getWeekDates(getPreviousWeek(currentWeek));
+  const nextWeekDates = getWeekDates(getNextWeek(currentWeek));
 
   const animateToWeek = (direction: 'prev' | 'next') => {
     if (isAnimating) return;
@@ -196,96 +211,250 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ events = {} }) => {
         }}
       >
         <Box
-          ref={scrollRef}
           sx={{
             display: 'flex',
-            flexDirection: 'column',
+            width: '300%',
             height: '100%',
-            transform: `translateX(${translateX}px)`,
+            transform: `translateX(calc(-33.333% + ${translateX}px))`,
             transition: isAnimating ? 'transform 0.3s ease-out' : 'none',
             touchAction: 'pan-x'
           }}
         >
-          {/* Weekdays header */}
-          <Box sx={{ display: 'flex', borderBottom: 1, borderColor: 'divider' }}>
-            {weekdays.map((day, index) => (
-              <Box
-                key={`${currentWeek.getTime()}-${day}`}
-                sx={{
-                  flex: 1,
-                  p: isMobile ? 1 : 2,
-                  textAlign: 'center',
-                  borderRight: index < 6 ? 1 : 0,
-                  borderColor: 'divider',
-                  minWidth: isMobile ? '14%' : 'auto'
-                }}
-              >
-                <Typography variant={isMobile ? "body2" : "subtitle1"} fontWeight="bold">
-                  {day}
-                </Typography>
-                <Typography variant={isMobile ? "body1" : "h6"} color="primary">
-                  {formatDisplayDate(weekDates[index])}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-
-          {/* Events area */}
-          <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-            {weekDates.map((date, index) => {
-              const dateStr = formatDate(date);
-              const dayEvents = events[dateStr] || [];
-              
-              return (
+          {/* Previous Week */}
+          <Box sx={{ width: '33.333%', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Box sx={{ display: 'flex', borderBottom: 1, borderColor: 'divider' }}>
+              {weekdays.map((day, index) => (
                 <Box
-                  key={`${currentWeek.getTime()}-${dateStr}`}
+                  key={`prev-${day}`}
                   sx={{
                     flex: 1,
-                    p: isMobile ? 0.5 : 1,
+                    p: isMobile ? 1 : 2,
+                    textAlign: 'center',
                     borderRight: index < 6 ? 1 : 0,
                     borderColor: 'divider',
-                    overflow: 'auto',
-                    minWidth: isMobile ? '14%' : 'auto',
-                    '&::-webkit-scrollbar': {
-                      display: 'none'
-                    },
-                    msOverflowStyle: 'none',
-                    scrollbarWidth: 'none'
+                    minWidth: isMobile ? '14%' : 'auto'
                   }}
                 >
-                  {dayEvents.map((event) => (
-                    <Paper
-                      key={event.id}
-                      sx={{
-                        p: isMobile ? 0.5 : 1,
-                        mb: isMobile ? 0.5 : 1,
-                        backgroundColor: 'primary.light',
-                        color: 'primary.contrastText',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease-in-out',
-                        '&:hover': {
-                          backgroundColor: 'primary.main',
-                          transform: 'translateY(-2px)',
-                          boxShadow: 4
-                        }
-                      }}
-                    >
-                      <Typography variant="caption" display="block">
-                        {event.time}
-                      </Typography>
-                      <Typography variant={isMobile ? "caption" : "body2"} fontWeight="bold">
-                        {event.title}
-                      </Typography>
-                      {event.description && !isMobile && (
-                        <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                          {event.description}
-                        </Typography>
-                      )}
-                    </Paper>
-                  ))}
+                  <Typography variant={isMobile ? "body2" : "subtitle1"} fontWeight="bold">
+                    {day}
+                  </Typography>
+                  <Typography variant={isMobile ? "body1" : "h6"} color="primary">
+                    {formatDisplayDate(prevWeekDates[index])}
+                  </Typography>
                 </Box>
-              );
-            })}
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+              {prevWeekDates.map((date, index) => {
+                const dateStr = formatDate(date);
+                const dayEvents = events[dateStr] || [];
+                return (
+                  <Box
+                    key={`prev-${dateStr}`}
+                    sx={{
+                      flex: 1,
+                      p: isMobile ? 0.5 : 1,
+                      borderRight: index < 6 ? 1 : 0,
+                      borderColor: 'divider',
+                      overflow: 'auto',
+                      minWidth: isMobile ? '14%' : 'auto',
+                      '&::-webkit-scrollbar': { display: 'none' },
+                      msOverflowStyle: 'none',
+                      scrollbarWidth: 'none'
+                    }}
+                  >
+                    {dayEvents.map((event) => (
+                      <Paper
+                        key={event.id}
+                        sx={{
+                          p: isMobile ? 0.5 : 1,
+                          mb: isMobile ? 0.5 : 1,
+                          backgroundColor: 'primary.light',
+                          color: 'primary.contrastText',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease-in-out',
+                          '&:hover': {
+                            backgroundColor: 'primary.main',
+                            transform: 'translateY(-2px)',
+                            boxShadow: 4
+                          }
+                        }}
+                      >
+                        <Typography variant="caption" display="block">
+                          {event.time}
+                        </Typography>
+                        <Typography variant={isMobile ? "caption" : "body2"} fontWeight="bold">
+                          {event.title}
+                        </Typography>
+                        {event.description && !isMobile && (
+                          <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                            {event.description}
+                          </Typography>
+                        )}
+                      </Paper>
+                    ))}
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+
+          {/* Current Week */}
+          <Box ref={scrollRef} sx={{ width: '33.333%', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Box sx={{ display: 'flex', borderBottom: 1, borderColor: 'divider' }}>
+              {weekdays.map((day, index) => (
+                <Box
+                  key={`current-${day}`}
+                  sx={{
+                    flex: 1,
+                    p: isMobile ? 1 : 2,
+                    textAlign: 'center',
+                    borderRight: index < 6 ? 1 : 0,
+                    borderColor: 'divider',
+                    minWidth: isMobile ? '14%' : 'auto'
+                  }}
+                >
+                  <Typography variant={isMobile ? "body2" : "subtitle1"} fontWeight="bold">
+                    {day}
+                  </Typography>
+                  <Typography variant={isMobile ? "body1" : "h6"} color="primary">
+                    {formatDisplayDate(weekDates[index])}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+              {weekDates.map((date, index) => {
+                const dateStr = formatDate(date);
+                const dayEvents = events[dateStr] || [];
+                return (
+                  <Box
+                    key={`current-${dateStr}`}
+                    sx={{
+                      flex: 1,
+                      p: isMobile ? 0.5 : 1,
+                      borderRight: index < 6 ? 1 : 0,
+                      borderColor: 'divider',
+                      overflow: 'auto',
+                      minWidth: isMobile ? '14%' : 'auto',
+                      '&::-webkit-scrollbar': { display: 'none' },
+                      msOverflowStyle: 'none',
+                      scrollbarWidth: 'none'
+                    }}
+                  >
+                    {dayEvents.map((event) => (
+                      <Paper
+                        key={event.id}
+                        sx={{
+                          p: isMobile ? 0.5 : 1,
+                          mb: isMobile ? 0.5 : 1,
+                          backgroundColor: 'primary.light',
+                          color: 'primary.contrastText',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease-in-out',
+                          '&:hover': {
+                            backgroundColor: 'primary.main',
+                            transform: 'translateY(-2px)',
+                            boxShadow: 4
+                          }
+                        }}
+                      >
+                        <Typography variant="caption" display="block">
+                          {event.time}
+                        </Typography>
+                        <Typography variant={isMobile ? "caption" : "body2"} fontWeight="bold">
+                          {event.title}
+                        </Typography>
+                        {event.description && !isMobile && (
+                          <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                            {event.description}
+                          </Typography>
+                        )}
+                      </Paper>
+                    ))}
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+
+          {/* Next Week */}
+          <Box sx={{ width: '33.333%', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Box sx={{ display: 'flex', borderBottom: 1, borderColor: 'divider' }}>
+              {weekdays.map((day, index) => (
+                <Box
+                  key={`next-${day}`}
+                  sx={{
+                    flex: 1,
+                    p: isMobile ? 1 : 2,
+                    textAlign: 'center',
+                    borderRight: index < 6 ? 1 : 0,
+                    borderColor: 'divider',
+                    minWidth: isMobile ? '14%' : 'auto'
+                  }}
+                >
+                  <Typography variant={isMobile ? "body2" : "subtitle1"} fontWeight="bold">
+                    {day}
+                  </Typography>
+                  <Typography variant={isMobile ? "body1" : "h6"} color="primary">
+                    {formatDisplayDate(nextWeekDates[index])}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+              {nextWeekDates.map((date, index) => {
+                const dateStr = formatDate(date);
+                const dayEvents = events[dateStr] || [];
+                return (
+                  <Box
+                    key={`next-${dateStr}`}
+                    sx={{
+                      flex: 1,
+                      p: isMobile ? 0.5 : 1,
+                      borderRight: index < 6 ? 1 : 0,
+                      borderColor: 'divider',
+                      overflow: 'auto',
+                      minWidth: isMobile ? '14%' : 'auto',
+                      '&::-webkit-scrollbar': { display: 'none' },
+                      msOverflowStyle: 'none',
+                      scrollbarWidth: 'none'
+                    }}
+                  >
+                    {dayEvents.map((event) => (
+                      <Paper
+                        key={event.id}
+                        sx={{
+                          p: isMobile ? 0.5 : 1,
+                          mb: isMobile ? 0.5 : 1,
+                          backgroundColor: 'primary.light',
+                          color: 'primary.contrastText',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease-in-out',
+                          '&:hover': {
+                            backgroundColor: 'primary.main',
+                            transform: 'translateY(-2px)',
+                            boxShadow: 4
+                          }
+                        }}
+                      >
+                        <Typography variant="caption" display="block">
+                          {event.time}
+                        </Typography>
+                        <Typography variant={isMobile ? "caption" : "body2"} fontWeight="bold">
+                          {event.title}
+                        </Typography>
+                        {event.description && !isMobile && (
+                          <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                            {event.description}
+                          </Typography>
+                        )}
+                      </Paper>
+                    ))}
+                  </Box>
+                );
+              })}
+            </Box>
           </Box>
         </Box>
       </Box>
