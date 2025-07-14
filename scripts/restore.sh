@@ -7,7 +7,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
 echo "🔄 Restoring palio_games_status.json and leaderboard.json..."
-python scripts/restore_games_status.py --backup
+python scripts/restore_games_status.py
 
 echo ""
 echo "📋 Current status:"
