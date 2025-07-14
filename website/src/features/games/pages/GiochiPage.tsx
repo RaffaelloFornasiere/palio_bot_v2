@@ -47,9 +47,31 @@ interface LeaderboardData {
   };
 }
 
+interface PalioGame {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  measure_unit: string;
+  lower_is_better: boolean;
+  dates: Array<{
+    start_datetime: string;
+    end_datetime: string;
+    subtitle?: string;
+  }>;
+}
+
+interface PalioData {
+  competition_name: string;
+  villages: string[];
+  games: PalioGame[];
+  non_game_events: any[];
+}
+
 const GiochiPage: React.FC = () => {
   const [gamesData, setGamesData] = useState<GamesStatusData | null>(null);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardData | null>(null);
+  const [palioData, setPalioData] = useState<PalioData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -58,20 +80,23 @@ const GiochiPage: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [gamesResponse, leaderboardResponse] = await Promise.all([
+        const [gamesResponse, leaderboardResponse, palioResponse] = await Promise.all([
           apiCall('/palio_games_status'),
-          apiCall('/leaderboard')
+          apiCall('/leaderboard'),
+          apiCall('/palio')
         ]);
 
-        if (!gamesResponse.ok || !leaderboardResponse.ok) {
+        if (!gamesResponse.ok || !leaderboardResponse.ok || !palioResponse.ok) {
           throw new Error('Failed to fetch data');
         }
 
         const gamesData = await gamesResponse.json();
         const leaderboardData = await leaderboardResponse.json();
+        const palioData = await palioResponse.json();
 
         setGamesData(gamesData);
         setLeaderboardData(leaderboardData);
+        setPalioData(palioData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -83,6 +108,13 @@ const GiochiPage: React.FC = () => {
   }, []);
 
   const getGameName = (gameId: string): string => {
+    // First check palio data for the game name
+    const palioGame = palioData?.games.find(game => game.id === gameId);
+    if (palioGame) {
+      return palioGame.name;
+    }
+    
+    // Fallback to leaderboard data
     return leaderboardData?.game_leaderboards[gameId]?.name || `Gioco ${gameId}`;
   };
 
