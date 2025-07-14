@@ -1,11 +1,10 @@
 """Text editor tool for managing palio.json file."""
 
 import json
-import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
-from .models import Tool, ToolResult
+from palio_bot.agent.models import Tool, ToolResult
 
 
 class TextEditorTool:

@@ -1,7 +1,6 @@
 """Main entry point for the palio_bot package."""
 
-import sys
-from .cli import main
+from palio_bot.cli.cli import main
 import asyncio
 
 if __name__ == "__main__":

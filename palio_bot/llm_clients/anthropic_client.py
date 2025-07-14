@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from anthropic import AsyncAnthropic
 
 from .base_client import BaseLLMClient
-from ..models import Message, TextContent, ToolUseContent, ToolResultContent, Tool
+from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool
 
 
 class AnthropicClient(BaseLLMClient):

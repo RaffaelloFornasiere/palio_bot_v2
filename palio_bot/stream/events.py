@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 import uuid
 
-from .models import Message, ToolResult
+from palio_bot.agent.models import Message, ToolResult
 
 
 class Event(BaseModel):

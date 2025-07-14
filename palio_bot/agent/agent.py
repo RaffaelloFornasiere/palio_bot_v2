@@ -1,14 +1,13 @@
 """Agent implementation with event production for real-time updates."""
 
-import uuid
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
-from .models import Message, TextContent, ToolUseContent, ToolResultContent, Tool, ToolResult
-from .llm_clients.base_client import BaseLLMClient
-from .interfaces import Producer
-from .stream import Stream
-from .events import (
+from palio_bot.agent.models import Message, TextContent, ToolUseContent, Tool, ToolResult
+from palio_bot.llm_clients.base_client import BaseLLMClient
+from palio_bot.stream.interfaces import Producer
+from palio_bot.stream.stream import Stream
+from palio_bot.stream.events import (
     UserMessageEvent, AgentUpdateEvent, ToolUseEvent, 
     ToolResultEvent, AgentCompleteEvent, ErrorEvent
 )

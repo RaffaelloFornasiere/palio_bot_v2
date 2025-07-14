@@ -2,11 +2,10 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
-from jsonpath_ng import parse
+from typing import Any, Dict, Optional
 from jsonpath_ng.ext import parse as parse_ext
 
-from .models import Tool, ToolResult
+from palio_bot.agent.models import Tool, ToolResult
 
 
 class JSONEditorTool:

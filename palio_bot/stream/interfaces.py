@@ -5,7 +5,7 @@ Following the pattern from sage_v2 with clear separation of concerns.
 from typing import Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .stream import Stream
+    from palio_bot.stream import Stream
     from .events import Event
 
 

@@ -3,14 +3,13 @@
 Telegram bot per la gestione del Palio con event system
 """
 
-import asyncio
 import logging
 from typing import Dict, Optional, Any
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 from palio_bot.container import Container
-from palio_bot.models import Session
+from palio_bot.agent.models import Session
 
 # Enable logging
 logging.basicConfig(

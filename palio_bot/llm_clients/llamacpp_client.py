@@ -1,12 +1,11 @@
 """LlamaCPP client implementation."""
 
 import json
-import uuid
 from typing import Any, Dict, List, Optional
 import httpx
 
 from .base_client import BaseLLMClient
-from ..models import Message, TextContent, ToolUseContent, ToolResultContent, Tool
+from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool
 
 
 class LlamaCPPClient(BaseLLMClient):

@@ -1,16 +1,15 @@
 """Telegram Consumer for sending events to Telegram chat."""
 
-import json
 from typing import Dict, Any
 from telegram import Bot
 from telegram.error import TelegramError
 import logging
 
-from .events import (
+from palio_bot.stream.events import (
     Event, UserMessageEvent, AgentUpdateEvent, ToolUseEvent,
     ToolResultEvent, AgentCompleteEvent, ErrorEvent
 )
-from .models import TextContent
+from palio_bot.agent.models import TextContent
 
 logger = logging.getLogger(__name__)
 

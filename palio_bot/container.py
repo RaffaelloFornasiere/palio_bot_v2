@@ -3,17 +3,17 @@
 import logging
 from typing import Dict, Optional, Literal
 
-from .agent import Agent
+from palio_bot.agent.agent import Agent
 from .system import System
-from .stream import Stream
-from .cli_consumer import CLIConsumer
-from .telegram_consumer import TelegramConsumer
-from .text_editor_tool import create_text_editor_tools
-from .json_editor_tool import create_json_editor_tools
+from palio_bot.stream.stream import Stream
+from palio_bot.cli.cli_consumer import CLIConsumer
+from palio_bot.telegram_bot.telegram_consumer import TelegramConsumer
+from palio_bot.tools.text_editor_tool import create_text_editor_tools
+from palio_bot.tools.json_editor_tool import create_json_editor_tools
 from .llm_clients.llamacpp_client import LlamaCPPClient
 from .llm_clients.anthropic_client import AnthropicClient
 from .llm_clients.base_client import BaseLLMClient
-from .models import Tool
+from palio_bot.agent.models import Tool
 from telegram import Bot
 
 logger = logging.getLogger(__name__)

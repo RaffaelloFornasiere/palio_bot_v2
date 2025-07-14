@@ -8,11 +8,11 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.syntax import Syntax
 
-from .events import (
+from palio_bot.stream.events import (
     Event, UserMessageEvent, AgentUpdateEvent, ToolUseEvent,
     ToolResultEvent, AgentCompleteEvent, ErrorEvent
 )
-from .models import TextContent, ToolUseContent
+from palio_bot.agent.models import TextContent
 
 logger = logging.getLogger(__name__)
 

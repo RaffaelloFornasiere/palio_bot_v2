@@ -4,15 +4,12 @@ import asyncio
 import os
 import json
 import argparse
-import logging
 from pathlib import Path
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.panel import Panel
-from rich.markdown import Markdown
 
 from palio_bot.container import Container
-from palio_bot.models import TextContent
 from palio_bot.logging_config import setup_logging, get_logger
 
 

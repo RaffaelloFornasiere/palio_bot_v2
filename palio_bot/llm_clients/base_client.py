@@ -1,9 +1,9 @@
 """Base LLM client interface."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
-from ..models import Message, Tool
+from palio_bot.agent.models import Message, Tool
 
 
 class BaseLLMClient(ABC):
