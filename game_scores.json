@@ -1,0 +1,26 @@
+{
+  "game_scores": {
+    "G01": {
+      "Villa": 180,
+      "Salt": 130,
+      "Sottocastello": 200,
+      "Sornico": 90,
+      "Sottomonte": 170
+    },
+    "G04": [
+      {
+        "Villa": 15,
+        "Salt": 10
+      },
+      {
+        "Sottocastello": 20,
+        "Sornico": 5
+      },
+      {
+        "Sottomonte": 25,
+        "Villa": 10
+      }
+    ]
+  },
+  "last_updated": "2025-07-12T15:38:35.849993Z"
+}

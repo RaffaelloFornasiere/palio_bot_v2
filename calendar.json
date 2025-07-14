@@ -1,0 +1,214 @@
+{
+  "Friday, 1": [
+    {
+      "event": "TAGLIO DEL TRONCO",
+      "startTime": "21:00",
+      "endTime": "22:00"
+    }
+  ],
+  "Saturday, 2": [
+    {
+      "event": "CORSA COI SACCHI",
+      "startTime": "08:00",
+      "endTime": "09:00"
+    },
+    {
+      "event": "ANGURIA",
+      "startTime": "10:00",
+      "endTime": "11:00"
+    },
+    {
+      "event": "SCATOLONE",
+      "startTime": "12:00",
+      "endTime": "13:00"
+    },
+    {
+      "event": "PASTA",
+      "startTime": "13:00",
+      "endTime": "14:00"
+    },
+    {
+      "event": "STRADE MATE",
+      "startTime": "15:00",
+      "endTime": "16:00"
+    },
+    {
+      "event": "STAFFETTA",
+      "startTime": "19:00",
+      "endTime": "20:00"
+    }
+  ],
+  "Sunday, 3": [
+    {
+      "event": "BICICLETTA",
+      "startTime": "09:00",
+      "endTime": "10:00"
+    },
+    {
+      "event": "FRECCETTE",
+      "startTime": "11:00",
+      "endTime": "12:00"
+    },
+    {
+      "event": "FRECCETTE",
+      "startTime": "14:00",
+      "endTime": "15:00"
+    },
+    {
+      "event": "Calcetto (sottocastello-salt)",
+      "startTime": "21:00",
+      "endTime": "22:00"
+    },
+    {
+      "event": "Calcetto (villa-sottomonte)",
+      "startTime": "22:00",
+      "endTime": "23:00"
+    }
+  ],
+  "Monday, 4": [
+    {
+      "event": "Calcetto (sottomonte-sottocastello)",
+      "startTime": "21:00",
+      "endTime": "22:00"
+    },
+    {
+      "event": "Calcetto (sornico-salt)",
+      "startTime": "22:00",
+      "endTime": "23:00"
+    }
+  ],
+  "Tuesday, 5": [
+    {
+      "event": "Calcetto (sornico-villa)",
+      "startTime": "21:00",
+      "endTime": "22:00"
+    },
+    {
+      "event": "Calcetto (salt-sottomonte)",
+      "startTime": "22:00",
+      "endTime": "23:00"
+    }
+  ],
+  "Wednesday, 6": [
+    {
+      "event": "Calcetto (villa-salt)",
+      "startTime": "21:00",
+      "endTime": "22:00"
+    },
+    {
+      "event": "Calcetto (sornico-sottocastello)",
+      "startTime": "22:00",
+      "endTime": "23:00"
+    }
+  ],
+  "Thursday, 7": [
+    {
+      "event": "Calcetto (sottocastello-villa)",
+      "startTime": "21:00",
+      "endTime": "22:00"
+    },
+    {
+      "event": "Calcetto (sottomonte-sornico)",
+      "startTime": "22:00",
+      "endTime": "23:00"
+    }
+  ],
+  "Friday, 8": [
+    {
+      "event": "semifinali",
+      "startTime": "21:00",
+      "endTime": "22:00"
+    },
+    {
+      "event": "finali",
+      "startTime": "22:00",
+      "endTime": "23:00"
+    }
+  ],
+  "Saturday, 9": [
+    {
+      "event": "PALLAVOLO",
+      "startTime": "08:00",
+      "endTime": "09:00"
+    },
+    {
+      "event": "PASTA",
+      "startTime": "13:00",
+      "endTime": "14:00"
+    },
+    {
+      "event": "PALLAVOLO",
+      "startTime": "14:00",
+      "endTime": "15:00"
+    }
+  ],
+  "Sunday, 10": [
+    {
+      "event": "BOCCE",
+      "startTime": "11:00",
+      "endTime": "12:00"
+    },
+    {
+      "event": "BOCCE",
+      "startTime": "14:00",
+      "endTime": "15:00"
+    },
+    {
+      "event": "MORRA",
+      "startTime": "20:00",
+      "endTime": "21:00"
+    }
+  ],
+  "Monday, 11": [
+    {
+      "event": "BRISCOLA",
+      "startTime": "20:00",
+      "endTime": "21:00"
+    }
+  ],
+  "Tuesday, 12": [
+    {
+      "event": "INTESA VINCENTE",
+      "startTime": "20:00",
+      "endTime": "21:00"
+    }
+  ],
+  "Wednesday, 13": [
+    {
+      "event": "PAUSONE",
+      "startTime": "08:00",
+      "endTime": "09:00"
+    }
+  ],
+  "Thursday, 14": [
+    {
+      "event": "BALE PIGNOTE JR",
+      "startTime": "11:00",
+      "endTime": "12:00"
+    },
+    {
+      "event": "BALE PIGNOTE JR",
+      "startTime": "14:00",
+      "endTime": "15:00"
+    }
+  ],
+  "Friday, 15": [
+    {
+      "event": "CAMERIERI",
+      "startTime": "10:00",
+      "endTime": "11:00"
+    },
+    {
+      "event": "BALE PIGNOTE SR",
+      "startTime": "14:00",
+      "endTime": "15:00"
+    }
+  ],
+  "Saturday, 16": [
+    {
+      "event": "PREMIAZIONI",
+      "startTime": "22:00",
+      "endTime": "23:00"
+    }
+  ]
+}
