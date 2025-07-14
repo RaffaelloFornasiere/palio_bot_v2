@@ -6,3 +6,4 @@ jsonpath_ng
 anthropic
 fastapi>=0.100.0
 uvicorn>=0.22.0
+rich

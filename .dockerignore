@@ -1,0 +1,62 @@
+# Node modules and build artifacts
+website/node_modules/
+website/build/
+website/.pnp
+website/.pnp.js
+website/coverage/
+website/.env.local
+website/.env.development.local
+website/.env.test.local
+website/.env.production.local
+website/npm-debug.log*
+website/yarn-debug.log*
+website/yarn-error.log*
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker files
+docker/
+.dockerignore
+docker-compose.yml
+
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+session.json
+palio_backup_*.json
+
+# Documentation
+*.md
+docs/
+
+# Test files
+*_test.py
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx

@@ -7,13 +7,12 @@ services:
       dockerfile: docker/Dockerfile.telegram
     container_name: palio-telegram-bot
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - ALLOWED_USER_ID=${ALLOWED_USER_ID}
       - PALIO_FILE_PATH=/app/data/palio.json
       - SESSION_FILE_PATH=/app/data/session.json
       - LLAMACPP_URL=${LLAMACPP_URL:-http://mac-studio.local:11454}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - telegram_data:/app/data
       - ../logs:/app/logs

@@ -1,3 +1,22 @@
+# Stage 1: Build React app
+FROM node:18-alpine AS react-builder
+
+WORKDIR /app
+
+# Copy React app package files
+COPY website/package*.json ./website/
+
+# Install React dependencies
+WORKDIR /app/website
+RUN npm ci
+
+# Copy React app source files
+COPY website/ .
+
+# Build React app
+RUN npm run build
+
+# Stage 2: Build Python API server
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -16,6 +35,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the API server and palio.json
 COPY api_server.py .
 COPY palio.json .
+
+# Copy React build from previous stage
+COPY --from=react-builder /app/website/build /app/website/build
 
 # Create directory for data persistence
 RUN mkdir -p /app/data
