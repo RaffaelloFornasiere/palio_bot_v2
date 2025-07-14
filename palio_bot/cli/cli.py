@@ -11,6 +11,7 @@ from rich.panel import Panel
 
 from palio_bot.container import Container
 from palio_bot.logging_config import setup_logging, get_logger
+from palio_bot.config import Config
 
 
 console = Console()
@@ -42,11 +43,11 @@ def print_status(system):
         console.print(f"[green]✓ Messaggi:[/green] {len(session.messages)}")
         
         # Check if palio_updated.json exists
-        updated_path = Path("palio_updated.json")
-        if updated_path.exists():
-            console.print(f"[green]✓ File temporaneo:[/green] palio_updated.json presente")
+        config = Config()
+        if config.palio_updated_path.exists():
+            console.print(f"[green]✓ File temporaneo:[/green] {config.palio_updated_path} presente")
         else:
-            console.print(f"[yellow]⚠ File temporaneo:[/yellow] palio_updated.json non trovato")
+            console.print(f"[yellow]⚠ File temporaneo:[/yellow] {config.palio_updated_path} non trovato")
     else:
         console.print("\n[yellow]⚠ Nessuna sessione attiva[/yellow]")
     
@@ -98,10 +99,15 @@ async def handle_commands(command: str, system, container) -> bool:
 
 
 def ensure_palio_json_exists():
-    """Ensure palio.json exists with a basic structure."""
-    palio_path = Path("palio.json")
-    if not palio_path.exists():
-        console.print("\n[yellow]File palio.json non trovato. Creazione file base...[/yellow]")
+    """Ensure palio.json and palio_games_status.json exist with basic structures."""
+    config = Config()
+    
+    # Ensure data directory exists
+    config.palio_file_path.parent.mkdir(exist_ok=True)
+    
+    # Check palio.json
+    if not config.palio_file_path.exists():
+        console.print(f"\n[yellow]File {config.palio_file_path} non trovato. Creazione file base...[/yellow]")
         
         basic_structure = {
             "palio": {
@@ -111,10 +117,24 @@ def ensure_palio_json_exists():
             }
         }
         
-        with open(palio_path, 'w', encoding='utf-8') as f:
+        with open(config.palio_file_path, 'w', encoding='utf-8') as f:
             json.dump(basic_structure, f, ensure_ascii=False, indent=2)
         
-        console.print("[green]✓ File palio.json creato con struttura base[/green]")
+        console.print(f"[green]✓ File {config.palio_file_path} creato con struttura base[/green]")
+    
+    # Check palio_games_status.json
+    if not config.palio_games_status_path.exists():
+        console.print(f"\n[yellow]File {config.palio_games_status_path} non trovato. Creazione file base...[/yellow]")
+        
+        basic_status = {
+            "game_scores": {},
+            "last_updated": None
+        }
+        
+        with open(config.palio_games_status_path, 'w', encoding='utf-8') as f:
+            json.dump(basic_status, f, ensure_ascii=False, indent=2)
+        
+        console.print(f"[green]✓ File {config.palio_games_status_path} creato con struttura base[/green]")
 
 
 async def main():
@@ -141,10 +161,14 @@ async def main():
     
     # Create container and initialize
     console.print("\n[dim]Inizializzazione sistema...[/dim]")
+    
+    # Create config (will use env variables and defaults)
+    config = Config()
+    
     container = Container(
-        llamacpp_url=llamacpp_url,
-        llm_provider=llm_provider,
-        anthropic_api_key=anthropic_api_key,
+        config=config,
+        llm_provider=llm_provider,  # Can override config
+        anthropic_api_key=anthropic_api_key,  # Can override config
         use_json_editor=True  # Use JSON editor by default
     )
     

@@ -14,6 +14,7 @@ from .llm_clients.llamacpp_client import LlamaCPPClient
 from .llm_clients.anthropic_client import AnthropicClient
 from .llm_clients.base_client import BaseLLMClient
 from palio_bot.agent.models import Tool
+from palio_bot.config import Config
 from telegram import Bot
 
 logger = logging.getLogger(__name__)
@@ -24,25 +25,26 @@ class Container:
 
     def __init__(
         self, 
-        palio_file_path: str = "palio.json", 
-        llamacpp_url: str = "http://mac-studio.local:11454",
-        llm_provider: Literal["llamacpp", "anthropic"] = "llamacpp",
+        config: Config = None,
+        llm_provider: Literal["llamacpp", "anthropic"] = None,
         anthropic_api_key: Optional[str] = None,
         use_json_editor: bool = True
     ):
         """Initialize the container with configuration.
         
         Args:
-            palio_file_path: Path to the palio.json file
-            llamacpp_url: URL for LlamaCPP server (used if llm_provider is 'llamacpp')
-            llm_provider: Which LLM provider to use ('llamacpp' or 'anthropic')
-            anthropic_api_key: API key for Anthropic (used if llm_provider is 'anthropic')
+            config: Configuration object (will create default if not provided)
+            llm_provider: Which LLM provider to use (overrides config if provided)
+            anthropic_api_key: API key for Anthropic (overrides config if provided)
             use_json_editor: Whether to use JSONPath-based editor (True) or text-based editor (False)
         """
-        self.palio_file_path = palio_file_path
-        self.llamacpp_url = llamacpp_url
-        self.llm_provider = llm_provider
-        self.anthropic_api_key = anthropic_api_key
+        if config is None:
+            config = Config()
+            
+        self.config = config
+        self.llamacpp_url = config.llama_cpp_url
+        self.llm_provider = llm_provider or config.llm_provider
+        self.anthropic_api_key = anthropic_api_key or config.anthropic_api_key
         self.use_json_editor = use_json_editor
 
         # Initialize all services lazily
@@ -75,9 +77,7 @@ class Container:
         if self._tools is None:
             logger.info(f"Creating tools: json_editor={self.use_json_editor}")
             if self.use_json_editor:
-                self._tools = create_json_editor_tools(file_path="palio_updated.json")
-            else:
-                self._tools = create_text_editor_tools(file_path="palio_updated.json")
+                self._tools = create_json_editor_tools(file_path=str(self.config.palio_updated_path))
             logger.info(f"Created {len(self._tools)} tools: {list(self._tools.keys())}")
         return self._tools
 
@@ -107,8 +107,7 @@ class Container:
             self._system = System(
                 agent=self.agent(),
                 stream=self.stream(),
-                palio_file_path=self.palio_file_path,
-                session_file_path="session.json"
+                config=self.config
             )
             logger.info("System created successfully")
         return self._system

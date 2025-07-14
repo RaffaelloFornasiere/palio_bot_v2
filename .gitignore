@@ -19,7 +19,7 @@ backups/
 
 # Session files
 session.json
-
+palio_games_status_tmp.json
 .env
 
 palio_updated.json

@@ -1,15 +1,17 @@
 """System coordinator with event streaming support."""
 
 import json
+import os
 import uuid
 import shutil
 import logging
 from pathlib import Path
 from typing import Optional
 
-from palio_bot.agent.models import Message, Session
+from palio_bot.agent.models import Message, Session, AgentContextBlock
 from palio_bot.agent.agent import Agent
 from palio_bot.stream.stream import Stream
+from palio_bot.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -18,20 +20,26 @@ class System:
     """Main coordinator that manages sessions and orchestrates agent interactions with event streaming."""
     
     def __init__(
-        self, 
+        self,
+            *,
         agent: Agent,
         stream: Stream,
-        palio_file_path: str = "palio.json",
-        session_file_path: str = "session.json"
+        config: Config = None,
     ):
         self.agent = agent
         self.stream = stream
-        self.palio_file_path = Path(palio_file_path)
-        self.session_file_path = Path(session_file_path)
         self.active_session: Optional[Session] = None
-        self.palio_updated_path = Path("palio_updated.json")
         
-        logger.info(f"System initialized with palio_file: {palio_file_path}")
+        if config is None:
+            config = Config()
+            
+        self.palio_file_path = config.palio_file_path
+        self.palio_games_status_path = config.palio_games_status_path
+        self.leader_board_file_path = config.leaderboard_file_path
+        self.session_file_path = config.session_file_path
+        self.palio_updated_path = config.palio_updated_path
+        
+        logger.info(f"System initialized with palio_file: {self.palio_file_path}")
         
         # Load existing session if available
         self._load_session()
@@ -93,17 +101,17 @@ class System:
             raise
     
     def close_session(self) -> None:
-        """Close the active session normally, copying palio_updated.json to palio.json."""
+        """Close the active session normally, copying palio_updated.json to palio_games_status.json."""
         if self.active_session is None:
             logger.warning("close_session called but no active session")
             return
         
         logger.info(f"Closing session {self.active_session.id}")
         
-        # Copy palio_updated.json to palio.json
+        # Copy palio_updated.json to palio_games_status.json
         if self.palio_updated_path.exists():
-            logger.info(f"Copying {self.palio_updated_path} to {self.palio_file_path}")
-            shutil.copy2(self.palio_updated_path, self.palio_file_path)
+            logger.info(f"Copying {self.palio_updated_path} to {self.palio_games_status_path}")
+            shutil.copy2(self.palio_updated_path, self.palio_games_status_path)
             self.palio_updated_path.unlink()  # Remove palio_updated.json
             logger.info("Changes saved to palio.json")
         else:
@@ -135,18 +143,18 @@ class System:
         return self.active_session
     
     def _create_session(self) -> None:
-        """Create a new session and copy palio.json to palio_updated.json."""
+        """Create a new session and copy palio_games_status.json to palio_updated.json."""
         session_id = str(uuid.uuid4())
         self.active_session = Session(id=session_id)
         logger.info(f"Created new session: {session_id}")
         
-        # Copy palio.json to palio_updated.json for editing
-        if self.palio_file_path.exists():
-            logger.info(f"Copying {self.palio_file_path} to {self.palio_updated_path}")
-            shutil.copy2(self.palio_file_path, self.palio_updated_path)
+        # Copy palio_games_status.json to palio_updated.json for editing
+        if self.palio_games_status_path.exists():
+            logger.info(f"Copying {self.palio_games_status_path} to {self.palio_updated_path}")
+            shutil.copy2(self.palio_games_status_path, self.palio_updated_path)
         else:
-            # Create empty palio_updated.json if palio.json doesn't exist
-            logger.warning(f"{self.palio_file_path} not found, creating empty {self.palio_updated_path}")
+            # Create empty palio_updated.json if palio_games_status.json doesn't exist
+            logger.warning(f"{self.palio_games_status_path} not found, creating empty {self.palio_updated_path}")
             with open(self.palio_updated_path, 'w', encoding='utf-8') as f:
                 json.dump({}, f)
     
@@ -172,10 +180,10 @@ class System:
             logger.info(f"Loaded existing session: {self.active_session.id} with {len(self.active_session.messages)} messages")
             
             # Check if palio_updated.json exists (session was interrupted)
-            if not self.palio_updated_path.exists() and self.palio_file_path.exists():
-                # Recreate palio_updated.json from palio.json
-                logger.warning("Session exists but palio_updated.json missing, recreating from palio.json")
-                shutil.copy2(self.palio_file_path, self.palio_updated_path)
+            if not self.palio_updated_path.exists() and self.palio_games_status_path.exists():
+                # Recreate palio_updated.json from palio_games_status.json
+                logger.warning("Session exists but palio_updated.json missing, recreating from palio_games_status.json")
+                shutil.copy2(self.palio_games_status_path, self.palio_updated_path)
                 
         except Exception as e:
             # If session loading fails, remove corrupted file
@@ -183,16 +191,25 @@ class System:
             self.session_file_path.unlink()
             logger.warning("Removed corrupted session file")
     
-    def _get_palio_context_string(self) -> str:
+    def _get_palio_context_string(self) -> list[AgentContextBlock]:
         """Get original palio.json content as a string context."""
         if not self.palio_file_path.exists():
-            return "File palio.json non trovato."
-        
-        try:
-            with open(self.palio_file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            return f"Contenuto attuale di {self.palio_file_path.name}:\n```json\n{content}```"
-            
-        except Exception as e:
-            return f"Errore nel leggere {self.palio_file_path.name}: {str(e)}"
+            raise FileNotFoundError("palio.json does not exist")
+        result = []
+        with open(self.palio_file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+            result.append(AgentContextBlock(
+                context_name="palio_specification",
+                content=content,
+            ))
+
+        with open(self.leader_board_file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+            result.append(AgentContextBlock(
+                context_name="current_leaderboard",
+                content=content,
+            ))
+
+        return result

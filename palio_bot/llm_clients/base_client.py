@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from palio_bot.agent.models import Message, Tool
+from palio_bot.agent.models import Message, Tool, TextContent
 
 
 class BaseLLMClient(ABC):
@@ -14,7 +14,7 @@ class BaseLLMClient(ABC):
         self, 
         messages: List[Message], 
         system_prompt: Optional[str] = None,
-        context: Optional[List["TextContent"]] = None,
+        context: Optional[List[TextContent]] = None,
         tools: Optional[List[Tool]] = None
     ) -> Message:
         """Generate a response message from the LLM.

@@ -108,3 +108,13 @@ class Session(BaseModel):
     def add_message(self, message: Message) -> None:
         """Add a message to the session."""
         self.messages.append(message)
+
+class AgentContextBlock(BaseModel):
+    """Context block for the agent, containing relevant information."""
+    content: str
+    context_name: str | None = None
+
+    def format(self) -> TextContent:
+        """Format the context block as TextContent."""
+        content = f"<{self.context_name}>\n{self.content}\n</{self.context_name}>"
+        return TextContent(text=content, cache_control=CacheControl())
