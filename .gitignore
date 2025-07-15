@@ -4,6 +4,8 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+
+.DS_Store
 env/
 venv/
 .venv/
@@ -25,3 +27,4 @@ palio_games_status_tmp.json
 palio_updated.json
 
 logs
+data/

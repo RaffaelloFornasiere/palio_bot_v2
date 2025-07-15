@@ -14,7 +14,7 @@ services:
       - SESSION_FILE_PATH=/app/data/session.json
       - LLAMACPP_URL=${LLAMACPP_URL:-http://mac-studio.local:11454}
     volumes:
-      - telegram_data:/app/data
+      - ../data:/app/data
       - ../logs:/app/logs
     depends_on:
       - api-server
@@ -32,15 +32,9 @@ services:
     environment:
       - PALIO_FILE_PATH=/app/data/palio.json
     volumes:
-      - api_data:/app/data
+      - ../data:/app/data
     networks:
       - palio-network
-
-volumes:
-  telegram_data:
-    driver: local
-  api_data:
-    driver: local
 
 networks:
   palio-network:
