@@ -6,14 +6,16 @@ import httpx
 
 from .base_client import BaseLLMClient
 from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool
+from palio_bot.utils.api_logger import APILogger
 
 
 class LlamaCPPClient(BaseLLMClient):
     """LlamaCPP client for local model inference."""
     
-    def __init__(self, base_url: str = "http://mac-studio.local:11454"):
+    def __init__(self, base_url: str = "http://mac-studio.local:11454", log_dir: str = "logs"):
         self.base_url = base_url.rstrip("/")
         self.chat_endpoint = f"{self.base_url}/v1/chat/completions"
+        self.api_logger = APILogger(log_dir=log_dir)
     
     async def generate_message(
         self, 
@@ -50,20 +52,32 @@ class LlamaCPPClient(BaseLLMClient):
             payload["tool_choice"] = "auto"
 
         payload["cache_prompt"] = True  # Enable caching for LlamaCPP
+        # Log the request
+        request_filepath = self.api_logger.log_request(payload, provider="llamacpp")
         
-        async with httpx.AsyncClient(timeout=300.0) as client:
-            response = await client.post(
-                self.chat_endpoint,
-                json=payload,
-                headers={"Content-Type": "application/json"}
-            )
-            
-            if response.status_code != 200:
-                error_text = response.text
-                raise Exception(f"LlamaCPP API error {response.status_code}: {error_text}")
-            
-            result = response.json()
-            return self._convert_response_to_message(result)
+        try:
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                response = await client.post(
+                    self.chat_endpoint,
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                if response.status_code != 200:
+                    error_text = response.text
+                    raise Exception(f"LlamaCPP API error {response.status_code}: {error_text}")
+                
+                result = response.json()
+                
+                # Log the response
+                self.api_logger.log_response(result, request_filepath, provider="llamacpp")
+                
+                return self._convert_response_to_message(result)
+                
+        except Exception as e:
+            # Log the error
+            self.api_logger.log_error(e, request_filepath, provider="llamacpp")
+            raise e
     
     def _convert_messages_to_openai(
         self, 

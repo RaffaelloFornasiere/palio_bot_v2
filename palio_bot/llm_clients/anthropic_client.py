@@ -7,22 +7,25 @@ from anthropic import AsyncAnthropic
 
 from .base_client import BaseLLMClient
 from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool
+from palio_bot.utils.api_logger import APILogger
 
 
 class AnthropicClient(BaseLLMClient):
     """Anthropic client for Claude API."""
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, log_dir: str = "logs"):
         """Initialize Anthropic client.
         
         Args:
             api_key: Anthropic API key. If not provided, will use ANTHROPIC_API_KEY env var.
+            log_dir: Directory for API logs (default: "logs")
         """
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
             raise ValueError("Anthropic API key is required. Set ANTHROPIC_API_KEY environment variable or pass api_key parameter.")
         
         self.client = AsyncAnthropic(api_key=self.api_key)
+        self.api_logger = APILogger(log_dir=log_dir)
     
     async def generate_message(
         self, 
@@ -67,8 +70,20 @@ class AnthropicClient(BaseLLMClient):
         if tools:
             create_kwargs["tools"] = self._convert_tools_to_anthropic(tools)
         
-        # Make API call
-        response = await self.client.messages.create(**create_kwargs)
+        # Log the request
+        request_filepath = self.api_logger.log_request(create_kwargs, provider="anthropic")
+        
+        try:
+            # Make API call
+            response = await self.client.messages.create(**create_kwargs)
+            
+            # Log the response
+            self.api_logger.log_response(response, request_filepath, provider="anthropic")
+            
+        except Exception as e:
+            # Log the error
+            self.api_logger.log_error(e, request_filepath, provider="anthropic")
+            raise e
         
         # Convert response to our Message format
         return self._convert_response_to_message(response)
