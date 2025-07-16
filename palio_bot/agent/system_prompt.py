@@ -95,7 +95,8 @@ Esempi di comandi:
 
 Rispondi sempre in italiano e sii preciso nell'aggiornamento dei dati.
 """.format(current_date=datetime.now().strftime("%Y-%m-%d"))
-            + "\n\n<session_example>\n"
-            + open("palio_bot/agent/example.json").read()
-            + "\n</session_example>")
+            # + "\n\n<session_example>\n"
+            # + open("palio_bot/agent/example.json").read()
+            # + "\n</session_example>"
+            )
 

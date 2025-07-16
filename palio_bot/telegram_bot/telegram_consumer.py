@@ -140,21 +140,20 @@ class TelegramConsumer:
             del self.current_text[event.session_id]
     
     async def _handle_error(self, event: ErrorEvent) -> None:
-        """Handle error event."""
+        """Handle error event - send new message without deleting previous one."""
+        error_text = f"❌ Error: {event.error}"
+        
+        # Always send error as a new message to preserve previous steps
+        await self.bot.send_message(
+            self.chat_id,
+            error_text
+        )
+        
+        # Clean up session tracking
         if event.session_id in self.message_stack:
-            error_text = f"❌ Error: {event.error}"
-            await self._update_message(event.session_id, error_text)
-            
-            # Clean up
             del self.message_stack[event.session_id]
-            if event.session_id in self.current_text:
-                del self.current_text[event.session_id]
-        else:
-            # Send as new message if no existing message
-            await self.bot.send_message(
-                self.chat_id,
-                f"❌ Error: {event.error}"
-            )
+        if event.session_id in self.current_text:
+            del self.current_text[event.session_id]
     
     async def _update_message(self, session_id: str, text: str) -> None:
         """Update existing message with new text."""
