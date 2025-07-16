@@ -7,7 +7,7 @@ import logging
 
 from palio_bot.stream.events import (
     Event, UserMessageEvent, AgentUpdateEvent, ToolUseEvent,
-    ToolResultEvent, AgentCompleteEvent, ErrorEvent
+    ToolResultEvent, AgentCompleteEvent, AgentCancelledEvent, ErrorEvent
 )
 from palio_bot.agent.models import TextContent
 
@@ -44,6 +44,9 @@ class TelegramConsumer:
                 
             elif isinstance(event, AgentCompleteEvent):
                 await self._handle_agent_complete(event)
+                
+            elif isinstance(event, AgentCancelledEvent):
+                await self._handle_agent_cancelled(event)
                 
             elif isinstance(event, ErrorEvent):
                 await self._handle_error(event)
@@ -130,6 +133,26 @@ class TelegramConsumer:
             final_text += "\n\n✅ Processing complete!"
         else:
             final_text = "✅ Processing complete!"
+            
+        # Update with final message
+        await self._update_message(event.session_id, final_text)
+        
+        # Clean up
+        del self.message_stack[event.session_id]
+        if event.session_id in self.current_text:
+            del self.current_text[event.session_id]
+    
+    async def _handle_agent_cancelled(self, event: AgentCancelledEvent) -> None:
+        """Handle cancellation - show cancellation message and clean up."""
+        if event.session_id not in self.message_stack:
+            return
+            
+        # Get accumulated text and add cancellation marker
+        final_text = self.current_text.get(event.session_id, "")
+        if final_text:
+            final_text += f"\n\n🛑 Processing cancelled: {event.reason}"
+        else:
+            final_text = f"🛑 Processing cancelled: {event.reason}"
             
         # Update with final message
         await self._update_message(event.session_id, final_text)

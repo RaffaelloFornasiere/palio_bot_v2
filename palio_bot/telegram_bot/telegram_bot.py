@@ -77,7 +77,8 @@ class PalioTelegramBot:
             "/status - Mostra lo stato del sistema\n"
             "/games_status - Mostra lo stato dei giochi\n"
             "/cancel - Annulla le modifiche della sessione corrente\n"
-            "/close - Chiudi la sessione salvando le modifiche",
+            "/close - Chiudi la sessione salvando le modifiche\n"
+            "/stop - Interrompi l'elaborazione in corso",
             parse_mode='HTML'
         )
         
@@ -153,6 +154,37 @@ class PalioTelegramBot:
             )
         except Exception as e:
             logger.error(f"Error in close: {e}")
+            await update.message.reply_text(f"❌ Errore: {str(e)}")
+            
+    async def stop_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /stop command to cancel ongoing computation."""
+        if not self.check_user_authorized(update.effective_user.id):
+            await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
+            return
+            
+        if not self.container:
+            await update.message.reply_text("❌ Sistema non inizializzato")
+            return
+            
+        system = self.container.system()
+        
+        try:
+            # Check if there's an active session
+            if not system.active_session:
+                await update.message.reply_text(
+                    "⚠️ Nessuna sessione attiva da interrompere."
+                )
+                return
+            
+            # Request cancellation
+            system.request_cancellation()
+            await update.message.reply_text(
+                "🛑 Richiesta di interruzione inviata.\n"
+                "L'elaborazione si fermerà al prossimo punto sicuro."
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in stop: {e}")
             await update.message.reply_text(f"❌ Errore: {str(e)}")
             
     async def games_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -374,6 +406,7 @@ def main():
     application.add_handler(CommandHandler("games_status", bot.games_status))
     application.add_handler(CommandHandler("cancel", bot.cancel))
     application.add_handler(CommandHandler("close", bot.close))
+    application.add_handler(CommandHandler("stop", bot.stop_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
     application.add_handler(MessageHandler(filters.VOICE, bot.handle_voice_message))
     

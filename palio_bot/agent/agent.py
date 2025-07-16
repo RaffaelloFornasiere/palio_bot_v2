@@ -1,7 +1,7 @@
 """Agent implementation as async generator for processing messages."""
 
 import logging
-from typing import Dict, List, Optional, AsyncGenerator
+from typing import Dict, List, Optional, AsyncGenerator, Callable
 
 from palio_bot.agent.models import (
     Message, TextContent, ToolUseContent, Tool, ToolResult, AgentContextBlock,
@@ -28,13 +28,15 @@ class Agent:
     async def run(
         self, 
         messages: List[Message],
-        context: Optional[List[AgentContextBlock]] = None
+        context: Optional[List[AgentContextBlock]] = None,
+        cancellation_check: Optional[Callable[[], bool]] = None
     ) -> AsyncGenerator[Message, None]:
         """Process messages as async generator yielding responses.
         
         Args:
             messages: Complete conversation history
             context: Optional context (e.g., current palio.json content)
+            cancellation_check: Optional function to check if cancellation has been requested
             
         Yields:
             AgentResponse objects (LLMResponse, ToolUseResponse, ToolResultResponse)
@@ -53,6 +55,16 @@ class Agent:
         while True:
             iteration += 1
             logger.info(f"\n--- Agent loop iteration {iteration} ---")
+            
+            # Check for cancellation before each LLM call
+            if cancellation_check and cancellation_check():
+                logger.info("Cancellation requested, stopping agent processing")
+                # Yield a cancellation message
+                yield Message.text(
+                    role="assistant", 
+                    text="❌ Processing was cancelled by user request."
+                )
+                return
             
             # Get response from LLM
             logger.info(f"Calling LLM with {len(current_messages)} messages")
@@ -85,6 +97,16 @@ class Agent:
             
             # Process tool uses
             for tool_use in tool_uses:
+                # Check for cancellation after each tool execution
+                if cancellation_check and cancellation_check():
+                    logger.info("Cancellation requested during tool execution, stopping agent processing")
+                    # Yield a cancellation message
+                    yield Message.text(
+                        role="assistant", 
+                        text="❌ Processing was cancelled by user request."
+                    )
+                    return
+                
                 # Execute tool
                 logger.info(f"  Executing tool: {tool_use.tool_name}")
                 logger.debug(f"  Parameters: {tool_use.tool_parameters}")

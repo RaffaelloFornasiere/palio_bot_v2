@@ -16,7 +16,7 @@ from palio_bot.stream.stream import Stream
 from palio_bot.stream.interfaces import Producer
 from palio_bot.stream.events import (
     UserMessageEvent, AgentUpdateEvent, ToolUseEvent, 
-    ToolResultEvent, AgentCompleteEvent, ErrorEvent
+    ToolResultEvent, AgentCompleteEvent, AgentCancelledEvent, ErrorEvent
 )
 from palio_bot.config import Config
 from palio_bot.leaderboard_updater import LeaderboardUpdater
@@ -38,6 +38,9 @@ class System(Producer):
         self.agent = agent
         self.stream = stream
         self.active_session: Optional[Session] = None
+        
+        # Add cancellation state management
+        self._cancellation_requested = False
         
         if config is None:
             config = Config()
@@ -65,6 +68,9 @@ class System(Producer):
         logger.info(f"\n{'='*60}\nSystem.send_message() called\nMessage: {user_message}\n{'='*60}")
         
         try:
+            # Reset cancellation flag for new message processing
+            self.reset_cancellation()
+            
             # Create new session if none exists
             if self.active_session is None:
                 logger.info("No active session, creating new one")
@@ -94,8 +100,19 @@ class System(Producer):
 
             async for message in self.agent.run(
                 messages=self.active_session.messages.copy(),
-                context=context
+                context=context,
+                cancellation_check=self._check_cancellation
             ):
+                # Check if we got a cancellation message
+                if self._cancellation_requested:
+                    # Emit cancellation event
+                    await self.produce(AgentCancelledEvent(
+                        session_id=self.active_session.id,
+                        reason="User requested cancellation via /stop command"
+                    ))
+                    logger.info("Agent processing cancelled by user")
+                    return
+                
                 # Add message to session
                 self.active_session.add_message(message)
                 self._save_session()
@@ -207,6 +224,19 @@ class System(Producer):
     def get_active_session(self) -> Optional[Session]:
         """Get the currently active session."""
         return self.active_session
+    
+    def request_cancellation(self) -> None:
+        """Request cancellation of current computation."""
+        logger.info("Cancellation requested")
+        self._cancellation_requested = True
+    
+    def reset_cancellation(self) -> None:
+        """Reset cancellation flag for new operations."""
+        self._cancellation_requested = False
+    
+    def _check_cancellation(self) -> bool:
+        """Check if cancellation has been requested."""
+        return self._cancellation_requested
     
     def _create_session(self) -> None:
         """Create a new session and copy palio_games_status.json to palio_games_status_temp_path.json."""
