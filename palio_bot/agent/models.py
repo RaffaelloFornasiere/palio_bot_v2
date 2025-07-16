@@ -21,10 +21,17 @@ class ToolUseContent(BaseModel):
     tool_parameters: Any
     tool_use_id: str
 
+class ToolResult(BaseModel):
+    """Result returned by a tool execution."""
+
+    success: bool
+    data: Any = None
+    error: str | None = None
+
 
 class ToolResultContent(BaseModel):
     type: Literal["tool_result"] = "tool_result"
-    tool_result: "ToolResult"
+    tool_result: ToolResult
     tool_use_id: str
 
 
@@ -73,13 +80,6 @@ class Message(BaseModel):
         )
 
 
-class ToolResult(BaseModel):
-    """Result returned by a tool execution."""
-    
-    success: bool
-    data: Any = None
-    error: str | None = None
-    message: str | None = None
 
 
 class Tool(BaseModel):

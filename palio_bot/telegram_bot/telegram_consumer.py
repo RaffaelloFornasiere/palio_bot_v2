@@ -89,7 +89,7 @@ class TelegramConsumer:
         current = self.current_text.get(event.session_id, "")
         
         if event.result.success:
-            result_text = f"\n✅ {event.result.message}"
+            result_text = f"\n\n✅ Tool executed successfully!"
         else:
             result_text = f"\n❌ Error: {event.result.error}"
         

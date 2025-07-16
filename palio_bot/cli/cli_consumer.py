@@ -144,7 +144,7 @@ class CLIConsumer:
             self.conversation_history[session_id] = []
         
         if result.success:
-            result_text = f"   ✅ **Success:** {result.message}"
+            result_text = f"   ✅ **Success:** {result.data}"
         else:
             result_text = f"   ❌ **Error:** {result.error}"
         

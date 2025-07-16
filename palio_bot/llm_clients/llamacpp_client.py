@@ -105,56 +105,41 @@ class LlamaCPPClient(BaseLLMClient):
         
         # Convert each message
         for msg in messages:
+            # Check if this is a tool result message (should be alone)
+            if len(msg.content) == 1 and isinstance(msg.content[0], ToolResultContent):
+                content = msg.content[0]
                 
-            # Handle messages with ToolResultContent specially in OpenAI format
-            if any(isinstance(content, ToolResultContent) for content in msg.content):
-                # OpenAI format requires tool results as separate "tool" role messages
-                for content in msg.content:
-                    if isinstance(content, ToolResultContent):
-                        tool_msg = {
-                            "role": "tool",
-                            "tool_call_id": content.tool_use_id,
-                            "content": ""
-                        }
-                        
-                        # Format tool result content
-                        if content.tool_result.success:
-                            result_text = ""
-                            if content.tool_result.message:
-                                result_text = content.tool_result.message
-                            if content.tool_result.data:
-                                if result_text:
-                                    result_text += "\n"
-                                result_text += json.dumps(content.tool_result.data, indent=2)
-                            tool_msg["content"] = result_text or "Success"
-                        else:
-                            # Use error field for error messages when success=False
-                            error_msg = f"Tool error: {content.tool_result.error or content.tool_result.message or 'Unknown error'}"
-                            if content.tool_result.data:
-                                error_msg += f"\n{json.dumps(content.tool_result.data, indent=2)}"
-                            tool_msg["content"] = error_msg
-                        
-                        openai_messages.append(tool_msg)
+                # Format tool result content
+                if content.tool_result.success:
+                    tool_content = json.dumps(content.tool_result.data, indent=2) if content.tool_result.data else "Tool executed successfully, no data returned."
+                else:
+                    error_msg = f"Tool error: {content.tool_result.error or 'Unknown error'}"
+                    if content.tool_result.data:
+                        error_msg += f"\n{json.dumps(content.tool_result.data, indent=2)}"
+                    tool_content = error_msg
+                
+                openai_messages.append({
+                    "role": "tool",
+                    "tool_call_id": content.tool_use_id,
+                    "content": tool_content
+                })
                 continue
             
+            # Handle regular messages
             openai_msg = {"role": msg.role}
             
-            # Handle different content types
+            # Single text content
             if len(msg.content) == 1 and isinstance(msg.content[0], TextContent):
-                # Simple text message
                 openai_msg["content"] = msg.content[0].text
             else:
                 # Mixed content or tool calls
-                content_parts = []
+                text_parts = []
                 tool_calls = []
                 
                 for content in msg.content:
                     if isinstance(content, TextContent):
-                        if content.text.strip():  # Only add non-empty text
-                            content_parts.append({
-                                "type": "text",
-                                "text": content.text
-                            })
+                        if content.text.strip():
+                            text_parts.append(content.text)
                     elif isinstance(content, ToolUseContent):
                         tool_calls.append({
                             "id": content.tool_use_id,
@@ -165,14 +150,12 @@ class LlamaCPPClient(BaseLLMClient):
                             }
                         })
                 
-                if content_parts:
-                    openai_msg["content"] = content_parts if len(content_parts) > 1 else content_parts[0]["text"]
+                if text_parts:
+                    openai_msg["content"] = "\n".join(text_parts)
                 elif tool_calls:
                     openai_msg["tool_calls"] = tool_calls
-                    if "content" not in openai_msg:
-                        openai_msg["content"] = "None"
+                    # OpenAI expects content to be null for tool calls
                 else:
-                    # Ensure all messages have content field
                     openai_msg["content"] = ""
             
             openai_messages.append(openai_msg)

@@ -89,7 +89,7 @@ class Agent:
                 logger.info(f"  Executing tool: {tool_use.tool_name}")
                 logger.debug(f"  Parameters: {tool_use.tool_parameters}")
                 tool_result = await self._execute_tool(tool_use)
-                logger.info(f"  Tool result: success={tool_result.success}, message={tool_result.message}")
+                logger.info(f"  Tool result: success={tool_result.success}")
 
                 
                 # Create tool result message and add to conversation

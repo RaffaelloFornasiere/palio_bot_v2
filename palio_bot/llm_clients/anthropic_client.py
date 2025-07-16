@@ -117,11 +117,6 @@ class AnthropicClient(BaseLLMClient):
                 elif isinstance(content_item, ToolResultContent):
                     result_content = []
                     if content_item.tool_result.success:
-                        if content_item.tool_result.message:
-                            result_content.append({
-                                "type": "text",
-                                "text": content_item.tool_result.message
-                            })
                         if content_item.tool_result.data:
                             result_content.append({
                                 "type": "text",
@@ -129,7 +124,7 @@ class AnthropicClient(BaseLLMClient):
                             })
                     else:
                         # Use error field for error messages when success=False
-                        error_msg = f"Tool error: {content_item.tool_result.error or content_item.tool_result.message or 'Unknown error'}"
+                        error_msg = f"Tool error: {content_item.tool_result.error or 'Unknown error'}"
                         if content_item.tool_result.data:
                             error_msg += f"\n{json.dumps(content_item.tool_result.data)}"
                         result_content.append({
