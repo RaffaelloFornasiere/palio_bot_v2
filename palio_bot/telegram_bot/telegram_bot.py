@@ -2,7 +2,7 @@
 """
 Telegram bot per la gestione del Palio con event system
 """
-
+import asyncio
 import logging
 from typing import Dict, Optional, Any
 from telegram import Update
@@ -216,6 +216,7 @@ class PalioTelegramBot:
             
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle regular text messages with event streaming"""
+
         if not self.validate(update):
             return
             
@@ -320,15 +321,15 @@ class PalioTelegramBot:
                 "❌ Si è verificato un errore imprevisto. Riprova più tardi."
             )
 
-    async def validate(self, update: Update) -> bool:
+    def validate(self, update: Update) -> bool:
         """Validate the update to ensure user is authorized and system is initialized"""
 
         if not self.check_user_authorized(update.effective_user.id):
-            await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
+            asyncio.create_task(update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot."))
             return False
 
         if not self.container:
-            await update.message.reply_text("❌ Sistema non inizializzato")
+            asyncio.create_task(update.message.reply_text("❌ Sistema non inizializzato"))
             return False
 
         return True
