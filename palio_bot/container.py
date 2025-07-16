@@ -91,13 +91,12 @@ class Container:
         return self._stream
 
     def agent(self) -> Agent:
-        """Get or create agent with event support."""
+        """Get or create agent."""
         if self._agent is None:
             logger.info("Creating agent")
             self._agent = Agent(
                 llm_client=self.llm_client(),
-                tools=self.tools(),
-                stream=self.stream()
+                tools=self.tools()
             )
             logger.info("Agent created successfully")
         return self._agent

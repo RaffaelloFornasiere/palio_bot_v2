@@ -8,16 +8,23 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from palio_bot.agent.models import Message, Session, AgentContextBlock
+from palio_bot.agent.models import (
+    Message, Session, AgentContextBlock, TextContent, ToolUseContent, ToolResultContent
+)
 from palio_bot.agent.agent import Agent
 from palio_bot.stream.stream import Stream
+from palio_bot.stream.interfaces import Producer
+from palio_bot.stream.events import (
+    UserMessageEvent, AgentUpdateEvent, ToolUseEvent, 
+    ToolResultEvent, AgentCompleteEvent, ErrorEvent
+)
 from palio_bot.config import Config
 from palio_bot.leaderboard_updater import LeaderboardUpdater
 
 logger = logging.getLogger(__name__)
 
 
-class System:
+class System(Producer):
     """Main coordinator that manages sessions and orchestrates agent interactions with event streaming."""
     
     def __init__(
@@ -27,6 +34,7 @@ class System:
         stream: Stream,
         config: Config = None,
     ):
+        super().__init__(stream)
         self.agent = agent
         self.stream = stream
         self.active_session: Optional[Session] = None
@@ -45,7 +53,7 @@ class System:
         # Load existing session if available
         self._load_session()
     
-    async def send_message(self, user_message: str) -> Message:
+    async def send_message(self, user_message: str) -> None:
         """Send a message to the system with event streaming.
         
         If there's an active session, continue the conversation.
@@ -53,9 +61,6 @@ class System:
         
         Args:
             user_message: User's message text
-            
-        Returns:
-            The final assistant response message
         """
         logger.info(f"\n{'='*60}\nSystem.send_message() called\nMessage: {user_message}\n{'='*60}")
         
@@ -67,28 +72,62 @@ class System:
             else:
                 logger.info(f"Using existing session: {self.active_session.id}")
             
-            # Get current palio.json content as context
-            logger.debug("Loading palio.json context")
-            context = self._get_palio_context_string()
-            logger.debug(f"Context loaded: {len(context)} characters")
-            
-            # Process message through agent with events
-            # The agent will emit events during processing
-            logger.info("Calling agent.run()")
-            final_message, all_messages = await self.agent.run(
-                message=user_message,
-                session_id=self.active_session.id,
-                context=context
-            )
-            logger.info("Agent processing complete")
-            
             # Add user message to session
             user_msg = Message.text(role="user", text=user_message)
             self.active_session.add_message(user_msg)
+            self._save_session()
+
+            # Emit user message event
+            logger.debug("Producing UserMessageEvent")
+            await self.produce(UserMessageEvent(
+                session_id=self.active_session.id,
+                content=user_message
+            ))
             
-            # Add all agent messages (including tool calls and results) to session
-            for msg in all_messages:
-                self.active_session.add_message(msg)
+            # Get current palio.json content as context
+            logger.debug("Loading palio.json context")
+            context = self._get_palio_context_string()
+            logger.debug(f"Context loaded: {len(context)} blocks")
+            
+            # Process message through agent generator
+            logger.info("Calling agent.run()")
+
+            async for message in self.agent.run(
+                messages=self.active_session.messages.copy(),
+                context=context
+            ):
+                # Add message to session
+                self.active_session.add_message(message)
+                self._save_session()
+                
+                # Check message content and emit appropriate events
+                for content in message.content:
+                    if isinstance(content, TextContent):
+                        # Emit agent update event for text responses
+                        await self.produce(AgentUpdateEvent(
+                            session_id=self.active_session.id,
+                            message=message
+                        ))
+                    elif isinstance(content, ToolUseContent):
+                        # Emit tool use event
+                        await self.produce(ToolUseEvent(
+                            session_id=self.active_session.id,
+                            tool_name=content.tool_name,
+                            parameters=content.tool_parameters
+                        ))
+                    elif isinstance(content, ToolResultContent):
+                        # Emit tool result event
+                        await self.produce(ToolResultEvent(
+                            session_id=self.active_session.id,
+                            tool_name="unknown",  # We don't have tool_name in ToolResultContent
+                            result=content.tool_result
+                        ))
+            
+            logger.info("Agent processing complete")
+            logger.info(f"Producing AgentCompleteEvent")
+            await self.produce(AgentCompleteEvent(
+                session_id=self.active_session.id,
+            ))
             
             # Save session after interaction
             logger.debug("Saving session")
@@ -96,12 +135,21 @@ class System:
             logger.info("Session saved successfully")
             
             logger.info("System.send_message() completed successfully")
-            return final_message
             
         except Exception as e:
             import traceback
+            error_traceback = traceback.format_exc()
             logger.error(f"Error in send_message: {str(e)}")
-            logger.error(f"Traceback:\n{traceback.format_exc()}")
+            logger.error(f"Traceback:\n{error_traceback}")
+            
+            # Emit error event
+            if self.active_session:
+                await self.produce(ErrorEvent(
+                    session_id=self.active_session.id,
+                    error=str(e),
+                    traceback=error_traceback
+                ))
+            
             raise
     
     def close_session(self) -> None:
@@ -175,7 +223,8 @@ class System:
             logger.warning(f"{self.palio_games_status_path} not found, creating empty {self.palio_games_status_temp_path}")
             with open(self.palio_games_status_temp_path, 'w', encoding='utf-8') as f:
                 json.dump({}, f)
-    
+
+
     def _save_session(self) -> None:
         """Save the current session to file."""
         if self.active_session is None:

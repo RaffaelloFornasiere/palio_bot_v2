@@ -28,7 +28,7 @@ class ToolResultContent(BaseModel):
     tool_use_id: str
 
 
-Role = Literal["user", "assistant", "event"]
+Role = Literal["user", "assistant"]
 
 
 class Message(BaseModel):

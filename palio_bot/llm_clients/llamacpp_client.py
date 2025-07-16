@@ -68,7 +68,8 @@ class LlamaCPPClient(BaseLLMClient):
                     raise Exception(f"LlamaCPP API error {response.status_code}: {error_text}")
                 
                 result = response.json()
-                
+
+
                 # Log the response
                 self.api_logger.log_response(result, request_filepath, provider="llamacpp")
                 
@@ -104,8 +105,6 @@ class LlamaCPPClient(BaseLLMClient):
         
         # Convert each message
         for msg in messages:
-            if msg.role == "event":
-                continue  # Skip event messages for LLM
                 
             # Handle messages with ToolResultContent specially in OpenAI format
             if any(isinstance(content, ToolResultContent) for content in msg.content):
@@ -171,7 +170,7 @@ class LlamaCPPClient(BaseLLMClient):
                 elif tool_calls:
                     openai_msg["tool_calls"] = tool_calls
                     if "content" not in openai_msg:
-                        openai_msg["content"] = None
+                        openai_msg["content"] = "None"
                 else:
                     # Ensure all messages have content field
                     openai_msg["content"] = ""
@@ -205,7 +204,14 @@ class LlamaCPPClient(BaseLLMClient):
         
         # Handle text content
         if message.get("content"):
-            content_list.append(TextContent(text=message["content"]))
+            # fix https://github.com/ggml-org/llama.cpp/issues/14697
+            try:
+                content_json = json.loads(message["content"])
+                if "tool_calls" in content_json:
+                    # If content is a JSON object with tool calls
+                    message["tool_calls"] = content_json.get("tool_calls", [])
+            except json.decoder.JSONDecodeError:
+                content_list.append(TextContent(text=message["content"]))
         
         # Handle tool calls
         if message.get("tool_calls"):

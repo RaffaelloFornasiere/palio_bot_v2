@@ -93,8 +93,6 @@ class AnthropicClient(BaseLLMClient):
         anthropic_messages = []
         
         for msg in messages:
-            if msg.role == "event":
-                continue  # Skip event messages
             
             # Convert role
             role = msg.role

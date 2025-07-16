@@ -99,7 +99,7 @@ class TelegramConsumer:
         await self._update_message(event.session_id, updated_text + "\n\n⏳ Thinking...")
     
     async def _handle_agent_update(self, event: AgentUpdateEvent) -> None:
-        """Handle agent update - accumulate text responses."""
+        """Handle agent update - show text responses in real-time."""
         if event.session_id not in self.message_stack:
             return
             
@@ -110,17 +110,29 @@ class TelegramConsumer:
                 text_parts.append(content.text)
         
         if text_parts:
-            # This is a text response, store it for final display
-            # We'll show it in the complete event
-            pass
+            # Add agent response to current text
+            current = self.current_text.get(event.session_id, "")
+            agent_text = "\n\n🤖 " + "\n".join(text_parts)
+            
+            updated_text = current + agent_text
+            self.current_text[event.session_id] = updated_text
+            
+            await self._update_message(event.session_id, updated_text + "\n\n⏳ Thinking...")
     
     async def _handle_agent_complete(self, event: AgentCompleteEvent) -> None:
-        """Handle completion - show final response."""
+        """Handle completion - show final response with all accumulated content."""
         if event.session_id not in self.message_stack:
             return
             
+        # Get accumulated text and add completion marker
+        final_text = self.current_text.get(event.session_id, "")
+        if final_text:
+            final_text += "\n\n✅ Processing complete!"
+        else:
+            final_text = "✅ Processing complete!"
+            
         # Update with final message
-        await self._update_message(event.session_id, event.final_message)
+        await self._update_message(event.session_id, final_text)
         
         # Clean up
         del self.message_stack[event.session_id]

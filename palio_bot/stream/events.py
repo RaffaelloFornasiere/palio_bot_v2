@@ -51,7 +51,6 @@ class ToolResultEvent(Event):
 class AgentCompleteEvent(Event):
     """Event emitted when agent completes processing."""
     type: Literal["AgentCompleteEvent"] = "AgentCompleteEvent"
-    final_message: str
 
 
 class ErrorEvent(Event):

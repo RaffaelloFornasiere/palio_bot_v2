@@ -1,31 +1,25 @@
-"""Agent implementation with event production for real-time updates."""
+"""Agent implementation as async generator for processing messages."""
 
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, AsyncGenerator
 
-from palio_bot.agent.models import Message, TextContent, ToolUseContent, Tool, ToolResult, AgentContextBlock
+from palio_bot.agent.models import (
+    Message, TextContent, ToolUseContent, Tool, ToolResult, AgentContextBlock,
+)
 from palio_bot.agent.system_prompt import _get_system_prompt
 from palio_bot.llm_clients.base_client import BaseLLMClient
-from palio_bot.stream.interfaces import Producer
-from palio_bot.stream.stream import Stream
-from palio_bot.stream.events import (
-    UserMessageEvent, AgentUpdateEvent, ToolUseEvent, 
-    ToolResultEvent, AgentCompleteEvent, ErrorEvent
-)
 
 logger = logging.getLogger(__name__)
 
 
-class Agent(Producer):
-    """Agent that processes messages and emits events during execution."""
+class Agent:
+    """Agent that processes messages as async generator."""
     
     def __init__(
         self, 
         llm_client: BaseLLMClient, 
-        tools: Dict[str, Tool],
-        stream: Stream
+        tools: Dict[str, Tool]
     ):
-        super().__init__(stream)
         self.llm_client = llm_client
         self.tools = tools  # Dict[tool_name, Tool]
         self.system_prompt = _get_system_prompt()
@@ -33,100 +27,25 @@ class Agent(Producer):
     
     async def run(
         self, 
-        message: str,
-        session_id: str,
-        context: Optional[list[AgentContextBlock]] = None
-    ) -> tuple[Message, List[Message]]:
-        """Process message and emit events during execution.
+        messages: List[Message],
+        context: Optional[List[AgentContextBlock]] = None
+    ) -> AsyncGenerator[Message, None]:
+        """Process messages as async generator yielding responses.
         
         Args:
-            message: User message to process
-            session_id: Session ID for event tracking
+            messages: Complete conversation history
             context: Optional context (e.g., current palio.json content)
             
-        Returns:
-            Tuple of (final Message from the agent, all messages generated during processing)
+        Yields:
+            AgentResponse objects (LLMResponse, ToolUseResponse, ToolResultResponse)
         """
-        logger.info(f"\n{'='*60}\nAgent.run() called\nSession: {session_id}\nMessage: {message}\n{'='*60}")
+        logger.info(f"\n{'='*60}\nAgent.run() called\nMessages: {len(messages)}\n{'='*60}")
         
-        try:
-            # Emit user message event
-            logger.debug("Producing UserMessageEvent")
-            await self.produce(UserMessageEvent(
-                session_id=session_id,
-                content=message
-            ))
-            
-            context = [context.format() for context in context]
-            
-            # Start with user message
-            messages = [Message.text(role="user", text=message)]
-            
-            # Process through tool loop
-            logger.info("Starting agent processing loop")
-            result_messages = await self._process_with_events(
-                messages, context, session_id
-            )
-            logger.info(f"Agent processing complete. Generated {len(result_messages)} messages")
-            
-            # Find the final assistant message with text
-            final_message = None
-            for msg in reversed(result_messages):
-                if msg.role == "assistant":
-                    for content in msg.content:
-                        if isinstance(content, TextContent):
-                            final_message = msg
-                            break
-                    if final_message:
-                        break
-            
-            if final_message:
-                # Emit completion event
-                final_text = " ".join(
-                    c.text for c in final_message.content 
-                    if isinstance(c, TextContent)
-                )
-                logger.info(f"Producing AgentCompleteEvent with final text: {final_text[:100]}...")
-                await self.produce(AgentCompleteEvent(
-                    session_id=session_id,
-                    final_message=final_text
-                ))
-                logger.info("Agent.run() completed successfully")
-                return final_message, result_messages
-            else:
-                logger.error("No final text response from agent")
-                raise ValueError("No final text response from agent")
-                
-        except Exception as e:
-            # Emit error event
-            import traceback
-            error_traceback = traceback.format_exc()
-            logger.error(f"Error in Agent.run(): {e}\n{error_traceback}")
-            
-            await self.produce(ErrorEvent(
-                session_id=session_id,
-                error=str(e),
-                traceback=error_traceback
-            ))
-            raise
-    
-    async def _process_with_events(
-        self, 
-        messages: List[Message], 
-        context: List[TextContent],
-        session_id: str
-    ) -> List[Message]:
-        """Process messages through LLM with tool execution loop, emitting events.
+        # Format context
+        formatted_context = [ctx.format() for ctx in context] if context else []
         
-        Args:
-            messages: List of messages in the conversation
-            context: List of TextContent for additional context
-            session_id: Session ID for event tracking
-            
-        Returns:
-            List of messages generated during processing
-        """
-        result_messages = []
+        # Process through tool loop
+        logger.info("Starting agent processing loop")
         current_messages = messages.copy()
         
         # Continue loop until LLM responds with text only (no tool calls)
@@ -140,19 +59,15 @@ class Agent(Producer):
             response_message = await self.llm_client.generate_message(
                 messages=current_messages,
                 system_prompt=self.system_prompt,
-                context=context,
+                context=formatted_context,
                 tools=list(self.tools.values())
             )
             logger.info(f"LLM response received: role={response_message.role}, content_types={[c.type for c in response_message.content]}")
             
-            # Emit agent update event
-            await self.produce(AgentUpdateEvent(
-                session_id=session_id,
-                message=response_message
-            ))
+            # Yield LLM response
+            yield response_message
             
-            # Add LLM response to results and current conversation
-            result_messages.append(response_message)
+            # Add LLM response to current conversation
             current_messages.append(response_message)
             
             # Check if response contains tool calls
@@ -170,40 +85,26 @@ class Agent(Producer):
             
             # Process tool uses
             for tool_use in tool_uses:
-                # Emit tool use event
-                logger.info(f"  Using tool: {tool_use.tool_name}")
-                logger.debug(f"  Parameters: {tool_use.tool_parameters}")
-                
-                await self.produce(ToolUseEvent(
-                    session_id=session_id,
-                    tool_name=tool_use.tool_name,
-                    parameters=tool_use.tool_parameters
-                ))
-                
                 # Execute tool
                 logger.info(f"  Executing tool: {tool_use.tool_name}")
+                logger.debug(f"  Parameters: {tool_use.tool_parameters}")
                 tool_result = await self._execute_tool(tool_use)
                 logger.info(f"  Tool result: success={tool_result.success}, message={tool_result.message}")
+
                 
-                # Emit tool result event
-                await self.produce(ToolResultEvent(
-                    session_id=session_id,
-                    tool_name=tool_use.tool_name,
-                    result=tool_result
-                ))
-                
-                # Create tool result message
+                # Create tool result message and add to conversation
                 result_message = Message.tool_result(
                     role="user",
                     tool_result=tool_result,
                     tool_use_id=tool_use.tool_use_id
                 )
-                
-                # Add to results and current conversation
-                result_messages.append(result_message)
+
                 current_messages.append(result_message)
-        
-        return result_messages
+
+                yield result_message
+
+        logger.info("Agent.run() completed successfully")
+    
     
     async def _execute_tool(self, tool_use: ToolUseContent) -> ToolResult:
         """Execute a tool and return the result.
