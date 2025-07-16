@@ -44,10 +44,10 @@ def print_status(system):
         
         # Check if palio_updated.json exists
         config = Config()
-        if config.palio_updated_path.exists():
-            console.print(f"[green]✓ File temporaneo:[/green] {config.palio_updated_path} presente")
+        if config.palio_games_status_temp_path.exists():
+            console.print(f"[green]✓ File temporaneo:[/green] {config.palio_games_status_temp_path} presente")
         else:
-            console.print(f"[yellow]⚠ File temporaneo:[/yellow] {config.palio_updated_path} non trovato")
+            console.print(f"[yellow]⚠ File temporaneo:[/yellow] {config.palio_games_status_temp_path} non trovato")
     else:
         console.print("\n[yellow]⚠ Nessuna sessione attiva[/yellow]")
     

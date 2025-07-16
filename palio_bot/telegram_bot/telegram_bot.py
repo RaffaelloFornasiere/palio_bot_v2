@@ -92,8 +92,7 @@ class PalioTelegramBot:
             return
             
         system = self.container.system()
-        user_id = update.effective_user.id
-        
+
         try:
             # Check if user has active session
             if system.active_session:
@@ -141,12 +140,7 @@ class PalioTelegramBot:
             
     async def close(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /close command"""
-        if not self.check_user_authorized(update.effective_user.id):
-            await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
-            return
-            
-        if not self.container:
-            await update.message.reply_text("❌ Sistema non inizializzato")
+        if not self.validate(update):
             return
             
         system = self.container.system()
@@ -163,12 +157,7 @@ class PalioTelegramBot:
             
     async def games_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /games_status command"""
-        if not self.check_user_authorized(update.effective_user.id):
-            await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
-            return
-            
-        if not self.container:
-            await update.message.reply_text("❌ Sistema non inizializzato")
+        if not self.validate(update):
             return
             
         try:
@@ -227,12 +216,7 @@ class PalioTelegramBot:
             
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle regular text messages with event streaming"""
-        if not self.check_user_authorized(update.effective_user.id):
-            await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
-            return
-            
-        if not self.container:
-            await update.message.reply_text("❌ Sistema non inizializzato")
+        if not self.validate(update):
             return
             
         system = self.container.system()
@@ -251,7 +235,7 @@ class PalioTelegramBot:
         try:
             # Process message through the system
             # Events will be sent to Telegram consumer automatically
-            response = await system.send_message(user_message)
+            await system.send_message(user_message)
             
             # The final response is already sent by the TelegramConsumer
             # through the AgentCompleteEvent
@@ -265,12 +249,7 @@ class PalioTelegramBot:
     
     async def handle_voice_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle voice messages with transcription"""
-        if not self.check_user_authorized(update.effective_user.id):
-            await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
-            return
-            
-        if not self.container:
-            await update.message.reply_text("❌ Sistema non inizializzato")
+        if not self.validate(update):
             return
             
         # Get audio transcription service
@@ -341,6 +320,19 @@ class PalioTelegramBot:
                 "❌ Si è verificato un errore imprevisto. Riprova più tardi."
             )
 
+    async def validate(self, update: Update) -> bool:
+        """Validate the update to ensure user is authorized and system is initialized"""
+
+        if not self.check_user_authorized(update.effective_user.id):
+            await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
+            return False
+
+        if not self.container:
+            await update.message.reply_text("❌ Sistema non inizializzato")
+            return False
+
+        return True
+
 def main():
     """Start the bot"""
     import os
@@ -388,7 +380,7 @@ def main():
     application.add_error_handler(bot.error_handler)
     
     # Initialize bot before starting
-    async def post_init(application: Application) -> None:
+    async def post_init(application) -> None:
         await bot.initialize()
         logger.info("Bot initialized successfully with event system")
     

@@ -79,7 +79,7 @@ class Container:
         if self._tools is None:
             logger.info(f"Creating tools: json_editor={self.use_json_editor}")
             if self.use_json_editor:
-                self._tools = create_json_editor_tools(file_path=str(self.config.palio_updated_path))
+                self._tools = create_json_editor_tools(file_path=str(self.config.palio_games_status_temp_path))
             logger.info(f"Created {len(self._tools)} tools: {list(self._tools.keys())}")
         return self._tools
 

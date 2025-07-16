@@ -38,7 +38,7 @@ class System:
         self.palio_games_status_path = config.palio_games_status_path
         self.leader_board_file_path = config.leaderboard_file_path
         self.session_file_path = config.session_file_path
-        self.palio_updated_path = config.palio_updated_path
+        self.palio_games_status_temp_path = config.palio_games_status_temp_path
         
         logger.info(f"System initialized with palio_file: {self.palio_file_path}")
         
@@ -105,18 +105,18 @@ class System:
             raise
     
     def close_session(self) -> None:
-        """Close the active session normally, copying palio_updated.json to palio_games_status.json."""
+        """Close the active session normally, copying palio_games_status_temp_path.json to palio_games_status.json."""
         if self.active_session is None:
             logger.warning("close_session called but no active session")
             return
         
         logger.info(f"Closing session {self.active_session.id}")
         
-        # Copy palio_updated.json to palio_games_status.json
-        if self.palio_updated_path.exists():
-            logger.info(f"Copying {self.palio_updated_path} to {self.palio_games_status_path}")
-            shutil.copy2(self.palio_updated_path, self.palio_games_status_path)
-            self.palio_updated_path.unlink()  # Remove palio_updated.json
+        # Copy palio_games_status_temp_path.json to palio_games_status.json
+        if self.palio_games_status_temp_path.exists():
+            logger.info(f"Copying {self.palio_games_status_temp_path} to {self.palio_games_status_path}")
+            shutil.copy2(self.palio_games_status_temp_path, self.palio_games_status_path)
+            self.palio_games_status_temp_path.unlink()  # Remove palio_games_status_temp_path.json
             logger.info("Changes saved to palio.json")
             
             # Update leaderboard with completed games
@@ -133,7 +133,7 @@ class System:
                 logger.error(f"Error updating leaderboard: {e}")
                 # Don't raise the exception to avoid breaking session closure
         else:
-            logger.warning("palio_updated.json not found, nothing to save")
+            logger.warning("palio_games_status_temp_path.json not found, nothing to save")
         
         self.active_session = None
         
@@ -142,13 +142,13 @@ class System:
             self.session_file_path.unlink()
     
     def cancel_session(self) -> None:
-        """Cancel the active session and discard changes in palio_updated.json."""
+        """Cancel the active session and discard changes in palio_games_status_temp_path.json."""
         if self.active_session is None:
             return
         
-        # Simply remove palio_updated.json to discard changes
-        if self.palio_updated_path.exists():
-            self.palio_updated_path.unlink()
+        # Simply remove palio_games_status_temp_path.json to discard changes
+        if self.palio_games_status_temp_path.exists():
+            self.palio_games_status_temp_path.unlink()
         
         self.active_session = None
         
@@ -161,19 +161,19 @@ class System:
         return self.active_session
     
     def _create_session(self) -> None:
-        """Create a new session and copy palio_games_status.json to palio_updated.json."""
+        """Create a new session and copy palio_games_status.json to palio_games_status_temp_path.json."""
         session_id = str(uuid.uuid4())
         self.active_session = Session(id=session_id)
         logger.info(f"Created new session: {session_id}")
         
-        # Copy palio_games_status.json to palio_updated.json for editing
+        # Copy palio_games_status.json to palio_games_status_temp_path.json for editing
         if self.palio_games_status_path.exists():
-            logger.info(f"Copying {self.palio_games_status_path} to {self.palio_updated_path}")
-            shutil.copy2(self.palio_games_status_path, self.palio_updated_path)
+            logger.info(f"Copying {self.palio_games_status_path} to {self.palio_games_status_temp_path}")
+            shutil.copy2(self.palio_games_status_path, self.palio_games_status_temp_path)
         else:
-            # Create empty palio_updated.json if palio_games_status.json doesn't exist
-            logger.warning(f"{self.palio_games_status_path} not found, creating empty {self.palio_updated_path}")
-            with open(self.palio_updated_path, 'w', encoding='utf-8') as f:
+            # Create empty palio_games_status_temp_path.json if palio_games_status.json doesn't exist
+            logger.warning(f"{self.palio_games_status_path} not found, creating empty {self.palio_games_status_temp_path}")
+            with open(self.palio_games_status_temp_path, 'w', encoding='utf-8') as f:
                 json.dump({}, f)
     
     def _save_session(self) -> None:
@@ -197,11 +197,11 @@ class System:
             self.active_session = Session.model_validate(session_data)
             logger.info(f"Loaded existing session: {self.active_session.id} with {len(self.active_session.messages)} messages")
             
-            # Check if palio_updated.json exists (session was interrupted)
-            if not self.palio_updated_path.exists() and self.palio_games_status_path.exists():
-                # Recreate palio_updated.json from palio_games_status.json
-                logger.warning("Session exists but palio_updated.json missing, recreating from palio_games_status.json")
-                shutil.copy2(self.palio_games_status_path, self.palio_updated_path)
+            # Check if palio_games_status_temp_path.json exists (session was interrupted)
+            if not self.palio_games_status_temp_path.exists() and self.palio_games_status_path.exists():
+                # Recreate palio_games_status_temp_path.json from palio_games_status.json
+                logger.warning("Session exists but palio_games_status_temp_path.json missing, recreating from palio_games_status.json")
+                shutil.copy2(self.palio_games_status_path, self.palio_games_status_temp_path)
                 
         except Exception as e:
             # If session loading fails, remove corrupted file
@@ -215,19 +215,19 @@ class System:
             raise FileNotFoundError("palio.json does not exist")
         result = []
         with open(self.palio_file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+            content = json.load(f)
 
             result.append(AgentContextBlock(
                 context_name="palio_specification",
-                content=content,
+                content=json.dumps(content, indent=4),
             ))
 
         with open(self.leader_board_file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+            content = json.load(f)
 
             result.append(AgentContextBlock(
                 context_name="current_leaderboard",
-                content=content,
+                content=json.dumps(content, indent=4),
             ))
 
         return result

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class Config:
     palio_file_path: Path = Path("data/palio.json")
     palio_games_status_path: Path = Path("data/palio_games_status.json")
-    palio_updated_path: Path = Path("data/palio_games_status_tmp.json")
+    palio_games_status_temp_path: Path = Path("data/palio_games_status_tmp.json")
     leaderboard_file_path: Path = Path("data/leaderboard.json")
     session_file_path: Path = Path("data/session.json")
 

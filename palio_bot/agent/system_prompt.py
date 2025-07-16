@@ -86,4 +86,8 @@ Esempi di comandi:
 - "taglio del tronco completato: villa 45s, salt 52s..." → imposta scores e status completed per G01
 
 Rispondi sempre in italiano e sii preciso nell'aggiornamento dei dati.
+
+IMPORTANTE: 
+Utilizza sempre correttamente il formato di risposta per tool_calls.
+
 """.format(current_date=datetime.now().strftime("%Y-%m-%d"))
