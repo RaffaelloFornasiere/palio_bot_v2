@@ -111,18 +111,6 @@ const ClassificaPage: React.FC = () => {
     }
   };
 
-  const getPositionEmoji = (position: number) => {
-    switch (position) {
-      case 1:
-        return '🥇';
-      case 2:
-        return '🥈';
-      case 3:
-        return '🥉';
-      default:
-        return position.toString();
-    }
-  };
 
   if (loading) {
     return (
@@ -149,22 +137,22 @@ const ClassificaPage: React.FC = () => {
   const leaderboardEntries = getLeaderboardEntries();
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" >
+      <Box sx={{ mt: 4, mb: 4}}>
         <Typography variant="h4" component="h1" gutterBottom>
           Classifica Generale
         </Typography>
         
-        <Card>
-          <CardContent>
+        <Card >
+          <CardContent sx={{p:0}}>
             <TableContainer component={Paper} variant="outlined">
-              <Table>
+              <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Posizione</TableCell>
-                    <TableCell>Borgo</TableCell>
-                    <TableCell align="right">Punti Totali</TableCell>
-                    <TableCell align="right">Gap dalla Posizione Precedente</TableCell>
+                    <TableCell ></TableCell>
+                    <TableCell >Borgo</TableCell>
+                    <TableCell  align="right">Punti Totali</TableCell>
+                    <TableCell  align="right">Distacco</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -172,23 +160,12 @@ const ClassificaPage: React.FC = () => {
                     <TableRow key={entry.village}>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography 
-                            variant="h6" 
+                          <Typography
+                            variant="h6"
                             fontWeight={entry.position <= 3 ? 'bold' : 'normal'}
                           >
-                            {getPositionEmoji(entry.position)}
+                            {entry.position.toString()}
                           </Typography>
-                          {entry.position <= 3 && (
-                            <Chip 
-                              label={`${entry.position}°`} 
-                              size="small" 
-                              sx={{ 
-                                bgcolor: getPositionColor(entry.position),
-                                color: 'white',
-                                fontWeight: 'bold'
-                              }}
-                            />
-                          )}
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -213,17 +190,11 @@ const ClassificaPage: React.FC = () => {
                             <Typography variant="body2" color="error">
                               -{entry.gap}
                             </Typography>
-                            <Chip 
-                              label={`${entry.gap} punti`} 
-                              size="small" 
-                              color="warning"
-                              variant="outlined"
-                            />
                           </Box>
                         ) : (
                           entry.points > 0 ? (
                             <Typography variant="body2" color="success.main" fontWeight="bold">
-                              🏆 In testa
+                              🏆
                             </Typography>
                           ) : (
                             <Typography variant="body2" color="text.secondary">
