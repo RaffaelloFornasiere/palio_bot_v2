@@ -11,8 +11,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
+from pydantic import BaseModel
 
-app = FastAPI(title="Palio API", description="Simple API to serve palio data files", version="1.0.0")
+from palio_bot.models.game_status_models import PalioGamesStatus
+from ..models.palio_models import PalioData
+from ..models.leaderboard_models import Leaderboard
+
+app = FastAPI(title="Palio API", description="API to serve palio data with structured models", version="1.0.0")
 
 # Add CORS middleware to allow frontend access
 app.add_middleware(
@@ -32,7 +37,12 @@ DATA_DIR_PATH = Path(__file__).parent.parent.parent / "data"
 # Path to React build directory - now relative to the package root
 REACT_BUILD_PATH = Path(__file__).parent.parent.parent / "website" / "build"
 
-@app.get("/palio")
+# Response models for API endpoints
+class AvailableYearsResponse(BaseModel):
+    """Response model for available years."""
+    years: List[int]
+
+@app.get("/palio", response_model=PalioData)
 async def get_palio_data():
     """
     Returns the complete palio.json data
@@ -44,14 +54,14 @@ async def get_palio_data():
         with open(PALIO_FILE_PATH, 'r', encoding='utf-8') as f:
             palio_data = json.load(f)
         
-        return palio_data
+        return PalioData.model_validate(palio_data)
     
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="Invalid JSON in palio.json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading palio.json: {str(e)}")
 
-@app.get("/leaderboard")
+@app.get("/leaderboard", response_model=Leaderboard)
 async def get_leaderboard_data():
     """
     Returns the leaderboard.json data
@@ -64,14 +74,14 @@ async def get_leaderboard_data():
         with open(leaderboard_path, 'r', encoding='utf-8') as f:
             leaderboard_data = json.load(f)
         
-        return leaderboard_data
+        return Leaderboard.model_validate(leaderboard_data)
     
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="Invalid JSON in leaderboard.json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading leaderboard.json: {str(e)}")
 
-@app.get("/palio_games_status")
+@app.get("/palio_games_status", response_model=PalioGamesStatus)
 async def get_palio_games_status():
     """
     Returns the palio_games_status.json data
@@ -84,14 +94,14 @@ async def get_palio_games_status():
         with open(games_status_path, 'r', encoding='utf-8') as f:
             games_status_data = json.load(f)
         
-        return games_status_data
+        return PalioGamesStatus.model_validate(games_status_data)
     
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="Invalid JSON in palio_games_status.json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading palio_games_status.json: {str(e)}")
 
-@app.get("/years")
+@app.get("/years", response_model=AvailableYearsResponse)
 async def get_available_years():
     """
     Returns a list of available years with archived data
@@ -109,12 +119,12 @@ async def get_available_years():
         # Sort years in descending order (most recent first)
         years.sort(reverse=True)
         
-        return {"years": years}
+        return AvailableYearsResponse(years=years)
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error scanning for available years: {str(e)}")
 
-@app.get("/palio/{year}")
+@app.get("/palio/{year}", response_model=PalioData)
 async def get_palio_data_by_year(year: int):
     """
     Returns the palio.json data for a specific year
@@ -127,14 +137,14 @@ async def get_palio_data_by_year(year: int):
         with open(year_path, 'r', encoding='utf-8') as f:
             palio_data = json.load(f)
         
-        return palio_data
+        return PalioData.model_validate(palio_data)
     
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail=f"Invalid JSON in palio.json for year {year}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading palio.json for year {year}: {str(e)}")
 
-@app.get("/leaderboard/{year}")
+@app.get("/leaderboard/{year}", response_model=Leaderboard)
 async def get_leaderboard_data_by_year(year: int):
     """
     Returns the leaderboard.json data for a specific year
@@ -147,14 +157,14 @@ async def get_leaderboard_data_by_year(year: int):
         with open(leaderboard_path, 'r', encoding='utf-8') as f:
             leaderboard_data = json.load(f)
         
-        return leaderboard_data
+        return Leaderboard.model_validate(leaderboard_data)
     
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail=f"Invalid JSON in leaderboard.json for year {year}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading leaderboard.json for year {year}: {str(e)}")
 
-@app.get("/palio_games_status/{year}")
+@app.get("/palio_games_status/{year}", response_model=PalioData)
 async def get_palio_games_status_by_year(year: int):
     """
     Returns the palio_games_status.json data for a specific year
@@ -167,7 +177,7 @@ async def get_palio_games_status_by_year(year: int):
         with open(games_status_path, 'r', encoding='utf-8') as f:
             games_status_data = json.load(f)
         
-        return games_status_data
+        return PalioData.model_validate(games_status_data)
     
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail=f"Invalid JSON in palio_games_status.json for year {year}")
@@ -198,7 +208,7 @@ if REACT_BUILD_PATH.exists() and REACT_BUILD_PATH.is_dir():
         Serve the React app for all routes not matching API endpoints
         """
         # Don't serve React app for API routes
-        if full_path.startswith(("palio", "leaderboard", "palio_games_status", "years")):
+        if full_path.startswith(("palio", "leaderboard", "palio_games_status", "years", "docs", "openapi.json")):
             raise HTTPException(status_code=404, detail="Not found")
         
         index_path = REACT_BUILD_PATH / "index.html"
