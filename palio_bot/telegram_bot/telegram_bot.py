@@ -25,6 +25,7 @@ class PalioTelegramBot:
         self.container: Optional[Container] = None
         self.user_sessions: Dict[int, Session] = {}
         self.chat_consumers: Dict[int, Any] = {}  # chat_id -> TelegramConsumer
+        self.running_tasks: Dict[int, asyncio.Task] = {}  # chat_id -> Task
         
     async def initialize(self):
         """Initialize the container and system"""
@@ -166,22 +167,27 @@ class PalioTelegramBot:
             await update.message.reply_text("❌ Sistema non inizializzato")
             return
             
-        system = self.container.system()
+        chat_id = update.effective_chat.id
         
         try:
-            # Check if there's an active session
-            if not system.active_session:
+            # Check if there's a running task for this chat
+            if chat_id not in self.running_tasks:
                 await update.message.reply_text(
-                    "⚠️ Nessuna sessione attiva da interrompere."
+                    "⚠️ Nessuna elaborazione in corso da interrompere."
                 )
                 return
             
-            # Request cancellation
-            system.request_cancellation()
+            # Cancel the running task
+            task = self.running_tasks[chat_id]
+            task.cancel()
+            
             await update.message.reply_text(
-                "🛑 Richiesta di interruzione inviata.\n"
-                "L'elaborazione si fermerà al prossimo punto sicuro."
+                "🛑 Elaborazione interrotta immediatamente."
             )
+            
+            # Also request cancellation in the system for cleanup
+            system = self.container.system()
+            system.request_cancellation()
             
         except Exception as e:
             logger.error(f"Error in stop: {e}")
@@ -256,6 +262,15 @@ class PalioTelegramBot:
         user_message = update.message.text
         chat_id = update.effective_chat.id
         
+        # Cancel any existing task for this chat
+        if chat_id in self.running_tasks:
+            self.running_tasks[chat_id].cancel()
+            try:
+                await self.running_tasks[chat_id]
+            except asyncio.CancelledError:
+                pass
+            del self.running_tasks[chat_id]
+        
         # Create or get Telegram consumer for this chat
         if chat_id not in self.chat_consumers:
             consumer = self.container.create_telegram_consumer(
@@ -265,20 +280,36 @@ class PalioTelegramBot:
             self.chat_consumers[chat_id] = consumer
             logger.info(f"Created Telegram consumer for chat {chat_id}")
         
-        try:
-            # Process message through the system
-            # Events will be sent to Telegram consumer automatically
-            await system.send_message(user_message)
-            
-            # The final response is already sent by the TelegramConsumer
-            # through the AgentCompleteEvent
-            
-        except Exception as e:
-            logger.error(f"Error processing message: {e}", exc_info=True)
-            await update.message.reply_text(
-                f"❌ Errore durante l'elaborazione:\n`{str(e)}`",
-                parse_mode='Markdown'
-            )
+        # Create background task for message processing
+        async def process_message():
+            try:
+                # Process message through the system
+                # Events will be sent to Telegram consumer automatically
+                await system.send_message(user_message)
+                
+                # The final response is already sent by the TelegramConsumer
+                # through the AgentCompleteEvent
+                
+            except asyncio.CancelledError:
+                # Task was cancelled by /stop command
+                await update.message.reply_text(
+                    "⏹️ Elaborazione interrotta dall'utente"
+                )
+                raise
+            except Exception as e:
+                logger.error(f"Error processing message: {e}", exc_info=True)
+                await update.message.reply_text(
+                    f"❌ Errore durante l'elaborazione:\n`{str(e)}`",
+                    parse_mode='Markdown'
+                )
+            finally:
+                # Clean up task from running_tasks
+                if chat_id in self.running_tasks:
+                    del self.running_tasks[chat_id]
+        
+        # Start background task
+        task = asyncio.create_task(process_message())
+        self.running_tasks[chat_id] = task
     
     async def handle_voice_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle voice messages with transcription"""
@@ -331,8 +362,38 @@ class PalioTelegramBot:
                     self.chat_consumers[chat_id] = consumer
                     logger.info(f"Created Telegram consumer for chat {chat_id}")
                 
-                # Process transcribed message through the system
-                await system.send_message(transcription)
+                # Process transcribed message through the system using background task
+                async def process_voice_message():
+                    try:
+                        await system.send_message(transcription)
+                    except asyncio.CancelledError:
+                        await update.message.reply_text(
+                            "⏹️ Elaborazione audio interrotta dall'utente"
+                        )
+                        raise
+                    except Exception as e:
+                        logger.error(f"Error processing voice transcription: {e}", exc_info=True)
+                        await update.message.reply_text(
+                            f"❌ Errore durante l'elaborazione audio:\n`{str(e)}`",
+                            parse_mode='Markdown'
+                        )
+                    finally:
+                        # Clean up task from running_tasks
+                        if chat_id in self.running_tasks:
+                            del self.running_tasks[chat_id]
+                
+                # Cancel any existing task for this chat
+                if chat_id in self.running_tasks:
+                    self.running_tasks[chat_id].cancel()
+                    try:
+                        await self.running_tasks[chat_id]
+                    except asyncio.CancelledError:
+                        pass
+                    del self.running_tasks[chat_id]
+                
+                # Start background task for voice message processing
+                task = asyncio.create_task(process_voice_message())
+                self.running_tasks[chat_id] = task
                 
             else:
                 await processing_message.edit_text("❌ Errore nella trascrizione audio")
