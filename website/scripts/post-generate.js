@@ -43,8 +43,8 @@ if (fs.existsSync(clientFile)) {
   
   // Inject API base URL configuration
   content = content.replace(
-    /baseUrl: string/g,
-    `baseUrl: process.env.REACT_APP_API_URL || 'http://localhost:8000'`
+    /baseUrl: 'http:\/\/localhost:8000'/g,
+    `baseUrl: process.env.NODE_ENV === 'production' ? (process.env.REACT_APP_SERVER_URL || '') : (process.env.REACT_APP_SERVER_URL || 'http://localhost:8000')`
   );
   
   // Add authentication headers if needed

@@ -6,9 +6,11 @@
  * In production, uses relative paths (same origin)
  */
 export const getApiBaseUrl = (): string => {
-  if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_SERVER_URL) {
-    return process.env.REACT_APP_SERVER_URL;
+  if (process.env.NODE_ENV === 'production') {
+    // In production, use REACT_APP_SERVER_URL or empty string (relative path)
+    return process.env.REACT_APP_SERVER_URL || '';
   }
-  return '';
+  // In development, use REACT_APP_SERVER_URL or default to localhost:8000
+  return process.env.REACT_APP_SERVER_URL || 'http://localhost:8000';
 };
 
