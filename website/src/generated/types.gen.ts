@@ -12,6 +12,35 @@ export type AvailableYearsResponse = {
 };
 
 /**
+ * DivisionLeaderboard
+ * Leaderboard for a specific division within a game.
+ */
+export type DivisionLeaderboard = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Results
+     */
+    results: Array<GameResult>;
+    /**
+     * Points
+     */
+    points: {
+        [key: string]: number;
+    };
+    /**
+     * Completed
+     */
+    completed?: boolean;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+};
+
+/**
  * EventDate
  * Date and time information for a game event.
  */
@@ -88,6 +117,39 @@ export type GameBonus = {
 };
 
 /**
+ * GameLeaderboard
+ * Leaderboard for a specific game, with explicit division support.
+ */
+export type GameLeaderboard = {
+    /**
+     * Game Id
+     */
+    game_id: string;
+    /**
+     * Game Name
+     */
+    game_name: string;
+    /**
+     * Divisions
+     */
+    divisions: Array<DivisionLeaderboard>;
+    /**
+     * Overall Points
+     */
+    overall_points: {
+        [key: string]: number;
+    };
+    /**
+     * Completed
+     */
+    completed?: boolean;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+};
+
+/**
  * GamePenalty
  * A penalty applied to final leaderboard points after ranking.
  */
@@ -107,6 +169,25 @@ export type GamePenalty = {
      * Points deducted from leaderboard points (negative number)
      */
     points: number;
+};
+
+/**
+ * GameResult
+ * Individual game result for a village.
+ */
+export type GameResult = {
+    /**
+     * Village
+     */
+    village: string;
+    /**
+     * Score
+     */
+    score: number | number;
+    /**
+     * Position
+     */
+    position?: number | null;
 };
 
 /**
@@ -139,7 +220,7 @@ export type HttpValidationError = {
 
 /**
  * Leaderboard
- * Leaderboard model.
+ * Main leaderboard model with explicit division support.
  */
 export type Leaderboard = {
     /**
@@ -156,9 +237,7 @@ export type Leaderboard = {
      * Game Leaderboards
      */
     game_leaderboards: {
-        [key: string]: {
-            [key: string]: number | number;
-        };
+        [key: string]: GameLeaderboard;
     };
 };
 

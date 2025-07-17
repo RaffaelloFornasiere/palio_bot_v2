@@ -19,8 +19,12 @@ import {
   Divider
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiCall } from '../../../utils/api';
 import { ArrowBack } from '@mui/icons-material';
+import { 
+  getPalioGamesStatus,
+  getLeaderboardData,
+  getPalioData
+} from '../../../generated/sdk.gen';
 import { 
   PalioGamesStatus, 
   PalioData, 
@@ -53,23 +57,18 @@ const GiocoDettagliPage: React.FC = () => {
       try {
         setLoading(true);
         const [gamesResponse, leaderboardResponse, palioResponse] = await Promise.all([
-          apiCall('/palio_games_status'),
-          apiCall('/leaderboard'),
-          apiCall('/palio')
+          getPalioGamesStatus(),
+          getLeaderboardData(),
+          getPalioData()
         ]);
 
-        if (!gamesResponse.ok || !leaderboardResponse.ok || !palioResponse.ok) {
+        if (gamesResponse.error || leaderboardResponse.error || palioResponse.error) {
           throw new Error('Failed to fetch data');
         }
 
-        const gamesData = await gamesResponse.json();
-        const leaderboardData = await leaderboardResponse.json();
-        const palioData = await palioResponse.json();
-
-        console.log(gamesData)
-        setGamesData(gamesData);
-        setLeaderboardData(leaderboardData);
-        setPalioData(palioData);
+        setGamesData(gamesResponse.data!);
+        setLeaderboardData(leaderboardResponse.data!);
+        setPalioData(palioResponse.data!);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -389,7 +388,7 @@ const GiocoDettagliPage: React.FC = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {getSortedLeaderboard(gameLeaderboard as any).map(([village, points], index) => (
+                        {getSortedLeaderboard(gameLeaderboard.overall_points).map(([village, points], index) => (
                           <TableRow key={village}>
                             <TableCell>{index + 1}</TableCell>
                             <TableCell>{village}</TableCell>

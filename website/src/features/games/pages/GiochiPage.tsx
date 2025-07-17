@@ -11,7 +11,11 @@ import {
   Alert
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { apiCall } from '../../../utils/api';
+import { 
+  getPalioGamesStatus,
+  getLeaderboardData,
+  getPalioData
+} from '../../../generated/sdk.gen';
 import { 
   PalioGamesStatus, 
   PalioData, 
@@ -39,22 +43,18 @@ const GiochiPage: React.FC = () => {
       try {
         setLoading(true);
         const [gamesResponse, leaderboardResponse, palioResponse] = await Promise.all([
-          apiCall('/palio_games_status'),
-          apiCall('/leaderboard'),
-          apiCall('/palio')
+          getPalioGamesStatus(),
+          getLeaderboardData(),
+          getPalioData()
         ]);
 
-        if (!gamesResponse.ok || !leaderboardResponse.ok || !palioResponse.ok) {
+        if (gamesResponse.error || leaderboardResponse.error || palioResponse.error) {
           throw new Error('Failed to fetch data');
         }
 
-        const gamesData = await gamesResponse.json();
-        const leaderboardData = await leaderboardResponse.json();
-        const palioData = await palioResponse.json();
-
-        setGamesData(gamesData);
-        setLeaderboardData(leaderboardData);
-        setPalioData(palioData);
+        setGamesData(gamesResponse.data!);
+        setLeaderboardData(leaderboardResponse.data!);
+        setPalioData(palioResponse.data!);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {

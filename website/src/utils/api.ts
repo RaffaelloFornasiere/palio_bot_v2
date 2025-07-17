@@ -12,12 +12,3 @@ export const getApiBaseUrl = (): string => {
   return '';
 };
 
-/**
- * Make an API call with the correct base URL
- */
-export const apiCall = async (endpoint: string, options?: RequestInit): Promise<Response> => {
-  const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}${endpoint}`;
-  
-  return fetch(url, options);
-};

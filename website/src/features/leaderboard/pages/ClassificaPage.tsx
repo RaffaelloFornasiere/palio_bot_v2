@@ -16,21 +16,11 @@ import {
   Alert,
   Chip
 } from '@mui/material';
-import { apiCall } from '../../../utils/api';
+import { getLeaderboardData } from '../../../generated/sdk.gen';
+import { Leaderboard } from '../../../generated/types.gen';
 
 interface VillagePoints {
   [village: string]: number;
-}
-
-interface LeaderboardData {
-  villages: string[];
-  points: VillagePoints;
-  game_leaderboards: {
-    [gameId: string]: {
-      name: string;
-      leaderboard: VillagePoints;
-    };
-  };
 }
 
 interface LeaderboardEntry {
@@ -41,7 +31,7 @@ interface LeaderboardEntry {
 }
 
 const ClassificaPage: React.FC = () => {
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardData | null>(null);
+  const [leaderboardData, setLeaderboardData] = useState<Leaderboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,14 +39,13 @@ const ClassificaPage: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await apiCall('/leaderboard');
+        const response = await getLeaderboardData();
 
-        if (!response.ok) {
+        if (response.error) {
           throw new Error('Failed to fetch leaderboard data');
         }
 
-        const data = await response.json();
-        setLeaderboardData(data);
+        setLeaderboardData(response.data!);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {

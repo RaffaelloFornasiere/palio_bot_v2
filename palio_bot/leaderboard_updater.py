@@ -2,8 +2,11 @@
 
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+
+from .models.leaderboard_models import Leaderboard, GameLeaderboard, DivisionLeaderboard, GameResult
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +41,22 @@ class LeaderboardUpdater:
             with open(self.palio_games_status_path, 'r', encoding='utf-8') as f:
                 games_status = json.load(f)
             
-            # Load current leaderboard
-            with open(self.leaderboard_file_path, 'r', encoding='utf-8') as f:
-                leaderboard = json.load(f)
+            # Load current leaderboard or create new structure
+            if self.leaderboard_file_path.exists():
+                with open(self.leaderboard_file_path, 'r', encoding='utf-8') as f:
+                    old_leaderboard = json.load(f)
+                    # Create new structure from old data
+                    leaderboard = {
+                        'villages': old_leaderboard.get('villages', []),
+                        'points': old_leaderboard.get('points', {}),
+                        'game_leaderboards': {}  # Will be rebuilt from scratch
+                    }
+            else:
+                leaderboard = {
+                    'villages': [],
+                    'points': {},
+                    'game_leaderboards': {}
+                }
             
             # Process each completed game
             for game_id, game_data in games_status.get('game_scores', {}).items():
@@ -53,36 +69,22 @@ class LeaderboardUpdater:
                         logger.warning(f"Game definition not found for {game_id}")
                         continue
                     
-                    # Check if game has divisions
-                    if 'divisions' in game_data:
-                        # Process each division separately
-                        for division in game_data['divisions']:
-                            if division.get('status') == 'completed':
-                                division_id = f"{game_id}_{division['name']}"
-                                logger.info(f"Processing completed division: {division_id}")
-                                
-                                # Calculate leaderboard for this division
-                                division_leaderboard = self._calculate_division_leaderboard(game_def, division)
-                                if division_leaderboard:
-                                    leaderboard['game_leaderboards'][division_id] = {
-                                        'name': f"{game_def['name']} - {division['name']}",
-                                        'leaderboard': division_leaderboard
-                                    }
-                    else:
-                        # Traditional game without divisions
-                        game_leaderboard = self._calculate_game_leaderboard(game_def, game_data)
-                        if game_leaderboard:
-                            leaderboard['game_leaderboards'][game_id] = {
-                                'name': game_def['name'],
-                                'leaderboard': game_leaderboard
-                            }
+                    # Create GameLeaderboard for this game
+                    game_leaderboard = self._create_game_leaderboard(game_id, game_def, game_data)
+                    if game_leaderboard:
+                        leaderboard['game_leaderboards'][game_id] = game_leaderboard
             
             # Recalculate total points
             self._recalculate_total_points(leaderboard)
             
+            # Convert to Pydantic model for validation
+            leaderboard_obj = Leaderboard.model_validate(leaderboard)
+            # Convert back to dict for JSON serialization
+            leaderboard = leaderboard_obj.model_dump()
+            
             # Save updated leaderboard
             with open(self.leaderboard_file_path, 'w', encoding='utf-8') as f:
-                json.dump(leaderboard, f, ensure_ascii=False, indent=2)
+                json.dump(leaderboard, f, ensure_ascii=False, indent=2, default=str)
             
             logger.info("Leaderboard update completed successfully")
             
@@ -96,6 +98,67 @@ class LeaderboardUpdater:
             if game.get('id') == game_id:
                 return game
         return None
+    
+    def _create_game_leaderboard(self, game_id: str, game_def: Dict[str, Any], game_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a GameLeaderboard structure for a game."""
+        divisions = []
+        overall_points = {}
+        
+        if 'divisions' in game_data:
+            # Process each division separately
+            for division in game_data['divisions']:
+                if division.get('status') == 'completed':
+                    division_leaderboard = self._create_division_leaderboard(game_def, division)
+                    if division_leaderboard:
+                        divisions.append(division_leaderboard)
+                        
+                        # Add division points to overall game points
+                        for village, points in division_leaderboard['points'].items():
+                            overall_points[village] = overall_points.get(village, 0) + points
+        else:
+            # Traditional game without divisions - create a single "Main" division
+            main_division = self._create_division_leaderboard(game_def, game_data, division_name="Main")
+            if main_division:
+                divisions.append(main_division)
+                overall_points = main_division['points']
+        
+        if not divisions:
+            return None
+            
+        return {
+            'game_id': game_id,
+            'game_name': game_def['name'],
+            'divisions': divisions,
+            'overall_points': overall_points,
+            'completed': True,
+            'updated_at': datetime.now().isoformat()
+        }
+    
+    def _create_division_leaderboard(self, game_def: Dict[str, Any], division_data: Dict[str, Any], division_name: str = None) -> Dict[str, Any]:
+        """Create a DivisionLeaderboard structure for a division."""
+        name = division_name or division_data.get('name', 'Main')
+        
+        # Calculate points for this division
+        points = self._calculate_division_leaderboard(game_def, division_data)
+        if not points:
+            return None
+        
+        # Create GameResult list
+        results = []
+        for village, score in points.items():
+            results.append({
+                'village': village,
+                'score': score,
+                'position': None  # Will be set later if needed
+            })
+        
+        return {
+            'name': name,
+            'results': results,
+            'points': points,
+            'completed': True,
+            'updated_at': datetime.now().isoformat()
+        }
     
     def _calculate_game_leaderboard(self, game_def: Dict[str, Any], game_data: Dict[str, Any]) -> Dict[str, int]:
         """Calculate leaderboard points for a specific game."""
@@ -200,10 +263,17 @@ class LeaderboardUpdater:
         
         # Sum points from all games
         for game_id, game_data in leaderboard.get('game_leaderboards', {}).items():
-            game_leaderboard = game_data.get('leaderboard', {})
-            for village, points in game_leaderboard.items():
-                if village in total_points:
-                    total_points[village] += points
+            # Handle new GameLeaderboard structure
+            if isinstance(game_data, dict) and 'overall_points' in game_data:
+                for village, points in game_data['overall_points'].items():
+                    if village in total_points:
+                        total_points[village] += points
+            else:
+                # Fallback for old structure
+                game_leaderboard = game_data.get('leaderboard', {})
+                for village, points in game_leaderboard.items():
+                    if village in total_points:
+                        total_points[village] += points
         
         # Update leaderboard
         leaderboard['points'] = total_points

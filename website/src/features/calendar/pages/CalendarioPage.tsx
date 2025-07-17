@@ -1,43 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box } from '@mui/material';
 import WeeklyCalendar from '../components/WeeklyCalendar';
-import { apiCall } from '../../../utils/api';
-
-interface GameDate {
-  start_datetime: string;
-  end_datetime: string;
-  subtitle?: string;
-}
-
-interface Game {
-  id: string;
-  name: string;
-  type: string;
-  description: string;
-  dates: GameDate[];
-}
-
-interface NonGameEvent {
-  name: string;
-  type: string;
-  dates: GameDate[];
-}
-
-interface PalioData {
-  competition_name: string;
-  villages: string[];
-  games: Game[];
-  non_game_events: NonGameEvent[];
-}
+import { getPalioData } from '../../../generated/sdk.gen';
+import { PalioData } from '../../../generated/types.gen';
 
 const CalendarioPage: React.FC = () => {
   const [events, setEvents] = useState<{ [date: string]: { id: string; title: string; time: string; description?: string; subtitle?: string }[] }>({});
 
   useEffect(() => {
     // Load palio data from API
-    apiCall('/palio')
-      .then(response => response.json())
-      .then((data: PalioData) => {
+    getPalioData()
+      .then(response => {
+        if (response.error) {
+          throw new Error('Failed to fetch palio data');
+        }
+        const data = response.data!;
         // Transform the data to match our component's expected format
         const transformedEvents: { [date: string]: { id: string; title: string; time: string; description?: string; subtitle?: string }[] } = {};
         
@@ -68,7 +45,7 @@ const CalendarioPage: React.FC = () => {
             // For games with multiple dates, use game name as title and subtitle separately
             // For games with single date, use game name as title (no subtitle)
             const eventTitle = game.name;
-            const eventSubtitle = game.dates.length > 1 ? gameDate.subtitle : undefined;
+            const eventSubtitle = game.dates.length > 1 ? gameDate.subtitle || undefined : undefined;
             
             // Initialize array if it doesn't exist
             if (!transformedEvents[dateString]) {
@@ -111,7 +88,7 @@ const CalendarioPage: React.FC = () => {
             
             // For non-game events, use event name as title and subtitle separately
             const eventTitle = event.name;
-            const eventSubtitle = event.dates.length > 1 ? eventDate.subtitle : undefined;
+            const eventSubtitle = event.dates.length > 1 ? eventDate.subtitle || undefined : undefined;
             
             // Initialize array if it doesn't exist
             if (!transformedEvents[dateString]) {
