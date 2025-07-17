@@ -79,6 +79,7 @@ class PalioTelegramBot:
             "Comandi disponibili:\n"
             "/status - Mostra lo stato del sistema\n"
             "/games_status - Mostra lo stato dei giochi\n"
+            "/leaderboard - Aggiorna la classifica\n"
             "/cancel - Annulla le modifiche della sessione corrente\n"
             "/close - Chiudi la sessione salvando le modifiche\n"
             "/stop - Interrompi l'elaborazione in corso",
@@ -255,6 +256,39 @@ class PalioTelegramBot:
         except Exception as e:
             logger.error(f"Error in games_status: {e}", exc_info=True)
             await update.message.reply_text(f"❌ Errore: {str(e)}")
+            
+    async def leaderboard(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /leaderboard command"""
+        if not self.validate(update):
+            return
+            
+        # Send processing message
+        processing_message = await update.message.reply_text("📊 Aggiornamento classifica in corso...")
+        
+        try:
+            from palio_bot.leaderboard_updater import LeaderboardUpdater
+            from palio_bot.config import Config
+            
+            config = Config()
+            leaderboard_updater = LeaderboardUpdater(
+                config.palio_file_path,
+                config.palio_games_status_path,
+                config.leaderboard_file_path
+            )
+            
+            leaderboard_updater.update_leaderboard()
+            
+            await processing_message.edit_text(
+                "✅ Classifica aggiornata con successo!\n"
+                "📈 Tutti i giochi completati sono stati processati."
+            )
+            
+        except Exception as e:
+            logger.error(f"Error updating leaderboard: {e}", exc_info=True)
+            await processing_message.edit_text(
+                f"❌ Errore nell'aggiornamento della classifica:\n`{str(e)}`",
+                parse_mode='Markdown'
+            )
             
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle regular text messages with event streaming"""
@@ -469,6 +503,7 @@ def main():
     application.add_handler(CommandHandler("start", bot.start))
     application.add_handler(CommandHandler("status", bot.status))
     application.add_handler(CommandHandler("games_status", bot.games_status))
+    application.add_handler(CommandHandler("leaderboard", bot.leaderboard))
     application.add_handler(CommandHandler("cancel", bot.cancel))
     application.add_handler(CommandHandler("close", bot.close))
     application.add_handler(CommandHandler("stop", bot.stop_command))

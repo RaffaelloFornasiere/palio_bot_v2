@@ -106,15 +106,22 @@ class LeaderboardUpdater:
         
         if 'divisions' in game_data:
             # Process each division separately
+            overall_raw_scores = {}
+            
             for division in game_data['divisions']:
                 if division.get('status') == 'completed':
                     division_leaderboard = self._create_division_leaderboard(game_def, division)
                     if division_leaderboard:
                         divisions.append(division_leaderboard)
                         
-                        # Add division points to overall game points
-                        for village, points in division_leaderboard['points'].items():
-                            overall_points[village] = overall_points.get(village, 0) + points
+                        # Add division RAW SCORES (not ranking points) to overall
+                        division_raw_scores = self._calculate_division_raw_scores(game_def, division)
+                        for village, score in division_raw_scores.items():
+                            overall_raw_scores[village] = overall_raw_scores.get(village, 0) + score
+            
+            # Re-rank based on combined raw scores and apply RANKING_POINTS
+            if overall_raw_scores:
+                overall_points = self._apply_ranking_points(game_def, overall_raw_scores)
         else:
             # Traditional game without divisions - create a single "Main" division
             main_division = self._create_division_leaderboard(game_def, game_data, division_name="Main")
@@ -188,19 +195,49 @@ class LeaderboardUpdater:
         """Calculate leaderboard for round-robin games."""
         logger.info(f"Calculating round-robin leaderboard for {game_def['name']}")
         
-        # Initialize village points
+        # Get raw scores first
+        raw_scores = self._calculate_round_robin_raw_scores(game_def, game_data)
+        
+        # Apply ranking points
+        return self._apply_ranking_points(game_def, raw_scores)
+    
+    def _calculate_score_based_leaderboard(self, game_def: Dict[str, Any], game_data: Dict[str, Any]) -> Dict[str, int]:
+        """Calculate leaderboard for score-based games."""
+        logger.info(f"Calculating score-based leaderboard for {game_def['name']}")
+        
+        # Get raw scores first
+        raw_scores = self._calculate_score_based_raw_scores(game_def, game_data)
+        
+        # Apply ranking points
+        return self._apply_ranking_points(game_def, raw_scores)
+    
+    def _calculate_division_raw_scores(self, game_def: Dict[str, Any], division_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate raw scores for a division (before applying RANKING_POINTS)."""
+        game_type = game_def.get('type')
+        
+        if game_type == 'round-robin':
+            return self._calculate_round_robin_raw_scores(game_def, division_data)
+        elif game_type == 'score-based':
+            return self._calculate_score_based_raw_scores(game_def, division_data)
+        else:
+            logger.warning(f"Unknown game type: {game_type}")
+            return {}
+    
+    def _calculate_round_robin_raw_scores(self, game_def: Dict[str, Any], division_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate raw scores for round-robin games (total wins/points)."""
         village_points = {}
-        rounds = game_data.get('rounds', [])
+        rounds = division_data.get('rounds', [])
         
         for round_data in rounds:
-            villages = list(round_data.keys())
+            scores = round_data.get('scores', {})
+            villages = list(scores.keys())
             if len(villages) != 2:
                 logger.warning(f"Round with {len(villages)} villages, expected 2")
                 continue
             
             village1, village2 = villages
-            score1 = round_data[village1]
-            score2 = round_data[village2]
+            score1 = scores[village1]
+            score2 = scores[village2]
             
             # Initialize if not exists
             if village1 not in village_points:
@@ -220,38 +257,35 @@ class LeaderboardUpdater:
                 village_points[village1] += 1
                 village_points[village2] += 1
         
-        # Sort villages by points to create final ranking
-        sorted_villages = sorted(village_points.items(), key=lambda x: x[1], reverse=True)
+        return village_points
+    
+    def _calculate_score_based_raw_scores(self, game_def: Dict[str, Any], division_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate raw scores for score-based games."""
+        scores = division_data.get('scores', {})
+        if not scores:
+            logger.warning("No scores found in division data")
+            return {}
+        
+        # Return the raw scores directly
+        return scores
+    
+    def _apply_ranking_points(self, game_def: Dict[str, Any], raw_scores: Dict[str, Any]) -> Dict[str, int]:
+        """Apply RANKING_POINTS to raw scores after ranking."""
+        if not raw_scores:
+            return {}
+        
+        # Check if lower scores are better (for score-based games)
+        lower_is_better = game_def.get('lower_is_better', False)
+        
+        # Sort villages by raw score
+        sorted_villages = sorted(raw_scores.items(), key=lambda x: x[1], reverse=not lower_is_better)
         
         # Assign final leaderboard points based on ranking
         final_leaderboard = {}
         for rank, (village, _) in enumerate(sorted_villages, 1):
             final_leaderboard[village] = self.RANKING_POINTS.get(rank, 0)
         
-        logger.info(f"Round-robin leaderboard: {final_leaderboard}")
-        return final_leaderboard
-    
-    def _calculate_score_based_leaderboard(self, game_def: Dict[str, Any], game_data: Dict[str, Any]) -> Dict[str, int]:
-        """Calculate leaderboard for score-based games."""
-        logger.info(f"Calculating score-based leaderboard for {game_def['name']}")
-        
-        scores = game_data.get('scores', {})
-        if not scores:
-            logger.warning("No scores found in game data")
-            return {}
-        
-        # Check if lower scores are better
-        lower_is_better = game_def.get('lower_is_better', False)
-        
-        # Sort villages by score
-        sorted_villages = sorted(scores.items(), key=lambda x: x[1], reverse=not lower_is_better)
-        
-        # Assign final leaderboard points based on ranking
-        final_leaderboard = {}
-        for rank, (village, score) in enumerate(sorted_villages, 1):
-            final_leaderboard[village] = self.RANKING_POINTS.get(rank, 0)
-        
-        logger.info(f"Score-based leaderboard: {final_leaderboard}")
+        logger.info(f"Applied ranking points: {final_leaderboard}")
         return final_leaderboard
     
     def _recalculate_total_points(self, leaderboard: Dict[str, Any]) -> None:

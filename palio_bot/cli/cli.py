@@ -28,6 +28,7 @@ def print_welcome():
         "[green]/close[/green] - Chiudi sessione salvando modifiche\n"
         "[yellow]/cancel[/yellow] - Annulla sessione scartando modifiche\n"
         "[blue]/status[/blue] - Mostra stato sistema\n"
+        "[magenta]/leaderboard[/magenta] - Aggiorna classifica\n"
         "[red]/quit[/red] - Esci dal programma",
         title="Sistema Palio Bot",
         border_style="cyan"
@@ -91,6 +92,28 @@ async def handle_commands(command: str, system, container) -> bool:
     
     elif command == "/status":
         print_status(system)
+        return True
+    
+    elif command == "/leaderboard":
+        console.print("\n[dim]Aggiornamento classifica in corso...[/dim]")
+        try:
+            from palio_bot.leaderboard_updater import LeaderboardUpdater
+            from palio_bot.config import Config
+            
+            config = Config()
+            leaderboard_updater = LeaderboardUpdater(
+                config.palio_file_path,
+                config.palio_games_status_path,
+                config.leader_board_file_path
+            )
+            
+            leaderboard_updater.update_leaderboard()
+            console.print("[green]✓ Classifica aggiornata con successo[/green]")
+            
+        except Exception as e:
+            logger.error(f"Error updating leaderboard: {e}", exc_info=True)
+            console.print(f"\n[red]Errore nell'aggiornamento della classifica: {e}[/red]")
+        
         return True
     
     else:
