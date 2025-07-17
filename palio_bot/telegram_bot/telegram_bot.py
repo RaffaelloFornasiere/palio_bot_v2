@@ -25,6 +25,7 @@ class PalioTelegramBot:
         self.container: Optional[Container] = None
         self.user_sessions: Dict[int, Session] = {}
         self.chat_consumers: Dict[int, Any] = {}  # chat_id -> TelegramConsumer
+        self.running_tasks: Dict[int, asyncio.Task] = {}  # chat_id -> Task
         
     async def initialize(self):
         """Initialize the container and system"""
@@ -77,7 +78,8 @@ class PalioTelegramBot:
             "/status - Mostra lo stato del sistema\n"
             "/games_status - Mostra lo stato dei giochi\n"
             "/cancel - Annulla le modifiche della sessione corrente\n"
-            "/close - Chiudi la sessione salvando le modifiche",
+            "/close - Chiudi la sessione salvando le modifiche\n"
+            "/stop - Interrompi l'elaborazione in corso",
             parse_mode='HTML'
         )
         
@@ -155,6 +157,42 @@ class PalioTelegramBot:
             logger.error(f"Error in close: {e}")
             await update.message.reply_text(f"❌ Errore: {str(e)}")
             
+    async def stop_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /stop command to cancel ongoing computation."""
+        if not self.check_user_authorized(update.effective_user.id):
+            await update.message.reply_text("❌ Non sei autorizzato ad utilizzare questo bot.")
+            return
+            
+        if not self.container:
+            await update.message.reply_text("❌ Sistema non inizializzato")
+            return
+            
+        chat_id = update.effective_chat.id
+        
+        try:
+            # Check if there's a running task for this chat
+            if chat_id not in self.running_tasks:
+                await update.message.reply_text(
+                    "⚠️ Nessuna elaborazione in corso da interrompere."
+                )
+                return
+            
+            # Cancel the running task
+            task = self.running_tasks[chat_id]
+            task.cancel()
+            
+            await update.message.reply_text(
+                "🛑 Elaborazione interrotta immediatamente."
+            )
+            
+            # Also request cancellation in the system for cleanup
+            system = self.container.system()
+            system.request_cancellation()
+            
+        except Exception as e:
+            logger.error(f"Error in stop: {e}")
+            await update.message.reply_text(f"❌ Errore: {str(e)}")
+            
     async def games_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /games_status command"""
         if not self.validate(update):
@@ -224,6 +262,15 @@ class PalioTelegramBot:
         user_message = update.message.text
         chat_id = update.effective_chat.id
         
+        # Cancel any existing task for this chat
+        if chat_id in self.running_tasks:
+            self.running_tasks[chat_id].cancel()
+            try:
+                await self.running_tasks[chat_id]
+            except asyncio.CancelledError:
+                pass
+            del self.running_tasks[chat_id]
+        
         # Create or get Telegram consumer for this chat
         if chat_id not in self.chat_consumers:
             consumer = self.container.create_telegram_consumer(
@@ -233,20 +280,36 @@ class PalioTelegramBot:
             self.chat_consumers[chat_id] = consumer
             logger.info(f"Created Telegram consumer for chat {chat_id}")
         
-        try:
-            # Process message through the system
-            # Events will be sent to Telegram consumer automatically
-            await system.send_message(user_message)
-            
-            # The final response is already sent by the TelegramConsumer
-            # through the AgentCompleteEvent
-            
-        except Exception as e:
-            logger.error(f"Error processing message: {e}", exc_info=True)
-            await update.message.reply_text(
-                f"❌ Errore durante l'elaborazione:\n`{str(e)}`",
-                parse_mode='Markdown'
-            )
+        # Create background task for message processing
+        async def process_message():
+            try:
+                # Process message through the system
+                # Events will be sent to Telegram consumer automatically
+                await system.send_message(user_message)
+                
+                # The final response is already sent by the TelegramConsumer
+                # through the AgentCompleteEvent
+                
+            except asyncio.CancelledError:
+                # Task was cancelled by /stop command
+                await update.message.reply_text(
+                    "⏹️ Elaborazione interrotta dall'utente"
+                )
+                raise
+            except Exception as e:
+                logger.error(f"Error processing message: {e}", exc_info=True)
+                await update.message.reply_text(
+                    f"❌ Errore durante l'elaborazione:\n`{str(e)}`",
+                    parse_mode='Markdown'
+                )
+            finally:
+                # Clean up task from running_tasks
+                if chat_id in self.running_tasks:
+                    del self.running_tasks[chat_id]
+        
+        # Start background task
+        task = asyncio.create_task(process_message())
+        self.running_tasks[chat_id] = task
     
     async def handle_voice_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle voice messages with transcription"""
@@ -299,8 +362,38 @@ class PalioTelegramBot:
                     self.chat_consumers[chat_id] = consumer
                     logger.info(f"Created Telegram consumer for chat {chat_id}")
                 
-                # Process transcribed message through the system
-                await system.send_message(transcription)
+                # Process transcribed message through the system using background task
+                async def process_voice_message():
+                    try:
+                        await system.send_message(transcription)
+                    except asyncio.CancelledError:
+                        await update.message.reply_text(
+                            "⏹️ Elaborazione audio interrotta dall'utente"
+                        )
+                        raise
+                    except Exception as e:
+                        logger.error(f"Error processing voice transcription: {e}", exc_info=True)
+                        await update.message.reply_text(
+                            f"❌ Errore durante l'elaborazione audio:\n`{str(e)}`",
+                            parse_mode='Markdown'
+                        )
+                    finally:
+                        # Clean up task from running_tasks
+                        if chat_id in self.running_tasks:
+                            del self.running_tasks[chat_id]
+                
+                # Cancel any existing task for this chat
+                if chat_id in self.running_tasks:
+                    self.running_tasks[chat_id].cancel()
+                    try:
+                        await self.running_tasks[chat_id]
+                    except asyncio.CancelledError:
+                        pass
+                    del self.running_tasks[chat_id]
+                
+                # Start background task for voice message processing
+                task = asyncio.create_task(process_voice_message())
+                self.running_tasks[chat_id] = task
                 
             else:
                 await processing_message.edit_text("❌ Errore nella trascrizione audio")
@@ -374,6 +467,7 @@ def main():
     application.add_handler(CommandHandler("games_status", bot.games_status))
     application.add_handler(CommandHandler("cancel", bot.cancel))
     application.add_handler(CommandHandler("close", bot.close))
+    application.add_handler(CommandHandler("stop", bot.stop_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
     application.add_handler(MessageHandler(filters.VOICE, bot.handle_voice_message))
     

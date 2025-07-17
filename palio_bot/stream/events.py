@@ -53,6 +53,12 @@ class AgentCompleteEvent(Event):
     type: Literal["AgentCompleteEvent"] = "AgentCompleteEvent"
 
 
+class AgentCancelledEvent(Event):
+    """Event emitted when agent processing is cancelled."""
+    type: Literal["AgentCancelledEvent"] = "AgentCancelledEvent"
+    reason: str
+
+
 class ErrorEvent(Event):
     """Event emitted when an error occurs."""
     type: Literal["ErrorEvent"] = "ErrorEvent"
