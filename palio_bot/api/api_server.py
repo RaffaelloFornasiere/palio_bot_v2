@@ -5,6 +5,7 @@ Simple FastAPI server to serve palio data files
 
 import json
 import os
+from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -90,6 +91,89 @@ async def get_palio_games_status():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading palio_games_status.json: {str(e)}")
 
+@app.get("/years")
+async def get_available_years():
+    """
+    Returns a list of available years with archived data
+    """
+    try:
+        years = []
+        
+        # Check for year subdirectories in the data directory
+        for item in DATA_DIR_PATH.iterdir():
+            if item.is_dir() and item.name.isdigit():
+                # Verify the directory contains at least a palio.json file
+                if (item / "palio.json").exists():
+                    years.append(int(item.name))
+        
+        # Sort years in descending order (most recent first)
+        years.sort(reverse=True)
+        
+        return {"years": years}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error scanning for available years: {str(e)}")
+
+@app.get("/palio/{year}")
+async def get_palio_data_by_year(year: int):
+    """
+    Returns the palio.json data for a specific year
+    """
+    try:
+        year_path = DATA_DIR_PATH / str(year) / "palio.json"
+        if not year_path.exists():
+            raise HTTPException(status_code=404, detail=f"palio.json file not found for year {year}")
+        
+        with open(year_path, 'r', encoding='utf-8') as f:
+            palio_data = json.load(f)
+        
+        return palio_data
+    
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail=f"Invalid JSON in palio.json for year {year}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading palio.json for year {year}: {str(e)}")
+
+@app.get("/leaderboard/{year}")
+async def get_leaderboard_data_by_year(year: int):
+    """
+    Returns the leaderboard.json data for a specific year
+    """
+    try:
+        leaderboard_path = DATA_DIR_PATH / str(year) / "leaderboard.json"
+        if not leaderboard_path.exists():
+            raise HTTPException(status_code=404, detail=f"leaderboard.json file not found for year {year}")
+        
+        with open(leaderboard_path, 'r', encoding='utf-8') as f:
+            leaderboard_data = json.load(f)
+        
+        return leaderboard_data
+    
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail=f"Invalid JSON in leaderboard.json for year {year}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading leaderboard.json for year {year}: {str(e)}")
+
+@app.get("/palio_games_status/{year}")
+async def get_palio_games_status_by_year(year: int):
+    """
+    Returns the palio_games_status.json data for a specific year
+    """
+    try:
+        games_status_path = DATA_DIR_PATH / str(year) / "palio_games_status.json"
+        if not games_status_path.exists():
+            raise HTTPException(status_code=404, detail=f"palio_games_status.json file not found for year {year}")
+        
+        with open(games_status_path, 'r', encoding='utf-8') as f:
+            games_status_data = json.load(f)
+        
+        return games_status_data
+    
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail=f"Invalid JSON in palio_games_status.json for year {year}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading palio_games_status.json for year {year}: {str(e)}")
+
 # Mount static files from React build
 if REACT_BUILD_PATH.exists() and REACT_BUILD_PATH.is_dir():
     # Serve static assets (JS, CSS, images, etc.)
@@ -114,7 +198,7 @@ if REACT_BUILD_PATH.exists() and REACT_BUILD_PATH.is_dir():
         Serve the React app for all routes not matching API endpoints
         """
         # Don't serve React app for API routes
-        if full_path.startswith(("palio", "leaderboard", "palio_games_status")):
+        if full_path.startswith(("palio", "leaderboard", "palio_games_status", "years")):
             raise HTTPException(status_code=404, detail="Not found")
         
         index_path = REACT_BUILD_PATH / "index.html"
