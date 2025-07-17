@@ -30,7 +30,7 @@ class GameRound(BaseModel):
     """A single round in a round-robin game."""
     # Dynamic fields for village scores (e.g., "Villa": 5, "Sottocastello": 8)
     # Using Dict to allow flexible village names
-    scores: Dict[str, Union[int, float]] = Field(default_factory=dict)
+    scores: Dict[str, Union[int, float|str]] = Field(default_factory=dict)
     score_penalties: List[ScorePenalty] = Field(default_factory=list, description="Score penalties applied in this round")
     
     def __init__(self, **data):
@@ -60,11 +60,11 @@ class GameRound(BaseModel):
         return self.scores.items()
 
 
-class Division(BaseModel):
+class ScoreBasedDivision(BaseModel):
     """A division within a game (e.g., Maschile, Femminile)."""
     name: str = Field(..., description="Division name")
     status: str = Field(..., description="Division status (not-started, in-progress, completed)")
-    scores: Dict[str, Union[int, float]] = Field(default_factory=dict, description="Village scores in this division")
+    scores: Dict[str, Union[int, float | str]] = Field(default_factory=dict, description="Village scores in this division")
     
     # Score penalties affect ranking within the division
     score_penalties: List[ScorePenalty] = Field(default_factory=list, description="Score penalties applied in this division")
@@ -74,13 +74,25 @@ class Division(BaseModel):
     applied_penalties: List[GamePenalty] = Field(default_factory=list, description="Game penalties applied in this division")
 
 
+class RoundRobinDivision(BaseModel):
+    """A division within a game (e.g., Maschile, Femminile)."""
+    name: str = Field(..., description="Division name")
+    status: str = Field(..., description="Division status (not-started, in-progress, completed)")
+    rounds: Optional[List[GameRound]] =  Field(default_factory=dict, description="Village rounds in this division")
+
+    # Game bonuses/penalties affect final leaderboard points
+    applied_bonuses: List[GameBonus] = Field(default_factory=list, description="Game bonuses applied in this division")
+    applied_penalties: List[GamePenalty] = Field(default_factory=list, description="Game penalties applied in this division")
+
+
+
 class ScoreBasedGameStatus(BaseModel):
     """Status of a score-based game."""
     status: str = Field(..., description="Game status (not-started, in-progress, completed)")
-    scores: Dict[str, Union[int, float]] = Field(default_factory=dict, description="Village scores")
+    scores: Dict[str, Union[int, float|str]] = Field(default_factory=dict, description="Village scores")
 
     # For games with divisions
-    divisions: Optional[List[Division]] = Field(None, description="Game divisions")
+    divisions: Optional[List[ScoreBasedDivision]] = Field(None, description="Game divisions")
 
     # Score penalties affect ranking
     score_penalties: List[ScorePenalty] = Field(default_factory=list, description="Score penalties for score-based games")
@@ -98,7 +110,7 @@ class RoundRobinGameStatus(BaseModel):
     rounds: Optional[List[GameRound]] = Field(None, description="Game rounds (for round-robin games)")
     
     # For games with divisions
-    divisions: Optional[List[Division]] = Field(None, description="Game divisions")
+    divisions: Optional[List[RoundRobinDivision]] = Field(None, description="Game divisions")
     
     # Game bonuses/penalties affect final leaderboard points (applied after ranking)
     applied_bonuses: List[GameBonus] = Field(default_factory=list, description="Game-level bonuses")
@@ -124,7 +136,8 @@ def extract_model_docs():
         PalioGamesStatus,
         RoundRobinGameStatus,
         ScoreBasedGameStatus,
-        Division,
+        RoundRobinDivision,
+        ScoreBasedDivision,
         GameRound,
         ScorePenalty,
         GamePenalty,
