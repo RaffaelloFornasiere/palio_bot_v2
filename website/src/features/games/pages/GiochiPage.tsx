@@ -12,73 +12,23 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { apiCall } from '../../../utils/api';
+import { 
+  PalioGamesStatus, 
+  PalioData, 
+  Leaderboard, 
+  ScoreBasedGameStatus, 
+  RoundRobinGameStatus,
+  ScoreBasedDivision,
+  RoundRobinDivision
+} from '../../../generated/types.gen';
 
-interface GameScore {
-  [village: string]: number;
-}
-
-interface GameRound {
-  [village: string]: number;
-}
-
-interface GameDivision {
-  name: string;
-  status: 'completed' | 'in-progress' | 'not-started';
-  scores?: GameScore;
-  rounds?: GameRound[];
-}
-
-interface GameData {
-  status: 'completed' | 'in-progress' | 'not-started';
-  scores?: GameScore;
-  rounds?: GameRound[];
-  divisions?: GameDivision[];
-}
-
-interface GameLeaderboard {
-  name: string;
-  leaderboard: GameScore;
-}
-
-interface GamesStatusData {
-  game_scores: {
-    [gameId: string]: GameData;
-  };
-  last_updated: string;
-}
-
-interface LeaderboardData {
-  villages: string[];
-  points: GameScore;
-  game_leaderboards: {
-    [gameId: string]: GameLeaderboard;
-  };
-}
-
-interface PalioGame {
-  id: string;
-  name: string;
-  type: string;
-  description: string;
-  measure_unit: string;
-  lower_is_better: boolean;
-  dates: Array<{
-    start_datetime: string;
-    end_datetime: string;
-    subtitle?: string;
-  }>;
-}
-
-interface PalioData {
-  competition_name: string;
-  villages: string[];
-  games: PalioGame[];
-  non_game_events: any[];
-}
+type GameData = ScoreBasedGameStatus | RoundRobinGameStatus;
+type GameDivision = ScoreBasedDivision | RoundRobinDivision;
+type GameScore = { [key: string]: number | string };
 
 const GiochiPage: React.FC = () => {
-  const [gamesData, setGamesData] = useState<GamesStatusData | null>(null);
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardData | null>(null);
+  const [gamesData, setGamesData] = useState<PalioGamesStatus | null>(null);
+  const [leaderboardData, setLeaderboardData] = useState<Leaderboard | null>(null);
   const [palioData, setPalioData] = useState<PalioData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,8 +72,8 @@ const GiochiPage: React.FC = () => {
       return palioGame.name;
     }
     
-    // Fallback to leaderboard data
-    return leaderboardData?.game_leaderboards[gameId]?.name || `Gioco ${gameId}`;
+    // Fallback: construct name from game ID
+    return `Gioco ${gameId}`;
   };
 
   const getWinner = (gameData: GameData): string => {
@@ -132,17 +82,23 @@ const GiochiPage: React.FC = () => {
     }
 
     // Handle games with divisions
-    if (gameData.divisions) {
-      const completedDivisions = gameData.divisions.filter(div => div.status === 'completed');
+    if (gameData.divisions && gameData.divisions.length > 0) {
+      const completedDivisions = (gameData.divisions as any[]).filter((div: any) => div.status === 'completed');
       if (completedDivisions.length === 0) {
         return '-';
       }
       
-      const winners = completedDivisions.map(div => {
+      const winners = completedDivisions.map((div: any) => {
         if (div.scores) {
-          const maxScore = Math.max(...Object.values(div.scores));
-          const winner = Object.entries(div.scores).find(([_, score]) => score === maxScore);
-          return winner ? `${winner[0]} (${div.name})` : `- (${div.name})`;
+          const numericScores = Object.entries(div.scores)
+            .filter(([_, score]) => typeof score === 'number')
+            .map(([village, score]) => [village, score as number]) as [string, number][];
+          
+          if (numericScores.length > 0) {
+            const maxScore = Math.max(...numericScores.map(([_, score]) => score as number));
+            const winner = numericScores.find(([_, score]) => score === maxScore);
+            return winner ? `${winner[0]} (${div.name})` : `- (${div.name})`;
+          }
         }
         return `- (${div.name})`;
       });
@@ -151,12 +107,20 @@ const GiochiPage: React.FC = () => {
     }
 
     // Handle games without divisions
-    if (!gameData.scores) {
+    if (!('scores' in gameData) || !gameData.scores) {
       return '-';
     }
 
-    const maxScore = Math.max(...Object.values(gameData.scores));
-    const winner = Object.entries(gameData.scores).find(([_, score]) => score === maxScore);
+    const numericScores = Object.entries(gameData.scores)
+      .filter(([_, score]) => typeof score === 'number')
+      .map(([village, score]) => [village, score as number]) as [string, number][];
+    
+    if (numericScores.length === 0) {
+      return '-';
+    }
+    
+    const maxScore = Math.max(...numericScores.map(([_, score]) => score as number));
+    const winner = numericScores.find(([_, score]) => score === maxScore);
     return winner ? winner[0] : '-';
   };
 
@@ -202,7 +166,7 @@ const GiochiPage: React.FC = () => {
   };
 
   const sortGamesByStatus = (games: [string, GameData][]): [string, GameData][] => {
-    const statusOrder = {
+    const statusOrder: { [key: string]: number } = {
       'in-progress': 1,
       'completed': 2,
       'not-started': 3
@@ -268,12 +232,12 @@ const GiochiPage: React.FC = () => {
                 </Box>
 
                 {/* Show divisions if they exist */}
-                {gameData.divisions && (
+                {gameData.divisions && gameData.divisions.length > 0 && (
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       <strong>Divisioni:</strong>
                     </Typography>
-                    {gameData.divisions.map((division, index) => (
+                    {(gameData.divisions as any[]).map((division: any, index: number) => (
                       <Box key={index} sx={{ ml: 1, mb: 1 }}>
                         <Chip 
                           label={`${division.name}: ${getStatusText(division.status)}`}

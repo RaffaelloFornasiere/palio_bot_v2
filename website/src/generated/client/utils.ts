@@ -285,7 +285,7 @@ export const mergeHeaders = (
     const iterator =
       header instanceof Headers ? header.entries() : Object.entries(header);
 
-    for (const [key, value] of iterator) {
+    for (const [key, value] of Array.from(iterator)) {
       if (value === null) {
         mergedHeaders.delete(key);
       } else if (Array.isArray(value)) {

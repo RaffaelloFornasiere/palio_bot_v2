@@ -21,75 +21,29 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiCall } from '../../../utils/api';
 import { ArrowBack } from '@mui/icons-material';
+import { 
+  PalioGamesStatus, 
+  PalioData, 
+  Leaderboard, 
+  ScoreBasedGameStatus, 
+  RoundRobinGameStatus,
+  ScoreBasedDivision,
+  RoundRobinDivision,
+  GameRound,
+  GamePenalty,
+  GameBonus,
+  ScorePenalty
+} from '../../../generated/types.gen';
 
-interface GameScore {
-  [village: string]: number;
-}
-
-interface GameRound {
-  [village: string]: number;
-}
-
-interface GameDivision {
-  name: string;
-  status: 'completed' | 'in-progress' | 'not-started';
-  scores?: GameScore;
-  rounds?: GameRound[];
-}
-
-interface GameData {
-  status: 'completed' | 'in-progress' | 'not-started';
-  scores?: GameScore;
-  rounds?: GameRound[];
-  divisions?: GameDivision[];
-}
-
-interface GameLeaderboard {
-  name: string;
-  leaderboard: GameScore;
-}
-
-interface GamesStatusData {
-  game_scores: {
-    [gameId: string]: GameData;
-  };
-  last_updated: string;
-}
-
-interface LeaderboardData {
-  villages: string[];
-  points: GameScore;
-  game_leaderboards: {
-    [gameId: string]: GameLeaderboard;
-  };
-}
-
-interface PalioGame {
-  id: string;
-  name: string;
-  type: string;
-  description: string;
-  measure_unit: string;
-  lower_is_better: boolean;
-  dates: Array<{
-    start_datetime: string;
-    end_datetime: string;
-    subtitle?: string;
-  }>;
-}
-
-interface PalioData {
-  competition_name: string;
-  villages: string[];
-  games: PalioGame[];
-  non_game_events: any[];
-}
+type GameData = ScoreBasedGameStatus | RoundRobinGameStatus;
+type GameDivision = ScoreBasedDivision | RoundRobinDivision;
+type GameScore = { [key: string]: number | string };
 
 const GiocoDettagliPage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-  const [gamesData, setGamesData] = useState<GamesStatusData | null>(null);
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardData | null>(null);
+  const [gamesData, setGamesData] = useState<PalioGamesStatus | null>(null);
+  const [leaderboardData, setLeaderboardData] = useState<Leaderboard | null>(null);
   const [palioData, setPalioData] = useState<PalioData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +66,7 @@ const GiocoDettagliPage: React.FC = () => {
         const leaderboardData = await leaderboardResponse.json();
         const palioData = await palioResponse.json();
 
+        console.log(gamesData)
         setGamesData(gamesData);
         setLeaderboardData(leaderboardData);
         setPalioData(palioData);
@@ -132,8 +87,8 @@ const GiocoDettagliPage: React.FC = () => {
       return palioGame.name;
     }
     
-    // Fallback to leaderboard data
-    return leaderboardData?.game_leaderboards[gameId]?.name || `Gioco ${gameId}`;
+    // Fallback: construct name from game ID
+    return `Gioco ${gameId}`;
   };
 
   const getStatusColor = (status: string) => {
@@ -184,7 +139,7 @@ const GiocoDettagliPage: React.FC = () => {
 
     // Handle games with divisions
     if (gameData.divisions && gameData.divisions.length > 0) {
-      const completedDivisions = gameData.divisions.filter(div => div.status === 'completed');
+      const completedDivisions = (gameData.divisions as any[]).filter((div: any) => div.status === 'completed');
       if (completedDivisions.length === 0) {
         return '-';
       }
@@ -192,13 +147,19 @@ const GiocoDettagliPage: React.FC = () => {
       // Count wins per village across all divisions
       const villageWins: { [village: string]: number } = {};
       
-      completedDivisions.forEach(division => {
+      completedDivisions.forEach((division: any) => {
         if (division.scores) {
-          const maxScore = Math.max(...Object.values(division.scores));
-          const winners = Object.entries(division.scores).filter(([_, score]) => score === maxScore);
-          winners.forEach(([village]) => {
-            villageWins[village] = (villageWins[village] || 0) + 1;
-          });
+          const numericScores = Object.entries(division.scores)
+            .filter(([_, score]) => typeof score === 'number')
+            .map(([village, score]) => [village, score as number]) as [string, number][];
+          
+          if (numericScores.length > 0) {
+            const maxScore = Math.max(...numericScores.map(([_, score]) => score as number));
+            const winners = numericScores.filter(([_, score]) => score === maxScore);
+            winners.forEach(([village]) => {
+              villageWins[village] = (villageWins[village] || 0) + 1;
+            });
+          }
         }
       });
       
@@ -215,21 +176,99 @@ const GiocoDettagliPage: React.FC = () => {
     }
 
     // Handle games without divisions
-    if (!gameData.scores) {
+    if (!('scores' in gameData) || !gameData.scores) {
       return '-';
     }
 
-    const maxScore = Math.max(...Object.values(gameData.scores));
-    const winner = Object.entries(gameData.scores).find(([_, score]) => score === maxScore);
+    const numericScores = Object.entries(gameData.scores)
+      .filter(([_, score]) => typeof score === 'number')
+      .map(([village, score]) => [village, score as number]) as [string, number][];
+    
+    if (numericScores.length === 0) {
+      return '-';
+    }
+    
+    const maxScore = Math.max(...numericScores.map(([_, score]) => score as number));
+    const winner = numericScores.find(([_, score]) => score === maxScore);
     return winner ? winner[0] : '-';
   };
 
-  const getSortedScores = (scores: GameScore): [string, number][] => {
-    return Object.entries(scores).sort(([, a], [, b]) => b - a);
+  const getSortedScores = (scores: GameScore): [string, number | string][] => {
+    return Object.entries(scores).sort(([, a], [, b]) => {
+      // Handle mixed numeric and string scores
+      const aNum = typeof a === 'number' ? a : -Infinity;
+      const bNum = typeof b === 'number' ? b : -Infinity;
+      return bNum - aNum;
+    });
   };
 
-  const getSortedLeaderboard = (leaderboard: GameScore): [string, number][] => {
-    return Object.entries(leaderboard).sort(([, a], [, b]) => b - a);
+  const getSortedLeaderboard = (leaderboard: { [key: string]: number | number }): [string, number][] => {
+    return Object.entries(leaderboard).sort(([, a], [, b]) => (b as number) - (a as number));
+  };
+
+  const renderPenaltiesAndBonuses = (
+    scorePenalties?: ScorePenalty[], 
+    appliedPenalties?: GamePenalty[], 
+    appliedBonuses?: GameBonus[]
+  ) => {
+    const hasAny = (scorePenalties && scorePenalties.length > 0) || 
+                   (appliedPenalties && appliedPenalties.length > 0) || 
+                   (appliedBonuses && appliedBonuses.length > 0);
+    
+    if (!hasAny) return null;
+
+    return (
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          <strong>Penalità e Bonus</strong>
+        </Typography>
+        
+        {scorePenalties && scorePenalties.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="body2" color="error.main" gutterBottom>
+              Penalità Punteggio:
+            </Typography>
+            {scorePenalties.map((penalty, index) => (
+              <Box key={index} sx={{ ml: 2, mb: 0.5 }}>
+                <Typography variant="body2" color="text.secondary">
+                  • {penalty.village}: {penalty.description} ({penalty.points} punti)
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+        
+        {appliedPenalties && appliedPenalties.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="body2" color="error.main" gutterBottom>
+              Penalità Classifica:
+            </Typography>
+            {appliedPenalties.map((penalty, index) => (
+              <Box key={index} sx={{ ml: 2, mb: 0.5 }}>
+                <Typography variant="body2" color="text.secondary">
+                  • {penalty.village}: {penalty.description} ({penalty.points} punti)
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+        
+        {appliedBonuses && appliedBonuses.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="body2" color="success.main" gutterBottom>
+              Bonus Classifica:
+            </Typography>
+            {appliedBonuses.map((bonus, index) => (
+              <Box key={index} sx={{ ml: 2, mb: 0.5 }}>
+                <Typography variant="body2" color="text.secondary">
+                  • {bonus.village}: {bonus.description} (+{bonus.points} punti)
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+    );
   };
 
   if (loading) {
@@ -322,6 +361,13 @@ const GiocoDettagliPage: React.FC = () => {
                     <strong>Vincitore:</strong> {getWinner(gameData)}
                   </Typography>
                 </Box>
+
+                {/* Game-level penalties and bonuses */}
+                {renderPenaltiesAndBonuses(
+                  'score_penalties' in gameData ? gameData.score_penalties : undefined,
+                  'applied_penalties' in gameData ? gameData.applied_penalties : undefined,
+                  'applied_bonuses' in gameData ? gameData.applied_bonuses : undefined
+                )}
               </CardContent>
             </Card>
 
@@ -343,7 +389,7 @@ const GiocoDettagliPage: React.FC = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {getSortedLeaderboard(gameLeaderboard.leaderboard).map(([village, points], index) => (
+                        {getSortedLeaderboard(gameLeaderboard as any).map(([village, points], index) => (
                           <TableRow key={village}>
                             <TableCell>{index + 1}</TableCell>
                             <TableCell>{village}</TableCell>
@@ -366,7 +412,7 @@ const GiocoDettagliPage: React.FC = () => {
                   Divisioni
                 </Typography>
                 
-                {gameData.divisions.map((division, divIndex) => (
+                {(gameData.divisions as any[]).map((division: any, divIndex: number) => (
                   <Box key={divIndex} sx={{ mb: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                       <Typography variant="subtitle1" fontWeight="medium">
@@ -406,13 +452,20 @@ const GiocoDettagliPage: React.FC = () => {
                       </Box>
                     )}
                     
+                    {/* Division-level penalties and bonuses */}
+                    {renderPenaltiesAndBonuses(
+                      'score_penalties' in division ? division.score_penalties : undefined,
+                      'applied_penalties' in division ? division.applied_penalties : undefined,
+                      'applied_bonuses' in division ? division.applied_bonuses : undefined
+                    )}
+                    
                     {/* Division Rounds */}
                     {division.rounds && division.rounds.length > 0 && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
                           Rounds
                         </Typography>
-                        {division.rounds.map((round, roundIndex) => (
+                        {(division.rounds as any[]).map((round: any, roundIndex: number) => (
                           <Box key={roundIndex} sx={{ mb: 1 }}>
                             <Typography variant="body2" sx={{ mb: 0.5 }}>
                               Round {roundIndex + 1}
@@ -426,7 +479,7 @@ const GiocoDettagliPage: React.FC = () => {
                                   </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                  {getSortedScores(round).map(([village, score]) => (
+                                  {getSortedScores(round.scores || {}).map(([village, score]) => (
                                     <TableRow key={village}>
                                       <TableCell>{village}</TableCell>
                                       <TableCell align="right">{score}</TableCell>
@@ -435,6 +488,11 @@ const GiocoDettagliPage: React.FC = () => {
                                 </TableBody>
                               </Table>
                             </TableContainer>
+                            
+                            {/* Round-level penalties */}
+                            {round.score_penalties && round.score_penalties.length > 0 && 
+                              renderPenaltiesAndBonuses(round.score_penalties, undefined, undefined)
+                            }
                           </Box>
                         ))}
                       </Box>
@@ -448,7 +506,7 @@ const GiocoDettagliPage: React.FC = () => {
           )}
 
           {/* Game Scores - Only show if there are no divisions or if scores exist alongside divisions */}
-          {gameData.scores && (!gameData.divisions || gameData.divisions.length === 0) && (
+          {('scores' in gameData) && gameData.scores && (!gameData.divisions || gameData.divisions.length === 0) && (
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -492,14 +550,14 @@ const GiocoDettagliPage: React.FC = () => {
           )}
 
           {/* Rounds (for in-progress games) - Only show if there are no divisions */}
-          {gameData.rounds && gameData.rounds.length > 0 && (!gameData.divisions || gameData.divisions.length === 0) && (
+          {('rounds' in gameData) && gameData.rounds && gameData.rounds.length > 0 && (!gameData.divisions || gameData.divisions.length === 0) && (
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   Punteggi per Round
                 </Typography>
                 
-                {gameData.rounds.map((round, index) => (
+                {(gameData.rounds as any[]).map((round: any, index: number) => (
                   <Box key={index} sx={{ mb: 2 }}>
                     <Typography variant="subtitle1" gutterBottom>
                       Round {index + 1}
@@ -514,7 +572,7 @@ const GiocoDettagliPage: React.FC = () => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {getSortedScores(round).map(([village, score]) => (
+                          {getSortedScores(round.scores || {}).map(([village, score]) => (
                             <TableRow key={village}>
                               <TableCell>{village}</TableCell>
                               <TableCell align="right">{score}</TableCell>
@@ -523,6 +581,11 @@ const GiocoDettagliPage: React.FC = () => {
                         </TableBody>
                       </Table>
                     </TableContainer>
+                    
+                    {/* Round-level penalties */}
+                    {round.score_penalties && round.score_penalties.length > 0 && 
+                      renderPenaltiesAndBonuses(round.score_penalties, undefined, undefined)
+                    }
                     
                     {index < gameData.rounds!.length - 1 && <Divider />}
                   </Box>

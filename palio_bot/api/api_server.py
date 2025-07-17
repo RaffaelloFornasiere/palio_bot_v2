@@ -42,7 +42,7 @@ class AvailableYearsResponse(BaseModel):
     """Response model for available years."""
     years: List[int]
 
-@app.get("/palio", response_model=PalioData)
+@app.get("/palio", response_model=PalioData, operation_id="get_palio_data")
 async def get_palio_data():
     """
     Returns the complete palio.json data
@@ -61,7 +61,7 @@ async def get_palio_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading palio.json: {str(e)}")
 
-@app.get("/leaderboard", response_model=Leaderboard)
+@app.get("/leaderboard", response_model=Leaderboard, operation_id="get_leaderboard_data")
 async def get_leaderboard_data():
     """
     Returns the leaderboard.json data
@@ -81,7 +81,7 @@ async def get_leaderboard_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading leaderboard.json: {str(e)}")
 
-@app.get("/palio_games_status", response_model=PalioGamesStatus)
+@app.get("/palio_games_status", response_model=PalioGamesStatus, operation_id="get_palio_games_status")
 async def get_palio_games_status():
     """
     Returns the palio_games_status.json data
@@ -101,7 +101,7 @@ async def get_palio_games_status():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading palio_games_status.json: {str(e)}")
 
-@app.get("/years", response_model=AvailableYearsResponse)
+@app.get("/years", response_model=AvailableYearsResponse, operation_id="get_available_years")
 async def get_available_years():
     """
     Returns a list of available years with archived data
@@ -124,7 +124,7 @@ async def get_available_years():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error scanning for available years: {str(e)}")
 
-@app.get("/palio/{year}", response_model=PalioData)
+@app.get("/palio/{year}", response_model=PalioData, operation_id="get_palio_data_by_year")
 async def get_palio_data_by_year(year: int):
     """
     Returns the palio.json data for a specific year
@@ -144,7 +144,7 @@ async def get_palio_data_by_year(year: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading palio.json for year {year}: {str(e)}")
 
-@app.get("/leaderboard/{year}", response_model=Leaderboard)
+@app.get("/leaderboard/{year}", response_model=Leaderboard, operation_id="get_leaderboard_data_by_year")
 async def get_leaderboard_data_by_year(year: int):
     """
     Returns the leaderboard.json data for a specific year
@@ -164,7 +164,7 @@ async def get_leaderboard_data_by_year(year: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading leaderboard.json for year {year}: {str(e)}")
 
-@app.get("/palio_games_status/{year}", response_model=PalioData)
+@app.get("/palio_games_status/{year}", response_model=PalioData, operation_id="get_palio_games_status_by_year")
 async def get_palio_games_status_by_year(year: int):
     """
     Returns the palio_games_status.json data for a specific year

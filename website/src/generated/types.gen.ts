@@ -405,71 +405,71 @@ export type ValidationError = {
     type: string;
 };
 
-export type GetPalioDataPalioGetData = {
+export type GetPalioDataData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/palio';
 };
 
-export type GetPalioDataPalioGetResponses = {
+export type GetPalioDataResponses = {
     /**
      * Successful Response
      */
     200: PalioData;
 };
 
-export type GetPalioDataPalioGetResponse = GetPalioDataPalioGetResponses[keyof GetPalioDataPalioGetResponses];
+export type GetPalioDataResponse = GetPalioDataResponses[keyof GetPalioDataResponses];
 
-export type GetLeaderboardDataLeaderboardGetData = {
+export type GetLeaderboardDataData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/leaderboard';
 };
 
-export type GetLeaderboardDataLeaderboardGetResponses = {
+export type GetLeaderboardDataResponses = {
     /**
      * Successful Response
      */
     200: Leaderboard;
 };
 
-export type GetLeaderboardDataLeaderboardGetResponse = GetLeaderboardDataLeaderboardGetResponses[keyof GetLeaderboardDataLeaderboardGetResponses];
+export type GetLeaderboardDataResponse = GetLeaderboardDataResponses[keyof GetLeaderboardDataResponses];
 
-export type GetPalioGamesStatusPalioGamesStatusGetData = {
+export type GetPalioGamesStatusData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/palio_games_status';
 };
 
-export type GetPalioGamesStatusPalioGamesStatusGetResponses = {
+export type GetPalioGamesStatusResponses = {
     /**
      * Successful Response
      */
     200: PalioGamesStatus;
 };
 
-export type GetPalioGamesStatusPalioGamesStatusGetResponse = GetPalioGamesStatusPalioGamesStatusGetResponses[keyof GetPalioGamesStatusPalioGamesStatusGetResponses];
+export type GetPalioGamesStatusResponse = GetPalioGamesStatusResponses[keyof GetPalioGamesStatusResponses];
 
-export type GetAvailableYearsYearsGetData = {
+export type GetAvailableYearsData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/years';
 };
 
-export type GetAvailableYearsYearsGetResponses = {
+export type GetAvailableYearsResponses = {
     /**
      * Successful Response
      */
     200: AvailableYearsResponse;
 };
 
-export type GetAvailableYearsYearsGetResponse = GetAvailableYearsYearsGetResponses[keyof GetAvailableYearsYearsGetResponses];
+export type GetAvailableYearsResponse = GetAvailableYearsResponses[keyof GetAvailableYearsResponses];
 
-export type GetPalioDataByYearPalioYearGetData = {
+export type GetPalioDataByYearData = {
     body?: never;
     path: {
         /**
@@ -481,25 +481,25 @@ export type GetPalioDataByYearPalioYearGetData = {
     url: '/palio/{year}';
 };
 
-export type GetPalioDataByYearPalioYearGetErrors = {
+export type GetPalioDataByYearErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetPalioDataByYearPalioYearGetError = GetPalioDataByYearPalioYearGetErrors[keyof GetPalioDataByYearPalioYearGetErrors];
+export type GetPalioDataByYearError = GetPalioDataByYearErrors[keyof GetPalioDataByYearErrors];
 
-export type GetPalioDataByYearPalioYearGetResponses = {
+export type GetPalioDataByYearResponses = {
     /**
      * Successful Response
      */
     200: PalioData;
 };
 
-export type GetPalioDataByYearPalioYearGetResponse = GetPalioDataByYearPalioYearGetResponses[keyof GetPalioDataByYearPalioYearGetResponses];
+export type GetPalioDataByYearResponse = GetPalioDataByYearResponses[keyof GetPalioDataByYearResponses];
 
-export type GetLeaderboardDataByYearLeaderboardYearGetData = {
+export type GetLeaderboardDataByYearData = {
     body?: never;
     path: {
         /**
@@ -511,25 +511,25 @@ export type GetLeaderboardDataByYearLeaderboardYearGetData = {
     url: '/leaderboard/{year}';
 };
 
-export type GetLeaderboardDataByYearLeaderboardYearGetErrors = {
+export type GetLeaderboardDataByYearErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetLeaderboardDataByYearLeaderboardYearGetError = GetLeaderboardDataByYearLeaderboardYearGetErrors[keyof GetLeaderboardDataByYearLeaderboardYearGetErrors];
+export type GetLeaderboardDataByYearError = GetLeaderboardDataByYearErrors[keyof GetLeaderboardDataByYearErrors];
 
-export type GetLeaderboardDataByYearLeaderboardYearGetResponses = {
+export type GetLeaderboardDataByYearResponses = {
     /**
      * Successful Response
      */
     200: Leaderboard;
 };
 
-export type GetLeaderboardDataByYearLeaderboardYearGetResponse = GetLeaderboardDataByYearLeaderboardYearGetResponses[keyof GetLeaderboardDataByYearLeaderboardYearGetResponses];
+export type GetLeaderboardDataByYearResponse = GetLeaderboardDataByYearResponses[keyof GetLeaderboardDataByYearResponses];
 
-export type GetPalioGamesStatusByYearPalioGamesStatusYearGetData = {
+export type GetPalioGamesStatusByYearData = {
     body?: never;
     path: {
         /**
@@ -541,23 +541,23 @@ export type GetPalioGamesStatusByYearPalioGamesStatusYearGetData = {
     url: '/palio_games_status/{year}';
 };
 
-export type GetPalioGamesStatusByYearPalioGamesStatusYearGetErrors = {
+export type GetPalioGamesStatusByYearErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetPalioGamesStatusByYearPalioGamesStatusYearGetError = GetPalioGamesStatusByYearPalioGamesStatusYearGetErrors[keyof GetPalioGamesStatusByYearPalioGamesStatusYearGetErrors];
+export type GetPalioGamesStatusByYearError = GetPalioGamesStatusByYearErrors[keyof GetPalioGamesStatusByYearErrors];
 
-export type GetPalioGamesStatusByYearPalioGamesStatusYearGetResponses = {
+export type GetPalioGamesStatusByYearResponses = {
     /**
      * Successful Response
      */
     200: PalioData;
 };
 
-export type GetPalioGamesStatusByYearPalioGamesStatusYearGetResponse = GetPalioGamesStatusByYearPalioGamesStatusYearGetResponses[keyof GetPalioGamesStatusByYearPalioGamesStatusYearGetResponses];
+export type GetPalioGamesStatusByYearResponse = GetPalioGamesStatusByYearResponses[keyof GetPalioGamesStatusByYearResponses];
 
 export type ServeRootGetData = {
     body?: never;
@@ -604,17 +604,6 @@ export type ServeReactAppFullPathGetResponses = {
 export type ClientOptions = {
     baseUrl: 'http://localhost:8000' | (string & {});
 };
-// Custom type unions for better usability
-export type PalioDataUnion = PalioData;
-export type LeaderboardUnion = Leaderboard;
-export type PalioGamesStatusUnion = PalioGamesStatus;
-
-// Year-based data types
-export type YearBasedPalioData = PalioData;
-export type YearBasedLeaderboard = Leaderboard;
-export type YearBasedPalioGamesStatus = PalioGamesStatus;
-
-
 // Custom type unions for better usability
 export type PalioDataUnion = PalioData;
 export type LeaderboardUnion = Leaderboard;

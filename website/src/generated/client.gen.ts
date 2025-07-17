@@ -22,10 +22,3 @@ client.interceptors.request.use((request) => {
   // Add any authentication headers here if needed
   return request;
 });
-
-
-// Add authentication headers
-client.interceptors.request.use((request) => {
-  // Add any authentication headers here if needed
-  return request;
-});

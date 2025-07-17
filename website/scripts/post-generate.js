@@ -14,8 +14,9 @@ if (fs.existsSync(typesFile)) {
   // Replace unknown with any for better TypeScript compatibility
   content = content.replace(/: unknown/g, ': any');
   
-  // Add custom type unions and helpers
-  const customTypes = `
+  // Add custom type unions and helpers only if they don't exist
+  if (!content.includes('export type PalioDataUnion')) {
+    const customTypes = `
 // Custom type unions for better usability
 export type PalioDataUnion = PalioData;
 export type LeaderboardUnion = Leaderboard;
@@ -27,8 +28,8 @@ export type YearBasedLeaderboard = Leaderboard;
 export type YearBasedPalioGamesStatus = PalioGamesStatus;
 
 `;
-  
-  content = content + customTypes;
+    content = content + customTypes;
+  }
   
   fs.writeFileSync(typesFile, content);
   console.log('✅ Post-processed types.gen.ts');
@@ -67,6 +68,23 @@ client.interceptors.request.use((request) => {
   console.log('✅ Post-processed client.gen.ts');
 } else {
   console.log('⚠️  client.gen.ts not found, skipping client processing');
+}
+
+// Process client utils for TypeScript compatibility
+const utilsFile = path.join(generatedDir, 'client', 'utils.ts');
+if (fs.existsSync(utilsFile)) {
+  let content = fs.readFileSync(utilsFile, 'utf8');
+  
+  // Fix the iterator type issue
+  content = content.replace(
+    /for \(const \[key, value\] of iterator\) {/g,
+    'for (const [key, value] of Array.from(iterator)) {'
+  );
+  
+  fs.writeFileSync(utilsFile, content);
+  console.log('✅ Post-processed client/utils.ts');
+} else {
+  console.log('⚠️  client/utils.ts not found, skipping utils processing');
 }
 
 console.log('Post-processing complete!');
