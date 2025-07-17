@@ -91,12 +91,14 @@ class LlamaCPPClient(BaseLLMClient):
         
         # Add system message if system_prompt provided
         if system_prompt:
-            system_content = system_prompt
-            
+            system_content = ""
             # Add context content if provided
             if context:
                 context_text = "\n\n".join([c.text for c in context])
                 system_content += f"\n\n{context_text}"
+
+            # Add system prompt
+            system_content += f"\n\n{system_prompt}"
             
             openai_messages.append({
                 "role": "system",

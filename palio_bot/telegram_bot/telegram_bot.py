@@ -8,6 +8,7 @@ from typing import Dict, Optional, Any
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
+from palio_bot.config import Config
 from palio_bot.container import Container
 from palio_bot.agent.models import Session
 
@@ -19,13 +20,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class PalioTelegramBot:
-    def __init__(self, token: str, allowed_user_id: Optional[int] = None):
+    def __init__(self, token: str, allowed_user_id: Optional[int] = None, config: Optional[Config] =  Config()):
         self.token = token
         self.allowed_user_id = allowed_user_id
         self.container: Optional[Container] = None
         self.user_sessions: Dict[int, Session] = {}
         self.chat_consumers: Dict[int, Any] = {}  # chat_id -> TelegramConsumer
         self.running_tasks: Dict[int, asyncio.Task] = {}  # chat_id -> Task
+        self.config = config
         
     async def initialize(self):
         """Initialize the container and system"""
@@ -203,12 +205,14 @@ class PalioTelegramBot:
             from pathlib import Path
             
             # Read games status file
-            games_status_path = Path("data/palio_games_status.json")
-            if not games_status_path.exists():
-                await update.message.reply_text("❌ File palio_games_status.json non trovato")
-                return
+            file = Path(self.config.palio_games_status_temp_path)
+            if not file.exists():
+                file = Path(self.config.palio_games_status_path)
+                if not file.exists():
+                    await update.message.reply_text("❌ File palio_games_status_temp.json e palio_games_status.json non trovati.")
+                    return
                 
-            with open(games_status_path, 'r', encoding='utf-8') as f:
+            with open(file, 'r', encoding='utf-8') as f:
                 games_data = json.load(f)
                 
             # Format as pretty JSON

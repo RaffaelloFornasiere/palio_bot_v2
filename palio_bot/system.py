@@ -12,6 +12,7 @@ from palio_bot.agent.models import (
     Message, Session, AgentContextBlock, TextContent, ToolUseContent, ToolResultContent
 )
 from palio_bot.agent.agent import Agent
+from palio_bot.models.game_status_models import extract_model_docs
 from palio_bot.stream.stream import Stream
 from palio_bot.stream.interfaces import Producer
 from palio_bot.stream.events import (
@@ -293,6 +294,12 @@ class System(Producer):
         if not self.palio_file_path.exists():
             raise FileNotFoundError("palio.json does not exist")
         result = []
+
+        result.append(AgentContextBlock(
+            context_name="game_status_models",
+            content=extract_model_docs()
+        ))
+
         with open(self.palio_file_path, 'r', encoding='utf-8') as f:
             content = json.load(f)
 
@@ -307,6 +314,16 @@ class System(Producer):
             result.append(AgentContextBlock(
                 context_name="current_leaderboard",
                 content=json.dumps(content, indent=4),
+            ))
+
+        with open(self.palio_file_path, 'r', encoding='utf-8') as f:
+            content = json.load(f)
+
+            ids = '\n'.join([f"{game['id']} - {game['name']}" for game in content['games']])
+
+            result.append(AgentContextBlock(
+                context_name="palio_game_id_mapping",
+                content=ids,
             ))
 
         return result
