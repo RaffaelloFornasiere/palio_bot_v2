@@ -117,3 +117,78 @@ class PalioGamesStatus(BaseModel):
         }
 
 
+
+def extract_model_docs():
+    """Generate system prompt section from Pydantic models."""
+    models = [ScorePenalty, GamePenalty, GameBonus, ScoreBasedGameStatus, RoundRobinGameStatus, GameRound, Division]
+
+    prompt_section = "# STRUTTURA DATI BONUS/PENALITÀ\n\n"
+
+    # Add overview
+    prompt_section += """TIPI DI PENALITÀ:
+1. ScorePenalty - Penalità sui punteggi grezzi (influenzano la classifica)
+2. GamePenalty - Penalità sui punti finali (dopo la classifica)
+3. GameBonus - Bonus sui punti finali (dopo la classifica)
+
+ESEMPI COMANDI:
+- "penalizza salt di 1 punto nel punteggio" → score_penalties
+- "penalizza villa di 2 punti in classifica" → applied_penalties
+- "bonus di 1 punto al sornico" → applied_bonuses
+
+"""
+
+    for model in models:
+        prompt_section += f"## {model.__name__}\n"
+
+        # Add docstring if available
+        if model.__doc__:
+            prompt_section += f"{model.__doc__.strip()}\n"
+
+        # Extract field info
+        if hasattr(model, 'model_fields'):
+            for field_name, field_info in model.model_fields.items():
+                field_type = str(field_info.annotation).replace('typing.', '')
+                prompt_section += f"- {field_name}: {field_type}\n"
+
+        prompt_section += "\n"
+
+    # Add examples
+    prompt_section += """ESEMPI JSON:
+
+# Gioco a punteggio con penalità
+{
+  "G01": {
+    "status": "completed",
+    "scores": {"Salt": 15.2, "Villa": 18.7},
+    "score_penalties": [
+      {"village": "Salt", "description": "Equipaggiamento irregolare", "points": -1.0}
+    ],
+    "applied_bonuses": [
+      {"village": "Villa", "description": "Fair play", "points": 2}
+    ]
+  }
+}
+
+# Gioco round-robin con penalità
+{
+  "G09": {
+    "status": "in-progress",
+    "rounds": [
+      {
+        "scores": {"Villa": 5, "Salt": 8},
+        "score_penalties": [
+          {"village": "Villa", "description": "Cartellino giallo", "points": -1}
+        ]
+      }
+    ],
+    "applied_penalties": [
+      {"village": "Salt", "description": "Comportamento antisportivo", "points": -3}
+    ]
+  }
+}
+"""
+
+    return prompt_section
+
+
+print(extract_model_docs())

@@ -1,4 +1,5 @@
 from game_status_models import *
+import inspect
 
 
 # Helper functions for working with the models
@@ -95,3 +96,4 @@ def calculate_score_based_adjusted_score(game_status: ScoreBasedGameStatus, vill
             base_score += penalty.points
 
     return base_score
+
