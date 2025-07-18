@@ -41,10 +41,15 @@ export type YearBasedPalioGamesStatus = PalioGamesStatus;
 if (fs.existsSync(clientFile)) {
   let content = fs.readFileSync(clientFile, 'utf8');
   
+  // Add import for API config
+  if (!content.includes('API_CONFIG')) {
+    content = `import { API_CONFIG } from '../config/api';\n${content}`;
+  }
+  
   // Inject API base URL configuration
   content = content.replace(
     /baseUrl: 'http:\/\/localhost:8000'/g,
-    `baseUrl: process.env.NODE_ENV === 'production' ? (process.env.REACT_APP_SERVER_URL || '') : (process.env.REACT_APP_SERVER_URL || 'http://localhost:8000')`
+    'baseUrl: API_CONFIG.baseUrl'
   );
   
   // Add authentication headers if needed

@@ -13,8 +13,7 @@ RUN npm ci --legacy-peer-deps
 # Copy React app source files
 COPY website/ .
 
-# Generate types and build React app
-RUN npm run generate-types
+# Build React app (using existing generated types)
 RUN npm run build
 
 # Stage 2: Build Python API server
