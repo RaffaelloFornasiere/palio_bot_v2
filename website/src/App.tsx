@@ -23,9 +23,12 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/classifica" replace />} />
             <Route path="classifica" element={<LeaderboardPage />} />
+            <Route path="classifica/:year" element={<LeaderboardPage />} />
             <Route path="giochi" element={<GamesPage />} />
             <Route path="giochi/:gameId" element={<GiocoDettagliPage />} />
+            <Route path="giochi/:year/overview" element={<GamesPage />} />
             <Route path="calendario" element={<CalendarPage />} />
+            <Route path="calendario/:year" element={<CalendarPage />} />
           </Route>
         </Routes>
       </Router>

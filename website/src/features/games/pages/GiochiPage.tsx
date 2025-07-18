@@ -10,12 +10,12 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
-  getPalioGamesStatus,
-  getLeaderboardData,
-  getPalioData
-} from '../../../generated/sdk.gen';
+  getPalioGamesStatusForYear,
+  getLeaderboardDataForYear,
+  getPalioDataForYear
+} from '../../../utils/yearApi';
 import { 
   PalioGamesStatus, 
   PalioData, 
@@ -25,6 +25,7 @@ import {
   ScoreBasedDivision,
   RoundRobinDivision
 } from '../../../generated/types.gen';
+import YearSelector from '../../../components/YearSelector';
 
 type GameData = ScoreBasedGameStatus | RoundRobinGameStatus;
 type GameDivision = ScoreBasedDivision | RoundRobinDivision;
@@ -36,16 +37,25 @@ const GiochiPage: React.FC = () => {
   const [palioData, setPalioData] = useState<PalioData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { year: urlYear } = useParams<{ year?: string }>();
   const navigate = useNavigate();
+  
+  // Initialize selectedYear from URL parameter immediately
+  const [selectedYear, setSelectedYear] = useState<number | undefined>(() => {
+    if (urlYear && !isNaN(Number(urlYear))) {
+      return Number(urlYear);
+    }
+    return undefined;
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const [gamesResponse, leaderboardResponse, palioResponse] = await Promise.all([
-          getPalioGamesStatus(),
-          getLeaderboardData(),
-          getPalioData()
+          getPalioGamesStatusForYear(selectedYear),
+          getLeaderboardDataForYear(selectedYear),
+          getPalioDataForYear(selectedYear)
         ]);
 
         if (gamesResponse.error || leaderboardResponse.error || palioResponse.error) {
@@ -63,7 +73,7 @@ const GiochiPage: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [selectedYear]);
 
   const getGameName = (gameId: string): string => {
     // First check palio data for the game name
@@ -204,9 +214,23 @@ const GiochiPage: React.FC = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ mt: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Giochi del Palio
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" component="h1">
+            Giochi del Palio
+          </Typography>
+          <YearSelector 
+            selectedYear={selectedYear}
+            onYearChange={(year) => {
+              setSelectedYear(year);
+              // Update URL to reflect year selection
+              if (year) {
+                navigate(`/giochi/${year}/overview`);
+              } else {
+                navigate('/giochi');
+              }
+            }}
+          />
+        </Box>
         
         {gamesData && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>

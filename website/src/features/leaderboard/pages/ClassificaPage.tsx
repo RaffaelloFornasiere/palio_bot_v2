@@ -16,8 +16,10 @@ import {
   Alert,
   Chip
 } from '@mui/material';
-import { getLeaderboardData } from '../../../generated/sdk.gen';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Leaderboard } from '../../../generated/types.gen';
+import { getLeaderboardDataForYear } from '../../../utils/yearApi';
+import YearSelector from '../../../components/YearSelector';
 
 interface VillagePoints {
   [village: string]: number;
@@ -34,12 +36,22 @@ const ClassificaPage: React.FC = () => {
   const [leaderboardData, setLeaderboardData] = useState<Leaderboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { year: urlYear } = useParams<{ year?: string }>();
+  const navigate = useNavigate();
+  
+  // Initialize selectedYear from URL parameter immediately
+  const [selectedYear, setSelectedYear] = useState<number | undefined>(() => {
+    if (urlYear && !isNaN(Number(urlYear))) {
+      return Number(urlYear);
+    }
+    return undefined;
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await getLeaderboardData();
+        const response = await getLeaderboardDataForYear(selectedYear);
 
         if (response.error) {
           throw new Error('Failed to fetch leaderboard data');
@@ -54,7 +66,7 @@ const ClassificaPage: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [selectedYear]);
 
   const getLeaderboardEntries = (): LeaderboardEntry[] => {
     if (!leaderboardData) return [];
@@ -128,9 +140,23 @@ const ClassificaPage: React.FC = () => {
   return (
     <Container maxWidth="lg" >
       <Box sx={{ mt: 4, mb: 4}}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Classifica Generale
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" component="h1">
+            Classifica Generale
+          </Typography>
+          <YearSelector 
+            selectedYear={selectedYear}
+            onYearChange={(year) => {
+              setSelectedYear(year);
+              // Update URL to reflect year selection
+              if (year) {
+                navigate(`/classifica/${year}`);
+              } else {
+                navigate('/classifica');
+              }
+            }}
+          />
+        </Box>
         
         <Card >
           <CardContent sx={{p:0}}>

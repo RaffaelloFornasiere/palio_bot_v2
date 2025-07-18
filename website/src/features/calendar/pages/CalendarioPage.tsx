@@ -1,15 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box } from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
 import WeeklyCalendar from '../components/WeeklyCalendar';
-import { getPalioData } from '../../../generated/sdk.gen';
 import { PalioData } from '../../../generated/types.gen';
+import { getPalioDataForYear } from '../../../utils/yearApi';
+import YearSelector from '../../../components/YearSelector';
 
 const CalendarioPage: React.FC = () => {
   const [events, setEvents] = useState<{ [date: string]: { id: string; title: string; time: string; description?: string; subtitle?: string }[] }>({});
+  const { year: urlYear } = useParams<{ year?: string }>();
+  const navigate = useNavigate();
+  
+  // Initialize selectedYear from URL parameter immediately
+  const [selectedYear, setSelectedYear] = useState<number | undefined>(() => {
+    if (urlYear && !isNaN(Number(urlYear))) {
+      return Number(urlYear);
+    }
+    return undefined;
+  });
 
   useEffect(() => {
     // Load palio data from API
-    getPalioData()
+    getPalioDataForYear(selectedYear)
       .then(response => {
         if (response.error) {
           throw new Error('Failed to fetch palio data');
@@ -110,10 +122,27 @@ const CalendarioPage: React.FC = () => {
       .catch(error => {
         console.error('Error loading calendar data:', error);
       });
-  }, []);
+  }, [selectedYear]);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1">
+          Calendario Eventi
+        </Typography>
+        <YearSelector 
+          selectedYear={selectedYear}
+          onYearChange={(year) => {
+            setSelectedYear(year);
+            // Update URL to reflect year selection
+            if (year) {
+              navigate(`/calendario/${year}`);
+            } else {
+              navigate('/calendario');
+            }
+          }}
+        />
+      </Box>
       <WeeklyCalendar events={events} />
     </Box>
   );

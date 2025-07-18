@@ -164,7 +164,7 @@ async def get_leaderboard_data_by_year(year: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading leaderboard.json for year {year}: {str(e)}")
 
-@app.get("/palio_games_status/{year}", response_model=PalioData, operation_id="get_palio_games_status_by_year")
+@app.get("/palio_games_status/{year}", response_model=PalioGamesStatus, operation_id="get_palio_games_status_by_year")
 async def get_palio_games_status_by_year(year: int):
     """
     Returns the palio_games_status.json data for a specific year
@@ -177,7 +177,7 @@ async def get_palio_games_status_by_year(year: int):
         with open(games_status_path, 'r', encoding='utf-8') as f:
             games_status_data = json.load(f)
         
-        return PalioData.model_validate(games_status_data)
+        return PalioGamesStatus.model_validate(games_status_data)
     
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail=f"Invalid JSON in palio_games_status.json for year {year}")
@@ -186,8 +186,10 @@ async def get_palio_games_status_by_year(year: int):
 
 # Mount static files from React build
 if REACT_BUILD_PATH.exists() and REACT_BUILD_PATH.is_dir():
-    # Serve static assets (JS, CSS, images, etc.)
-    app.mount("/static", StaticFiles(directory=str(REACT_BUILD_PATH / "static")), name="static")
+    # Serve static assets (JS, CSS, images, etc.) - only if static directory exists
+    static_dir = REACT_BUILD_PATH / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
     
     # Serve the React app's index.html for the root path
     @app.get("/")

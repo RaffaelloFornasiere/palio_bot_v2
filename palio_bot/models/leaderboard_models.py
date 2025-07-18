@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Dict, Optional, Union, Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class GameResult(BaseModel):

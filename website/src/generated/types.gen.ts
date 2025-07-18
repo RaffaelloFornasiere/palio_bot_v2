@@ -633,7 +633,7 @@ export type GetPalioGamesStatusByYearResponses = {
     /**
      * Successful Response
      */
-    200: PalioData;
+    200: PalioGamesStatus;
 };
 
 export type GetPalioGamesStatusByYearResponse = GetPalioGamesStatusByYearResponses[keyof GetPalioGamesStatusByYearResponses];
