@@ -122,8 +122,10 @@ class LeaderboardUpdater:
             # Re-rank based on combined raw scores and apply RANKING_POINTS
             if overall_raw_scores:
                 ranking_points = self._apply_ranking_points(game_def, overall_raw_scores)
+                # Apply game-level bonuses and penalties
+                final_points = self._apply_bonuses_and_penalties(game_data, ranking_points)
                 # Convert to LeaderboardEntry format
-                sorted_villages = sorted(ranking_points.items(), key=lambda x: x[1], reverse=True)
+                sorted_villages = sorted(final_points.items(), key=lambda x: x[1], reverse=True)
                 for position, (village, points) in enumerate(sorted_villages, 1):
                     overall_leaderboard[village] = {
                         'points': points,
@@ -193,13 +195,19 @@ class LeaderboardUpdater:
         """Calculate leaderboard points for a specific division."""
         game_type = game_def.get('type')
         
+        # Calculate base ranking points
         if game_type == 'round-robin':
-            return self._calculate_round_robin_leaderboard(game_def, division_data)
+            base_points = self._calculate_round_robin_leaderboard(game_def, division_data)
         elif game_type == 'score-based':
-            return self._calculate_score_based_leaderboard(game_def, division_data)
+            base_points = self._calculate_score_based_leaderboard(game_def, division_data)
         else:
             logger.warning(f"Unknown game type: {game_type}")
             return {}
+        
+        # Apply bonuses and penalties
+        final_points = self._apply_bonuses_and_penalties(division_data, base_points)
+        
+        return final_points
     
     def _calculate_round_robin_leaderboard(self, game_def: Dict[str, Any], game_data: Dict[str, Any]) -> Dict[str, int]:
         """Calculate leaderboard for round-robin games."""
@@ -297,6 +305,32 @@ class LeaderboardUpdater:
         
         logger.info(f"Applied ranking points: {final_leaderboard}")
         return final_leaderboard
+    
+    def _apply_bonuses_and_penalties(self, game_data: Dict[str, Any], leaderboard_points: Dict[str, int]) -> Dict[str, int]:
+        """Apply bonuses and penalties to leaderboard points."""
+        if not leaderboard_points:
+            return {}
+        
+        # Create a copy to avoid modifying the original
+        final_points = leaderboard_points.copy()
+        
+        # Apply bonuses
+        for bonus in game_data.get('applied_bonuses', []):
+            village = bonus.get('village')
+            bonus_points = bonus.get('points', 0)
+            if village in final_points:
+                final_points[village] += bonus_points
+                logger.info(f"Applied bonus to {village}: +{bonus_points} points (reason: {bonus.get('description', 'No description')})")
+        
+        # Apply penalties
+        for penalty in game_data.get('applied_penalties', []):
+            village = penalty.get('village')
+            penalty_points = penalty.get('points', 0)
+            if village in final_points:
+                final_points[village] += penalty_points  # penalties are negative numbers
+                logger.info(f"Applied penalty to {village}: {penalty_points} points (reason: {penalty.get('description', 'No description')})")
+        
+        return final_points
     
     def _recalculate_palio_leaderboard(self, leaderboard: Dict[str, Any]) -> None:
         """Recalculate total points and positions for each village."""
