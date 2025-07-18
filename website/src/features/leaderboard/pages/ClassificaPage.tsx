@@ -63,13 +63,13 @@ const ClassificaPage: React.FC = () => {
   const getLeaderboardEntries = (): LeaderboardEntry[] => {
     if (!leaderboardData) return [];
 
-    // Sort villages by points (descending)
-    const sortedEntries = Object.entries(leaderboardData.points)
-      .sort(([, a], [, b]) => b - a)
-      .map(([village, points], index) => ({
+    // Sort villages by position (ascending)
+    const sortedEntries = Object.entries(leaderboardData.palio_leaderboard)
+      .sort(([, a], [, b]) => a.position - b.position)
+      .map(([village, entry]) => ({
         village,
-        points,
-        position: index + 1,
+        points: entry.points,
+        position: entry.position,
       }));
 
     // Calculate gap to next position for villages from 2nd position onwards
@@ -79,8 +79,8 @@ const ClassificaPage: React.FC = () => {
         return entry;
       }
       
-      const nextPositionPoints = sortedEntries[index - 1].points;
-      const gap = nextPositionPoints - entry.points;
+      const previousPositionPoints = sortedEntries[index - 1].points;
+      const gap = previousPositionPoints - entry.points;
       
       return {
         ...entry,

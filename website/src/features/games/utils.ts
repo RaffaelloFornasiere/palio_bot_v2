@@ -38,3 +38,25 @@ export function formatDate(dateString: string): string {
       return 'Data non disponibile';
    }
 }
+
+// Utility function to get division leaderboard results sorted by position
+export function getDivisionLeaderboardSorted(leaderboard: { [key: string]: number }): [string, number][] {
+   return Object.entries(leaderboard).sort(([,a], [,b]) => a - b);
+}
+
+// Utility function to get overall leaderboard results sorted by position
+export function getOverallLeaderboardSorted(leaderboard: { [key: string]: { points: number, position: number } }): [string, { points: number, position: number }][] {
+   return Object.entries(leaderboard).sort(([,a], [,b]) => a.position - b.position);
+}
+
+// Utility function to get the winner from division leaderboard
+export function getDivisionWinner(leaderboard: { [key: string]: number }): string {
+   const sorted = getDivisionLeaderboardSorted(leaderboard);
+   return sorted.length > 0 ? sorted[0][0] : '';
+}
+
+// Utility function to get the winner from overall leaderboard
+export function getOverallWinner(leaderboard: { [key: string]: { points: number, position: number } }): string {
+   const winner = Object.entries(leaderboard).find(([, entry]) => entry.position === 1);
+   return winner ? winner[0] : '';
+}
