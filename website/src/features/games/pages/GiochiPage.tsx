@@ -24,9 +24,10 @@ import {
   RoundRobinGameStatus,
   ScoreBasedDivision,
   RoundRobinDivision
-} from '../../../generated/types.gen';
+} from '../../../generated';
 import { useYear } from '../../../contexts/YearContext';
 import YearSelector from '../../../components/YearSelector';
+import { getStatusText, formatDate, getStatusColor } from '../utils';
 
 type GameData = ScoreBasedGameStatus | RoundRobinGameStatus;
 type GameDivision = ScoreBasedDivision | RoundRobinDivision;
@@ -79,93 +80,9 @@ const GiochiPage: React.FC = () => {
     return `Gioco ${gameId}`;
   };
 
-  const getWinner = (gameData: GameData): string => {
-    if (gameData.status !== 'completed') {
-      return '-';
-    }
-
-    // Handle games with divisions
-    if (gameData.divisions && gameData.divisions.length > 0) {
-      const completedDivisions = (gameData.divisions as any[]).filter((div: any) => div.status === 'completed');
-      if (completedDivisions.length === 0) {
-        return '-';
-      }
-      
-      const winners = completedDivisions.map((div: any) => {
-        if (div.scores) {
-          const numericScores = Object.entries(div.scores)
-            .filter(([_, score]) => typeof score === 'number')
-            .map(([village, score]) => [village, score as number]) as [string, number][];
-          
-          if (numericScores.length > 0) {
-            const maxScore = Math.max(...numericScores.map(([_, score]) => score as number));
-            const winner = numericScores.find(([_, score]) => score === maxScore);
-            return winner ? `${winner[0]} (${div.name})` : `- (${div.name})`;
-          }
-        }
-        return `- (${div.name})`;
-      });
-      
-      return winners.join(', ');
-    }
-
-    // Handle games without divisions
-    if (!('scores' in gameData) || !gameData.scores) {
-      return '-';
-    }
-
-    const numericScores = Object.entries(gameData.scores)
-      .filter(([_, score]) => typeof score === 'number')
-      .map(([village, score]) => [village, score as number]) as [string, number][];
-    
-    if (numericScores.length === 0) {
-      return '-';
-    }
-    
-    const maxScore = Math.max(...numericScores.map(([_, score]) => score as number));
-    const winner = numericScores.find(([_, score]) => score === maxScore);
-    return winner ? winner[0] : '-';
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'success';
-      case 'in-progress':
-        return 'warning';
-      case 'not-started':
-        return 'default';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'Completato';
-      case 'in-progress':
-        return 'In corso';
-      case 'not-started':
-        return 'Non iniziato';
-      default:
-        return 'Sconosciuto';
-    }
-  };
-
-  const formatDate = (dateString: string): string => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('it-IT', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return 'Data non disponibile';
-    }
+  const getWinner = (gameId: string): string => {
+    const overallLeaderboard = leaderboardData?.game_leaderboards[gameId]?.overall_leaderboard ?? {};
+    return Object.entries(overallLeaderboard).find(i => i[1].position === 1)?.[0] ?? ''
   };
 
   const sortGamesByStatus = (games: [string, GameData][]): [string, GameData][] => {
@@ -257,7 +174,7 @@ const GiochiPage: React.FC = () => {
                 )}
 
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  <strong>Vincitore:</strong> {getWinner(gameData)}
+                  <strong>Vincitore:</strong> {getWinner(gameId)}
                 </Typography>
 
                 <Typography variant="body2" color="text.secondary" gutterBottom>

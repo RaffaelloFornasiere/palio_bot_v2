@@ -21,19 +21,11 @@ export type DivisionLeaderboard = {
      */
     name: string;
     /**
-     * Results
+     * Leaderboard
      */
-    results: Array<GameResult>;
-    /**
-     * Points
-     */
-    points: {
+    leaderboard: {
         [key: string]: number;
     };
-    /**
-     * Completed
-     */
-    completed?: boolean;
     /**
      * Updated At
      */
@@ -134,15 +126,11 @@ export type GameLeaderboard = {
      */
     divisions: Array<DivisionLeaderboard>;
     /**
-     * Overall Points
+     * Overall Leaderboard
      */
-    overall_points: {
-        [key: string]: number;
+    overall_leaderboard: {
+        [key: string]: LeaderboardEntry;
     };
-    /**
-     * Completed
-     */
-    completed?: boolean;
     /**
      * Updated At
      */
@@ -169,25 +157,6 @@ export type GamePenalty = {
      * Points deducted from leaderboard points (negative number)
      */
     points: number;
-};
-
-/**
- * GameResult
- * Individual game result for a village.
- */
-export type GameResult = {
-    /**
-     * Village
-     */
-    village: string;
-    /**
-     * Score
-     */
-    score: number | number;
-    /**
-     * Position
-     */
-    position?: number | null;
 };
 
 /**
@@ -228,10 +197,10 @@ export type Leaderboard = {
      */
     villages: Array<string>;
     /**
-     * Points
+     * Palio Leaderboard
      */
-    points: {
-        [key: string]: number;
+    palio_leaderboard: {
+        [key: string]: LeaderboardEntry;
     };
     /**
      * Game Leaderboards
@@ -239,6 +208,20 @@ export type Leaderboard = {
     game_leaderboards: {
         [key: string]: GameLeaderboard;
     };
+};
+
+/**
+ * LeaderboardEntry
+ */
+export type LeaderboardEntry = {
+    /**
+     * Points
+     */
+    points: number;
+    /**
+     * Position
+     */
+    position: number;
 };
 
 /**

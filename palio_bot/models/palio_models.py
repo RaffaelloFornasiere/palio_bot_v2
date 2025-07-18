@@ -14,7 +14,7 @@ class Game(BaseModel):
     """Game model representing a single game in the palio."""
     id: str
     name: str
-    type: Literal["score-based", "round-robin", "points-based"]
+    type: Literal["score-based", "round-robin"]
     description: str
     measure_unit: str
     lower_is_better: bool

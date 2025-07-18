@@ -390,13 +390,13 @@ const GiocoDettagliPage: React.FC = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {getSortedLeaderboard(gameLeaderboard.overall_points).map(([village, points], index) => (
-                          <TableRow key={village}>
-                            <TableCell>{index + 1}</TableCell>
-                            <TableCell>{village}</TableCell>
-                            <TableCell align="right">{points}</TableCell>
-                          </TableRow>
-                        ))}
+                        {/*{getSortedLeaderboard(gameLeaderboard.overall_points).map(([village, points], index) => (*/}
+                        {/*  <TableRow key={village}>*/}
+                        {/*    <TableCell>{index + 1}</TableCell>*/}
+                        {/*    <TableCell>{village}</TableCell>*/}
+                        {/*    <TableCell align="right">{points}</TableCell>*/}
+                        {/*  </TableRow>*/}
+                        {/*))}*/}
                       </TableBody>
                     </Table>
                   </TableContainer>
