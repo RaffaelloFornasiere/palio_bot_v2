@@ -11,20 +11,21 @@ class DivisionLeaderboard(BaseModel):
     """Leaderboard for a specific division within a game."""
     name: str
     leaderboard: Dict[str, int] # village -> position
-    updated_at: Optional[datetime] = None
+    updated_at: Optional[str] = None
 
 
 class GameLeaderboard(BaseModel):
-    """Leaderboard for a specific game, with explicit division support."""
+    """Leaderboard for a specific game."""
     game_id: str
     game_name: str
     divisions: List[DivisionLeaderboard]
     overall_leaderboard: Dict[str, LeaderboardEntry] # village -> LeaderboardEntry
-    updated_at: Optional[datetime] = None
+    completed: Optional[bool] = True
+    updated_at: Optional[str] = None
 
 
 class Leaderboard(BaseModel):
-    """Main leaderboard model with explicit division support."""
+    """Main leaderboard model."""
     villages: List[str]
     palio_leaderboard: Dict[str, LeaderboardEntry] # village -> LeaderboardEntry
     game_leaderboards: Dict[str, GameLeaderboard]  # game_id -> GameLeaderboard

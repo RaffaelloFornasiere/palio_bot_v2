@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from .models.leaderboard_models import Leaderboard, GameLeaderboard, DivisionLeaderboard, GameResult
+from .models.leaderboard_models import Leaderboard, GameLeaderboard, DivisionLeaderboard
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +48,13 @@ class LeaderboardUpdater:
                     # Create new structure from old data
                     leaderboard = {
                         'villages': old_leaderboard.get('villages', []),
-                        'points': old_leaderboard.get('points', {}),
+                        'palio_leaderboard': {},
                         'game_leaderboards': {}  # Will be rebuilt from scratch
                     }
             else:
                 leaderboard = {
                     'villages': [],
-                    'points': {},
+                    'palio_leaderboard': {},
                     'game_leaderboards': {}
                 }
             
@@ -74,8 +74,8 @@ class LeaderboardUpdater:
                     if game_leaderboard:
                         leaderboard['game_leaderboards'][game_id] = game_leaderboard
             
-            # Recalculate total points
-            self._recalculate_total_points(leaderboard)
+            # Recalculate total points and positions
+            self._recalculate_palio_leaderboard(leaderboard)
             
             # Convert to Pydantic model for validation
             leaderboard_obj = Leaderboard.model_validate(leaderboard)
@@ -102,7 +102,7 @@ class LeaderboardUpdater:
     def _create_game_leaderboard(self, game_id: str, game_def: Dict[str, Any], game_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a GameLeaderboard structure for a game."""
         divisions = []
-        overall_points = {}
+        overall_leaderboard = {}
         
         if 'divisions' in game_data:
             # Process each division separately
@@ -121,13 +121,27 @@ class LeaderboardUpdater:
             
             # Re-rank based on combined raw scores and apply RANKING_POINTS
             if overall_raw_scores:
-                overall_points = self._apply_ranking_points(game_def, overall_raw_scores)
+                ranking_points = self._apply_ranking_points(game_def, overall_raw_scores)
+                # Convert to LeaderboardEntry format
+                sorted_villages = sorted(ranking_points.items(), key=lambda x: x[1], reverse=True)
+                for position, (village, points) in enumerate(sorted_villages, 1):
+                    overall_leaderboard[village] = {
+                        'points': points,
+                        'position': position
+                    }
         else:
             # Traditional game without divisions - create a single "Main" division
             main_division = self._create_division_leaderboard(game_def, game_data, division_name="Main")
             if main_division:
                 divisions.append(main_division)
-                overall_points = main_division['points']
+                # Convert division points to LeaderboardEntry format
+                division_points = main_division['points']
+                sorted_villages = sorted(division_points.items(), key=lambda x: x[1], reverse=True)
+                for position, (village, points) in enumerate(sorted_villages, 1):
+                    overall_leaderboard[village] = {
+                        'points': points,
+                        'position': position
+                    }
         
         if not divisions:
             return None
@@ -136,7 +150,7 @@ class LeaderboardUpdater:
             'game_id': game_id,
             'game_name': game_def['name'],
             'divisions': divisions,
-            'overall_points': overall_points,
+            'overall_leaderboard': overall_leaderboard,
             'completed': True,
             'updated_at': datetime.now().isoformat()
         }
@@ -150,20 +164,16 @@ class LeaderboardUpdater:
         if not points:
             return None
         
-        # Create GameResult list
-        results = []
-        for village, score in points.items():
-            results.append({
-                'village': village,
-                'score': score,
-                'position': None  # Will be set later if needed
-            })
+        # Sort villages by points and create position mapping
+        sorted_villages = sorted(points.items(), key=lambda x: x[1], reverse=True)
+        leaderboard = {}
+        for position, (village, _) in enumerate(sorted_villages, 1):
+            leaderboard[village] = position
         
         return {
             'name': name,
-            'results': results,
-            'points': points,
-            'completed': True,
+            'leaderboard': leaderboard,
+            'points': points,  # Keep for internal calculations
             'updated_at': datetime.now().isoformat()
         }
     
@@ -288,9 +298,9 @@ class LeaderboardUpdater:
         logger.info(f"Applied ranking points: {final_leaderboard}")
         return final_leaderboard
     
-    def _recalculate_total_points(self, leaderboard: Dict[str, Any]) -> None:
-        """Recalculate total points for each village."""
-        logger.info("Recalculating total points")
+    def _recalculate_palio_leaderboard(self, leaderboard: Dict[str, Any]) -> None:
+        """Recalculate total points and positions for each village."""
+        logger.info("Recalculating palio leaderboard")
         
         # Initialize total points
         total_points = {village: 0 for village in leaderboard.get('villages', [])}
@@ -298,17 +308,21 @@ class LeaderboardUpdater:
         # Sum points from all games
         for game_id, game_data in leaderboard.get('game_leaderboards', {}).items():
             # Handle new GameLeaderboard structure
-            if isinstance(game_data, dict) and 'overall_points' in game_data:
-                for village, points in game_data['overall_points'].items():
-                    if village in total_points:
-                        total_points[village] += points
-            else:
-                # Fallback for old structure
-                game_leaderboard = game_data.get('leaderboard', {})
-                for village, points in game_leaderboard.items():
-                    if village in total_points:
-                        total_points[village] += points
+            if isinstance(game_data, dict) and 'overall_leaderboard' in game_data:
+                for village, entry in game_data['overall_leaderboard'].items():
+                    if village in total_points and isinstance(entry, dict) and 'points' in entry:
+                        total_points[village] += entry['points']
+        
+        # Sort villages by points (descending) and assign positions
+        sorted_villages = sorted(total_points.items(), key=lambda x: x[1], reverse=True)
+        
+        palio_leaderboard = {}
+        for position, (village, points) in enumerate(sorted_villages, 1):
+            palio_leaderboard[village] = {
+                'points': points,
+                'position': position
+            }
         
         # Update leaderboard
-        leaderboard['points'] = total_points
-        logger.info(f"Total points updated: {total_points}")
+        leaderboard['palio_leaderboard'] = palio_leaderboard
+        logger.info(f"Palio leaderboard updated: {palio_leaderboard}")

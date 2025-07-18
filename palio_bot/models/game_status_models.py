@@ -9,7 +9,7 @@ class ScorePenalty(BaseModel):
     """A penalty applied to raw scores/rounds that affects ranking."""
     village: str = Field(..., description="The village receiving the penalty")
     description: str = Field(..., description="Description of the penalty")
-    points: Union[int, float] = Field(..., description="Points deducted from raw score (negative number)")
+    points: int | float = Field(..., description="Points deducted from raw score (negative number)")
 
 
 class GamePenalty(BaseModel):
@@ -28,20 +28,8 @@ class GameBonus(BaseModel):
 
 class GameRound(BaseModel):
     """A single round in a round-robin game."""
-    # Dynamic fields for village scores (e.g., "Villa": 5, "Sottocastello": 8)
-    # Using Dict to allow flexible village names
-    scores: Dict[str, Union[int, float|str]] = Field(default_factory=dict)
+    scores: Dict[str, int | float | str] = Field(default_factory=dict, description="Village scores in this round")
     score_penalties: List[ScorePenalty] = Field(default_factory=list, description="Score penalties applied in this round")
-    
-    def __init__(self, **data):
-        # Separate scores from penalties
-        score_penalties = data.pop('score_penalties', [])
-        # Support legacy 'penalties' field
-        legacy_penalties = data.pop('penalties', [])
-        if legacy_penalties:
-            score_penalties.extend(legacy_penalties)
-        scores = {k: v for k, v in data.items() if k not in ['score_penalties', 'penalties']}
-        super().__init__(scores=scores, score_penalties=score_penalties)
     
     def __getitem__(self, key):
         """Allow dict-like access to scores."""
@@ -64,7 +52,7 @@ class ScoreBasedDivision(BaseModel):
     """A division within a game (e.g., Maschile, Femminile)."""
     name: str = Field(..., description="Division name")
     status: str = Field(..., description="Division status (not-started, in-progress, completed)")
-    scores: Dict[str, Union[int, float | str]] = Field(default_factory=dict, description="Village scores in this division")
+    scores: Dict[str, int | float | str] = Field(default_factory=dict, description="Village scores in this division")
     
     # Score penalties affect ranking within the division
     score_penalties: List[ScorePenalty] = Field(default_factory=list, description="Score penalties applied in this division")
@@ -89,7 +77,7 @@ class RoundRobinDivision(BaseModel):
 class ScoreBasedGameStatus(BaseModel):
     """Status of a score-based game."""
     status: str = Field(..., description="Game status (not-started, in-progress, completed)")
-    scores: Dict[str, Union[int, float|str]] = Field(default_factory=dict, description="Village scores")
+    scores: Dict[str, int | float | str] = Field(default_factory=dict, description="Village scores")
 
     # For games with divisions
     divisions: Optional[List[ScoreBasedDivision]] = Field(None, description="Game divisions")
@@ -119,7 +107,7 @@ class RoundRobinGameStatus(BaseModel):
 
 class PalioGamesStatus(BaseModel):
     """Complete structure for palio_games_status.json."""
-    game_scores: Dict[str, Union[ScoreBasedGameStatus, RoundRobinGameStatus]] = Field(..., description="Status of all games by game ID")
+    game_scores: Dict[str, ScoreBasedGameStatus | RoundRobinGameStatus] = Field(..., description="Status of all games by game ID")
     last_updated: str = Field(..., description="ISO timestamp of last update")
     
     class Config:
