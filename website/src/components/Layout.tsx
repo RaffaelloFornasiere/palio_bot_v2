@@ -22,11 +22,13 @@ import {
   Menu as MenuIcon
 } from '@mui/icons-material';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
+import { useYear } from '../contexts/YearContext';
 
 const drawerWidth = 240;
 
 const Layout: React.FC = () => {
   const location = useLocation();
+  const { selectedYear } = useYear();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,11 +37,30 @@ const Layout: React.FC = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  // Create year-aware menu items
   const menuItems = [
-    { text: 'Classifica', icon: <LeaderboardIcon />, path: '/classifica' },
-    { text: 'Giochi', icon: <GamesIcon />, path: '/giochi' },
-    { text: 'Calendario', icon: <CalendarIcon />, path: '/calendario' },
+    { text: 'Classifica', icon: <LeaderboardIcon />, path: selectedYear ? `/${selectedYear}/classifica` : '/classifica' },
+    { text: 'Giochi', icon: <GamesIcon />, path: selectedYear ? `/${selectedYear}/giochi` : '/giochi' },
+    { text: 'Calendario', icon: <CalendarIcon />, path: selectedYear ? `/${selectedYear}/calendario` : '/calendario' },
   ];
+
+  // Helper function to check if current path matches menu item
+  const isItemSelected = (itemPath: string) => {
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+    const itemSegments = itemPath.split('/').filter(Boolean);
+    
+    // If both have year prefix, compare the page part
+    if (pathSegments.length >= 2 && itemSegments.length >= 2) {
+      return pathSegments[1] === itemSegments[1];
+    }
+    
+    // If neither has year prefix, compare directly
+    if (pathSegments.length === 1 && itemSegments.length === 1) {
+      return pathSegments[0] === itemSegments[0];
+    }
+    
+    return false;
+  };
 
   const drawer = (
     <div>
@@ -55,7 +76,7 @@ const Layout: React.FC = () => {
             <ListItemButton
               component={RouterLink}
               to={item.path}
-              selected={location.pathname === item.path}
+              selected={isItemSelected(item.path)}
               onClick={isMobile ? handleDrawerToggle : undefined}
             >
               <ListItemIcon>

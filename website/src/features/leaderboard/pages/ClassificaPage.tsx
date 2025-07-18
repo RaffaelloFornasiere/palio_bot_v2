@@ -16,9 +16,10 @@ import {
   Alert,
   Chip
 } from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Leaderboard } from '../../../generated/types.gen';
 import { getLeaderboardDataForYear } from '../../../utils/yearApi';
+import { useYear } from '../../../contexts/YearContext';
 import YearSelector from '../../../components/YearSelector';
 
 interface VillagePoints {
@@ -36,16 +37,7 @@ const ClassificaPage: React.FC = () => {
   const [leaderboardData, setLeaderboardData] = useState<Leaderboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { year: urlYear } = useParams<{ year?: string }>();
-  const navigate = useNavigate();
-  
-  // Initialize selectedYear from URL parameter immediately
-  const [selectedYear, setSelectedYear] = useState<number | undefined>(() => {
-    if (urlYear && !isNaN(Number(urlYear))) {
-      return Number(urlYear);
-    }
-    return undefined;
-  });
+  const { selectedYear } = useYear();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -144,18 +136,7 @@ const ClassificaPage: React.FC = () => {
           <Typography variant="h4" component="h1">
             Classifica Generale
           </Typography>
-          <YearSelector 
-            selectedYear={selectedYear}
-            onYearChange={(year) => {
-              setSelectedYear(year);
-              // Update URL to reflect year selection
-              if (year) {
-                navigate(`/classifica/${year}`);
-              } else {
-                navigate('/classifica');
-              }
-            }}
-          />
+          <YearSelector />
         </Box>
         
         <Card >

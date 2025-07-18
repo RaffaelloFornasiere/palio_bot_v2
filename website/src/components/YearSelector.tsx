@@ -8,22 +8,23 @@ import {
   Alert,
   Box
 } from '@mui/material';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getAvailableYearsData, getCurrentYear } from '../utils/yearApi';
+import { useYear } from '../contexts/YearContext';
 
 interface YearSelectorProps {
-  selectedYear?: number;
-  onYearChange: (year?: number) => void;
   showCurrentYear?: boolean;
 }
 
 const YearSelector: React.FC<YearSelectorProps> = ({
-  selectedYear,
-  onYearChange,
   showCurrentYear = true
 }) => {
+  const { selectedYear, setSelectedYear } = useYear();
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const fetchYears = async () => {
@@ -48,10 +49,25 @@ const YearSelector: React.FC<YearSelectorProps> = ({
 
   const handleChange = (event: any) => {
     const value = event.target.value;
-    if (value === 'current') {
-      onYearChange(undefined);
+    const newYear = value === 'current' ? undefined : Number(value);
+    
+    setSelectedYear(newYear);
+    
+    // Update URL based on current page and selected year
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+    
+    // Remove year from path if it exists as first segment
+    let currentPage = pathSegments[0];
+    if (currentPage && !isNaN(Number(currentPage))) {
+      // First segment is a year, so the page is the second segment
+      currentPage = pathSegments[1] || 'classifica';
+    }
+    
+    // Navigate to year-first URL structure
+    if (newYear) {
+      navigate(`/${newYear}/${currentPage}`);
     } else {
-      onYearChange(Number(value));
+      navigate(`/${currentPage}`);
     }
   };
 

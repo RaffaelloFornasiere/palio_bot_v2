@@ -1,23 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box } from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import { PalioData } from '../../../generated/types.gen';
 import { getPalioDataForYear } from '../../../utils/yearApi';
+import { useYear } from '../../../contexts/YearContext';
 import YearSelector from '../../../components/YearSelector';
 
 const CalendarioPage: React.FC = () => {
   const [events, setEvents] = useState<{ [date: string]: { id: string; title: string; time: string; description?: string; subtitle?: string }[] }>({});
-  const { year: urlYear } = useParams<{ year?: string }>();
-  const navigate = useNavigate();
-  
-  // Initialize selectedYear from URL parameter immediately
-  const [selectedYear, setSelectedYear] = useState<number | undefined>(() => {
-    if (urlYear && !isNaN(Number(urlYear))) {
-      return Number(urlYear);
-    }
-    return undefined;
-  });
+  const { selectedYear } = useYear();
 
   useEffect(() => {
     // Load palio data from API
@@ -130,18 +122,7 @@ const CalendarioPage: React.FC = () => {
         <Typography variant="h4" component="h1">
           Calendario Eventi
         </Typography>
-        <YearSelector 
-          selectedYear={selectedYear}
-          onYearChange={(year) => {
-            setSelectedYear(year);
-            // Update URL to reflect year selection
-            if (year) {
-              navigate(`/calendario/${year}`);
-            } else {
-              navigate('/calendario');
-            }
-          }}
-        />
+        <YearSelector />
       </Box>
       <WeeklyCalendar events={events} />
     </Box>

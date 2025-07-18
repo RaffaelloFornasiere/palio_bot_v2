@@ -10,7 +10,7 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   getPalioGamesStatusForYear,
   getLeaderboardDataForYear,
@@ -25,6 +25,7 @@ import {
   ScoreBasedDivision,
   RoundRobinDivision
 } from '../../../generated/types.gen';
+import { useYear } from '../../../contexts/YearContext';
 import YearSelector from '../../../components/YearSelector';
 
 type GameData = ScoreBasedGameStatus | RoundRobinGameStatus;
@@ -37,16 +38,8 @@ const GiochiPage: React.FC = () => {
   const [palioData, setPalioData] = useState<PalioData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { year: urlYear } = useParams<{ year?: string }>();
+  const { selectedYear } = useYear();
   const navigate = useNavigate();
-  
-  // Initialize selectedYear from URL parameter immediately
-  const [selectedYear, setSelectedYear] = useState<number | undefined>(() => {
-    if (urlYear && !isNaN(Number(urlYear))) {
-      return Number(urlYear);
-    }
-    return undefined;
-  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -218,18 +211,7 @@ const GiochiPage: React.FC = () => {
           <Typography variant="h4" component="h1">
             Giochi del Palio
           </Typography>
-          <YearSelector 
-            selectedYear={selectedYear}
-            onYearChange={(year) => {
-              setSelectedYear(year);
-              // Update URL to reflect year selection
-              if (year) {
-                navigate(`/giochi/${year}/overview`);
-              } else {
-                navigate('/giochi');
-              }
-            }}
-          />
+          <YearSelector />
         </Box>
         
         {gamesData && (
@@ -286,7 +268,7 @@ const GiochiPage: React.FC = () => {
                   <Button 
                     variant="outlined" 
                     size="small"
-                    onClick={() => navigate(`/giochi/${gameId}`)}
+                    onClick={() => navigate(selectedYear ? `/${selectedYear}/giochi/${gameId}` : `/giochi/${gameId}`)}
                   >
                     Vedi Dettagli
                   </Button>

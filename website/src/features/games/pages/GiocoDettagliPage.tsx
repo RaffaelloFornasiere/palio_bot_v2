@@ -21,10 +21,10 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowBack } from '@mui/icons-material';
 import { 
-  getPalioGamesStatus,
-  getLeaderboardData,
-  getPalioData
-} from '../../../generated/sdk.gen';
+  getPalioGamesStatusForYear,
+  getLeaderboardDataForYear,
+  getPalioDataForYear
+} from '../../../utils/yearApi';
 import { 
   PalioGamesStatus, 
   PalioData, 
@@ -38,6 +38,7 @@ import {
   GameBonus,
   ScorePenalty
 } from '../../../generated/types.gen';
+import { useYear } from '../../../contexts/YearContext';
 
 type GameData = ScoreBasedGameStatus | RoundRobinGameStatus;
 type GameDivision = ScoreBasedDivision | RoundRobinDivision;
@@ -46,6 +47,7 @@ type GameScore = { [key: string]: number | string };
 const GiocoDettagliPage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const { selectedYear } = useYear();
   const [gamesData, setGamesData] = useState<PalioGamesStatus | null>(null);
   const [leaderboardData, setLeaderboardData] = useState<Leaderboard | null>(null);
   const [palioData, setPalioData] = useState<PalioData | null>(null);
@@ -57,9 +59,9 @@ const GiocoDettagliPage: React.FC = () => {
       try {
         setLoading(true);
         const [gamesResponse, leaderboardResponse, palioResponse] = await Promise.all([
-          getPalioGamesStatus(),
-          getLeaderboardData(),
-          getPalioData()
+          getPalioGamesStatusForYear(selectedYear),
+          getLeaderboardDataForYear(selectedYear),
+          getPalioDataForYear(selectedYear)
         ]);
 
         if (gamesResponse.error || leaderboardResponse.error || palioResponse.error) {
@@ -77,7 +79,7 @@ const GiocoDettagliPage: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [selectedYear]);
 
   const getGameName = (gameId: string): string => {
     // First check palio data for the game name
@@ -313,7 +315,7 @@ const GiocoDettagliPage: React.FC = () => {
         <Box sx={{ mb: 3 }}>
           <Button
             startIcon={<ArrowBack />}
-            onClick={() => navigate('/giochi')}
+            onClick={() => navigate(selectedYear ? `/${selectedYear}/giochi` : '/giochi')}
             sx={{ mb: 2 }}
           >
             Torna ai Giochi
