@@ -346,7 +346,6 @@ const GiocoDettagliPage: React.FC = () => {
               </Card>
             )}
           </Box>
-          {hasGameDivisions(gameData)?'porcodio':'diocane'}
           {/* Divisions - Show each division in its own card */}
           {hasGameDivisions(gameData) && (
 
