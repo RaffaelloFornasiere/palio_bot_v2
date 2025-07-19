@@ -53,10 +53,11 @@ System (coordinator)
 - **System prompt**: Istruzioni in italiano per gestione palio
 - **Error handling**: Gestisce errori tool senza eccezioni
 - **Event emission**: UserMessageEvent, AgentUpdateEvent, ToolUseEvent, ToolResultEvent, AgentCompleteEvent
+- **Cancellation support**: Supporto interruzione via CancellationEvent
 
 ### 5. Event Stream (`stream/`)
 - **Stream**: Sistema di distribuzione eventi asincrono
-- **Events**: UserMessageEvent, AgentUpdateEvent, ToolUseEvent, ToolResultEvent, AgentCompleteEvent, ErrorEvent
+- **Events**: UserMessageEvent, AgentUpdateEvent, ToolUseEvent, ToolResultEvent, AgentCompleteEvent, ErrorEvent, CancellationEvent
 - **Consumers**: CLIConsumer, TelegramConsumer
 - **Interfaces**: Producer, Consumer per event handling
 
@@ -65,7 +66,7 @@ System (coordinator)
 - **Session management**: Una sola sessione attiva, persistenza automatica
 - **File management**: Gestisce palio.json, palio_games_status.json, palio_updated.json
 - **Leaderboard update**: Aggiorna classifica con giochi completati
-- **API semplice**: `send_message()`, `close_session()`, `cancel_session()`
+- **API semplice**: `send_message()`, `close_session()`, `cancel_session()`, `cancel_current_operation()`
 
 ### 7. Container (`container.py`)
 - **Dependency injection**: Gestione dipendenze lazy con event system
@@ -76,25 +77,37 @@ System (coordinator)
 
 ### 8. CLI (`cli/cli.py`)
 - **Interfaccia interattiva**: Chat con assistente
-- **Comandi speciali**: `/close`, `/cancel`, `/status`, `/quit`
+- **Comandi speciali**: `/close`, `/cancel`, `/status`, `/quit`, `/stop`
 - **Auto-setup**: Crea palio.json base se mancante
 - **Error handling**: Debug dettagliato con traceback
 - **Event consumption**: Riceve eventi real-time durante esecuzione
+- **Cancellation support**: Supporto interruzione operazioni con `/stop`
 
 ### 9. Telegram Bot (`telegram_bot/`)
-- **TelegramBot**: Bot Telegram integrato
+- **TelegramBot**: Bot Telegram integrato con autenticazione
 - **TelegramConsumer**: Consumer per eventi Telegram
 - **Audio support**: Trascrizione audio tramite Whisper
 - **Multi-chat**: Supporto conversazioni multiple
+- **Stop command**: `/stop` per cancellare operazioni in corso
+- **Authentication**: Supporto `ALLOWED_USER_ID` per controllo accesso
 
 ### 10. API Server (`api/api_server.py`)
 - **REST API**: Endpoint per integrazione esterna
 - **WebSocket**: Streaming eventi real-time
 - **CORS support**: Configurazione cross-origin
+- **Multi-year support**: Endpoint per gestire dati di anni precedenti
+- **Generated types**: API con tipi TypeScript generati automaticamente
 
 ### 11. Services (`services/`)
 - **AudioTranscriptionService**: Trascrizione audio tramite Whisper
-- **LeaderboardUpdater**: Aggiornamento automatico classifica
+- **LeaderboardUpdater**: Aggiornamento automatico classifica con divisioni
+- **API Logger**: Sistema di logging delle chiamate API per debug
+
+### 12. Models (`models/`)
+- **GameStatusModels**: Modelli Pydantic per stato giochi e partite
+- **LeaderboardModels**: Modelli per classifica e divisioni
+- **PalioModels**: Modelli base del palio
+- **Helpers**: Utility per conversioni e validazioni
 
 ## Flusso di Esecuzione
 
@@ -156,6 +169,7 @@ Tutti i tool seguono schema JSON standard:
 - `/close` - Chiude sessione mantenendo modifiche
 - `/cancel` - Annulla e ripristina backup
 - `/status` - Info sistema dettagliate
+- `/stop` - Interrompe operazione corrente
 - `/quit` - Esce
 
 ## Altre Interfacce
@@ -191,6 +205,13 @@ bot_v2/
 │   ├── container.py            # Dependency injection
 │   ├── system.py               # System coordinator
 │   ├── leaderboard_updater.py  # Aggiornatore classifica
+│   ├── models/                 # Modelli Pydantic
+│   │   ├── game_status_models.py # Modelli per giochi e partite
+│   │   ├── leaderboard_models.py # Modelli per classifica
+│   │   ├── palio_models.py     # Modelli base palio
+│   │   └── helpers.py          # Utility per conversioni
+│   ├── utils/                  # Utilities
+│   │   └── api_logger.py       # Logger per API calls
 │   ├── agent/
 │   │   ├── agent.py            # Agent con tool loop
 │   │   ├── models.py           # Pydantic models
@@ -221,9 +242,12 @@ bot_v2/
 │   ├── src/
 │   │   ├── features/
 │   │   │   ├── calendar/       # Calendario eventi
-│   │   │   ├── games/          # Gestione giochi
-│   │   │   └── leaderboard/    # Classifica
-│   │   └── ...
+│   │   │   ├── games/          # Gestione giochi con dettagli
+│   │   │   └── leaderboard/    # Classifica con divisioni
+│   │   ├── generated/          # Tipi TypeScript auto-generati
+│   │   ├── components/         # Componenti condivisi con YearSelector
+│   │   ├── contexts/           # YearContext per multi-anno
+│   │   └── utils/              # API utilities e yearApi
 │   └── ...
 ├── docker/                      # Docker configuration
 │   ├── Dockerfile.api

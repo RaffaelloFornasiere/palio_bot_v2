@@ -1,6 +1,6 @@
 # Palio Bot v2 - Event Stream System
 
-Sistema di gestione dati del Palio con supporto per eventi in tempo reale.
+Sistema completo di gestione dati del Palio con supporto per eventi in tempo reale, interfaccia web multi-anno e bot Telegram con audio.
 
 ## Features
 
@@ -8,6 +8,11 @@ Sistema di gestione dati del Palio con supporto per eventi in tempo reale.
 - **Tool Transparency**: Ogni uso di tool è visibile immediatamente
 - **Progressive Updates**: I messaggi Telegram si aggiornano durante l'elaborazione
 - **Rich CLI Output**: Formattazione bella nel terminale con panels e syntax highlighting
+- **Cancellation Support**: Interrompi operazioni in corso con `/stop`
+- **Multi-year Interface**: Frontend React con supporto per anni multipli
+- **Audio Support**: Trascrizione audio tramite Whisper nel bot Telegram
+- **API with Generated Types**: REST API con tipi TypeScript auto-generati
+- **Authentication**: Controllo accesso per bot Telegram
 
 ## Architettura
 
@@ -29,10 +34,13 @@ palio_bot/
 ├── agent.py            # Agent che emette eventi
 ├── system.py           # System coordinator
 ├── container.py        # Dependency injection
+├── models/             # Pydantic models for API
+├── utils/              # API logger and utilities
 ├── cli_consumer.py     # CLI event consumer
 ├── telegram_consumer.py # Telegram event consumer
 ├── cli.py              # CLI entry point
-└── telegram_bot.py     # Telegram bot entry point
+├── telegram_bot.py     # Telegram bot entry point
+└── api/                # REST API server
 ```
 
 ## Usage
@@ -63,6 +71,7 @@ Logs are saved to `logs/palio_bot_YYYYMMDD_HHMMSS.log`
 ```bash
 export TELEGRAM_BOT_TOKEN=your_token_here
 export ALLOWED_USER_ID=your_user_id  # optional
+export OPENAI_API_KEY=your_openai_key  # per audio transcription
 python -m palio_bot.telegram_bot
 ```
 
@@ -70,6 +79,37 @@ I messaggi si aggiornano progressivamente:
 1. "🔄 Processing: [message]"
 2. "🔧 Using tool..."
 3. Final response
+
+Supporta anche:
+- 🎵 Audio messages (trascrizione automatica)
+- 🛑 `/stop` per cancellare operazioni
+- 🔐 Autenticazione utenti
+
+### Web Interface
+
+```bash
+cd website
+npm install
+npm run dev
+```
+
+Features:
+- 📅 Calendario eventi multi-anno
+- 🎮 Gestione giochi con dettagli partite
+- 🏆 Classifica con divisioni
+- 🔄 Selezione anno dinamica
+- 📊 Tipi TypeScript auto-generati
+
+### API Server
+
+```bash
+python -m palio_bot.api.api_server
+```
+
+- 🌐 REST API con OpenAPI docs
+- 🔌 WebSocket per eventi real-time
+- 📋 Multi-year data support
+- 🎯 Generated TypeScript types
 
 ## Event Types
 
@@ -79,6 +119,7 @@ I messaggi si aggiornano progressivamente:
 - `ToolResultEvent` - Risultato del tool
 - `AgentCompleteEvent` - Elaborazione completata
 - `ErrorEvent` - Errore durante elaborazione
+- `CancellationEvent` - Cancellazione operazione
 
 ## Configuration
 
@@ -88,6 +129,7 @@ Environment variables:
 - `ANTHROPIC_API_KEY` - API key per Anthropic (se usi anthropic)
 - `TELEGRAM_BOT_TOKEN` - Token del bot Telegram
 - `ALLOWED_USER_ID` - ID utente autorizzato per Telegram
+- `OPENAI_API_KEY` - API key per Whisper (trascrizione audio)
 
 ## Comandi
 
@@ -95,6 +137,7 @@ Environment variables:
 - `/close` - Salva modifiche
 - `/cancel` - Annulla modifiche
 - `/status` - Mostra stato
+- `/stop` - Interrompe operazione corrente
 - `/quit` - Esci
 
 ### Telegram
@@ -102,6 +145,7 @@ Environment variables:
 - `/status` - Mostra stato
 - `/close` - Salva sessione
 - `/cancel` - Annulla sessione
+- `/stop` - Cancella operazione in corso
 
 ## Development
 
