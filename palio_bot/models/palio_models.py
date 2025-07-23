@@ -32,6 +32,7 @@ class PalioData(BaseModel):
     """Complete palio data model."""
     competition_name: str
     villages: List[str]
+    villages_colors: Dict[str, str]
     games: List[Game]
     non_game_events: List[NonGameEvent]
 

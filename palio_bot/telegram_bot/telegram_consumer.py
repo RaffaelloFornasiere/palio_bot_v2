@@ -191,8 +191,7 @@ class TelegramConsumer:
             await self.bot.edit_message_text(
                 chat_id=self.chat_id,
                 message_id=self.message_stack[session_id],
-                text=text,
-                parse_mode="HTML"
+                text=text
             )
         except TelegramError as e:
             # If edit fails (e.g., text unchanged), ignore

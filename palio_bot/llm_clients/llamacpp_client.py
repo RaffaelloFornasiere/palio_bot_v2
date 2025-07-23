@@ -49,7 +49,6 @@ class LlamaCPPClient(BaseLLMClient):
         # Add tools if provided
         if tools:
             payload["tools"] = self._convert_tools_to_openai(tools)
-            payload["tool_choice"] = "auto"
 
         payload["cache_prompt"] = True  # Enable caching for LlamaCPP
         # Log the request
@@ -91,19 +90,26 @@ class LlamaCPPClient(BaseLLMClient):
         
         # Add system message if system_prompt provided
         if system_prompt:
-            system_content = ""
+            openai_messages.append(
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+            )
+        if context:
             # Add context content if provided
             if context:
-                context_text = "\n\n".join([c.text for c in context])
-                system_content += f"\n\n{context_text}"
+                context_text = "<context>\n"
+                context_text += "\n\n".join([c.text for c in context])
+                context_text += "\n</context>"
 
-            # Add system prompt
-            system_content += f"\n\n{system_prompt}"
-            
-            openai_messages.append({
-                "role": "system",
-                "content": system_content
-            })
+                openai_messages.append(
+                    {
+                        "role": "user",
+                        "content": context_text
+                    }
+                )
+
         
         # Convert each message
         for msg in messages:
