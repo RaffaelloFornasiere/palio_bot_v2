@@ -8,7 +8,8 @@ import {
   Chip, 
   Button,
   CircularProgress,
-  Alert
+  Alert,
+  useTheme
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -28,6 +29,7 @@ import {
 import { useYear } from '../../../contexts/YearContext';
 import YearSelector from '../../../components/YearSelector';
 import { getStatusText, formatDate, getStatusColor } from '../utils';
+import { getVillageBackgroundColor } from '../../../utils/colorUtils';
 
 type GameData = ScoreBasedGameStatus | RoundRobinGameStatus;
 type GameDivision = ScoreBasedDivision | RoundRobinDivision;
@@ -41,6 +43,7 @@ const GiochiPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { selectedYear } = useYear();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,6 +86,20 @@ const GiochiPage: React.FC = () => {
   const getWinner = (gameId: string): string => {
     const overallLeaderboard = leaderboardData?.game_leaderboards[gameId]?.overall_leaderboard ?? {};
     return Object.entries(overallLeaderboard).find(i => i[1].position === 1)?.[0] ?? ''
+  };
+
+  const getVillageColor = (village: string): string | undefined => {
+    return palioData?.villages_colors?.[village];
+  };
+
+  const getWinnerBackgroundColor = (village: string): string | undefined => {
+    if (!village) return undefined;
+    const villageColor = getVillageColor(village);
+    if (!villageColor) return undefined;
+    
+    // Get the current theme background color
+    const backgroundColor = theme.palette.mode === 'dark' ? '#121212' : '#ffffff';
+    return getVillageBackgroundColor(villageColor, backgroundColor, 0.1);
   };
 
   const sortGamesByStatus = (games: [string, GameData][]): [string, GameData][] => {
@@ -138,61 +155,90 @@ const GiochiPage: React.FC = () => {
         )}
 
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
-          {gamesData && sortGamesByStatus(Object.entries(gamesData.game_scores)).map(([gameId, gameData]) => (
-
-            <Card key={gameId} sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" component="h2" gutterBottom>
-                  {getGameName(gameId)}
-                </Typography>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Chip 
-                    label={getStatusText(gameData.status)} 
-                    color={getStatusColor(gameData.status) as any}
-                    size="small"
-                  />
-                </Box>
-
-                {/* Show divisions if they exist */}
-                {gameData.divisions && gameData.divisions.length > 0 && (
+          {gamesData && sortGamesByStatus(Object.entries(gamesData.game_scores)).map(([gameId, gameData]) => {
+            const winner = getWinner(gameId);
+            const winnerBgColor = getWinnerBackgroundColor(winner);
+            
+            return (
+              <Card 
+                key={gameId} 
+                sx={{ 
+                  height: '100%',
+                  backgroundColor: winnerBgColor || 'inherit',
+                  transition: 'background-color 0.3s ease'
+                }}
+              >
+                <CardContent>
+                  <Typography variant="h6" component="h2" gutterBottom>
+                    {getGameName(gameId)}
+                  </Typography>
+                  
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      <strong>Divisioni:</strong>
-                    </Typography>
-                    {(gameData.divisions as any[]).map((division: any, index: number) => (
-                      <Box key={index} sx={{ ml: 1, mb: 1 }}>
-                        <Chip 
-                          label={`${division.name}: ${getStatusText(division.status)}`}
-                          color={getStatusColor(division.status) as any}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </Box>
-                    ))}
+                    <Chip 
+                      label={getStatusText(gameData.status)} 
+                      color={getStatusColor(gameData.status) as any}
+                      size="small"
+                    />
                   </Box>
-                )}
 
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  <strong>Vincitore:</strong> {getWinner(gameId)}
-                </Typography>
+                  {/* Show divisions if they exist */}
+                  {gameData.divisions && gameData.divisions.length > 0 && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        <strong>Divisioni:</strong>
+                      </Typography>
+                      {(gameData.divisions as any[]).map((division: any, index: number) => (
+                        <Box key={index} sx={{ ml: 1, mb: 1 }}>
+                          <Chip 
+                            label={`${division.name}: ${getStatusText(division.status)}`}
+                            color={getStatusColor(division.status) as any}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
 
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  <strong>ID Gioco:</strong> {gameId}
-                </Typography>
+                  <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Vincitore:</strong>
+                    </Typography>
+                    {winner && (
+                      <Chip 
+                        label={winner}
+                        size="small"
+                        sx={{ 
+                          backgroundColor: getVillageColor(winner) || 'default',
+                          color: '#fff',
+                          fontWeight: 'bold'
+                        }}
+                      />
+                    )}
+                    {!winner && (
+                      <Typography variant="body2" color="text.secondary">
+                        -
+                      </Typography>
+                    )}
+                  </Box>
 
-                <Box sx={{ mt: 2 }}>
-                  <Button 
-                    variant="outlined" 
-                    size="small"
-                    onClick={() => navigate(selectedYear ? `/${selectedYear}/giochi/${gameId}` : `/giochi/${gameId}`)}
-                  >
-                    Vedi Dettagli
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    <strong>ID Gioco:</strong> {gameId}
+                  </Typography>
+
+                  <Box sx={{ mt: 2 }}>
+                    <Button 
+                      variant="outlined" 
+                      size="small"
+                      onClick={() => navigate(selectedYear ? `/${selectedYear}/giochi/${gameId}` : `/giochi/${gameId}`)}
+                    >
+                      Vedi Dettagli
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            );
+          })}
         </Box>
 
         {(!gamesData || Object.keys(gamesData.game_scores).length === 0) && (

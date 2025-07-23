@@ -67,7 +67,7 @@ export type Game = {
     /**
      * Type
      */
-    type: 'score-based' | 'round-robin' | 'points-based';
+    type: 'score-based' | 'round-robin';
     /**
      * Description
      */
@@ -110,7 +110,7 @@ export type GameBonus = {
 
 /**
  * GameLeaderboard
- * Leaderboard for a specific game, with explicit division support.
+ * Leaderboard for a specific game.
  */
 export type GameLeaderboard = {
     /**
@@ -131,6 +131,10 @@ export type GameLeaderboard = {
     overall_leaderboard: {
         [key: string]: LeaderboardEntry;
     };
+    /**
+     * Completed
+     */
+    completed?: boolean | null;
     /**
      * Updated At
      */
@@ -166,6 +170,7 @@ export type GamePenalty = {
 export type GameRound = {
     /**
      * Scores
+     * Village scores in this round
      */
     scores?: {
         [key: string]: number | number | string;
@@ -189,7 +194,7 @@ export type HttpValidationError = {
 
 /**
  * Leaderboard
- * Main leaderboard model with explicit division support.
+ * Main leaderboard model.
  */
 export type Leaderboard = {
     /**
@@ -256,6 +261,12 @@ export type PalioData = {
      * Villages
      */
     villages: Array<string>;
+    /**
+     * Villages Colors
+     */
+    villages_colors: {
+        [key: string]: string;
+    };
     /**
      * Games
      */

@@ -58,8 +58,6 @@ def initialize_game_structure(game: Dict[str, Any]) -> Dict[str, Any]:
         game_structure["rounds"] = []
     elif game_type == "score-based":
         game_structure["scores"] = {}
-    elif game_type == "points-based":
-        game_structure["scores"] = {}
     else:
         # Default to scores for unknown types
         game_structure["scores"] = {}
@@ -130,12 +128,10 @@ def restore_games_status(palio_file: Path, games_status_file: Path, leaderboard_
     # Print summary
     round_robin_count = sum(1 for g in games if g.get("type") == "round-robin")
     score_based_count = sum(1 for g in games if g.get("type") == "score-based")
-    points_based_count = sum(1 for g in games if g.get("type") == "points-based")
-    
+
     print(f"\nSummary:")
     print(f"  Round-robin games (with 'rounds'): {round_robin_count}")
     print(f"  Score-based games (with 'scores'): {score_based_count}")
-    print(f"  Points-based games (with 'scores'): {points_based_count}")
     print(f"  Villages reset to 0 points: {len(villages)}")
     print(f"  Game leaderboards cleared: ✅")
 
