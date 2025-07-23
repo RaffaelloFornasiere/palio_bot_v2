@@ -1,4 +1,4 @@
-"""Dependency container with event system integration."""
+"""Dependency container with file registry and event system integration."""
 
 import logging
 from typing import Dict, Optional, Literal
@@ -8,28 +8,30 @@ from .system import System
 from palio_bot.stream.stream import Stream
 from palio_bot.cli.cli_consumer import CLIConsumer
 from palio_bot.telegram_bot.telegram_consumer import TelegramConsumer
-from palio_bot.tools.text_editor_tool import create_text_editor_tools
-from palio_bot.tools.json_editor_tool import create_json_editor_tools
+from palio_bot.tools.multi_json_editor_tool import create_multi_json_editor_tools
+from palio_bot.tools.file_registry import FileRegistry, FileConfig
 from .llm_clients.llamacpp_client import LlamaCPPClient
 from .llm_clients.anthropic_client import AnthropicClient
 from .llm_clients.base_client import BaseLLMClient
 from palio_bot.agent.models import Tool
 from palio_bot.config import Config
 from palio_bot.services.audio_transcription import AudioTranscriptionService
+from palio_bot.models.palio_models import PalioData
+from palio_bot.models.game_status_models import PalioGamesStatus
+from palio_bot.models.leaderboard_models import Leaderboard
 from telegram import Bot
 
 logger = logging.getLogger(__name__)
 
 
 class Container:
-    """Dependency container with event streaming support."""
+    """Dependency container with file registry and event streaming support."""
 
     def __init__(
         self, 
         config: Config = None,
         llm_provider: Literal["llamacpp", "anthropic"] = None,
         anthropic_api_key: Optional[str] = None,
-        use_json_editor: bool = True
     ):
         """Initialize the container with configuration.
         
@@ -37,7 +39,6 @@ class Container:
             config: Configuration object (will create default if not provided)
             llm_provider: Which LLM provider to use (overrides config if provided)
             anthropic_api_key: API key for Anthropic (overrides config if provided)
-            use_json_editor: Whether to use JSONPath-based editor (True) or text-based editor (False)
         """
         if config is None:
             config = Config()
@@ -46,10 +47,10 @@ class Container:
         self.llamacpp_url = config.llama_cpp_url
         self.llm_provider = llm_provider or config.llm_provider
         self.anthropic_api_key = anthropic_api_key or config.anthropic_api_key
-        self.use_json_editor = use_json_editor
 
         # Initialize all services lazily
         self._llm_client: Optional[BaseLLMClient] = None
+        self._file_registry: Optional[FileRegistry] = None
         self._tools: Optional[Dict[str, Tool]] = None
         self._stream: Optional[Stream] = None
         self._agent: Optional[Agent] = None
@@ -57,7 +58,7 @@ class Container:
         self._cli_consumer: Optional[CLIConsumer] = None
         self._audio_transcription_service: Optional[AudioTranscriptionService] = None
         
-        logger.info(f"Container initialized with provider={llm_provider}, json_editor={use_json_editor}")
+        logger.info(f"Container initialized with provider={llm_provider}")
 
     def llm_client(self) -> BaseLLMClient:
         """Get or create LLM client based on configured provider."""
@@ -74,12 +75,45 @@ class Container:
             logger.info("LLM client created successfully")
         return self._llm_client
 
+    def file_registry(self) -> FileRegistry:
+        """Get or create file registry."""
+        if self._file_registry is None:
+            logger.info("Creating file registry")
+            registry = FileRegistry()
+            
+            # Register palio.json (read-only reference)
+            registry.register("palio", FileConfig(
+                path=self.config.palio_file_path,
+                validator=PalioData,
+                allow_edit=False,  # Read-only
+                use_safety_copy=False  # No safety copy needed
+            ))
+            
+            # Register palio_games_status.json (editable)
+            registry.register("games", FileConfig(
+                path=self.config.palio_games_status_path,
+                validator=PalioGamesStatus,
+                allow_edit=True,
+                use_safety_copy=True
+            ))
+            
+            # Register leaderboard.json (editable)
+            registry.register("leaderboard", FileConfig(
+                path=self.config.leaderboard_file_path,
+                validator=Leaderboard,
+                allow_edit=True,
+                use_safety_copy=True
+            ))
+            
+            self._file_registry = registry
+            logger.info(f"File registry created with {len(registry.files)} files")
+        return self._file_registry
+
     def tools(self) -> Dict[str, Tool]:
         """Get or create tools based on configuration."""
         if self._tools is None:
-            logger.info(f"Creating tools: json_editor={self.use_json_editor}")
-            if self.use_json_editor:
-                self._tools = create_json_editor_tools(file_path=str(self.config.palio_games_status_temp_path))
+            logger.info("Creating multi-file JSON editor tools")
+            self._tools = create_multi_json_editor_tools(self.file_registry())
             logger.info(f"Created {len(self._tools)} tools: {list(self._tools.keys())}")
         return self._tools
 
@@ -102,12 +136,13 @@ class Container:
         return self._agent
 
     def system(self) -> System:
-        """Get or create system with event support."""
+        """Get or create system with event and file registry support."""
         if self._system is None:
             logger.info("Creating system")
             self._system = System(
                 agent=self.agent(),
                 stream=self.stream(),
+                file_registry=self.file_registry(),
                 config=self.config
             )
             logger.info("System created successfully")
@@ -150,6 +185,7 @@ class Container:
             # Initialize core services
             logger.info("Creating core services...")
             self.llm_client()
+            self.file_registry()
             self.tools()
             self.stream()
             self.agent()

@@ -1,4 +1,4 @@
-"""System coordinator with event streaming support."""
+"""System coordinator with multi-file support and event streaming."""
 
 import json
 import os
@@ -21,23 +21,26 @@ from palio_bot.stream.events import (
 )
 from palio_bot.config import Config
 from palio_bot.leaderboard_updater import LeaderboardUpdater
+from palio_bot.tools.file_registry import FileRegistry
 
 logger = logging.getLogger(__name__)
 
 
 class System(Producer):
-    """Main coordinator that manages sessions and orchestrates agent interactions with event streaming."""
+    """Main coordinator with multi-file support that manages sessions and orchestrates agent interactions."""
     
     def __init__(
         self,
-            *,
+        *,
         agent: Agent,
         stream: Stream,
+        file_registry: FileRegistry,
         config: Config = None,
     ):
         super().__init__(stream)
         self.agent = agent
         self.stream = stream
+        self.file_registry = file_registry
         self.active_session: Optional[Session] = None
         
         # Add cancellation state management
@@ -46,13 +49,15 @@ class System(Producer):
         if config is None:
             config = Config()
             
+        # Keep config for legacy compatibility
+        self.config = config
         self.palio_file_path = config.palio_file_path
         self.palio_games_status_path = config.palio_games_status_path
         self.leader_board_file_path = config.leaderboard_file_path
         self.session_file_path = config.session_file_path
         self.palio_games_status_temp_path = config.palio_games_status_temp_path
         
-        logger.info(f"System initialized with palio_file: {self.palio_file_path}")
+        logger.info(f"System initialized with {len(file_registry.files)} registered files")
         
         # Load existing session if available
         self._load_session()
@@ -91,9 +96,9 @@ class System(Producer):
                 content=user_message
             ))
             
-            # Get current palio.json content as context
-            logger.debug("Loading palio.json context")
-            context = self._get_palio_context_string()
+            # Get current context
+            logger.debug("Loading context")
+            context = self._get_context_from_registry()
             logger.debug(f"Context loaded: {len(context)} blocks")
             
             # Process message through agent generator
@@ -171,35 +176,31 @@ class System(Producer):
             raise
     
     def close_session(self) -> None:
-        """Close the active session normally, copying palio_games_status_temp_path.json to palio_games_status.json."""
+        """Close the active session normally, copying all temp files back to originals."""
         if self.active_session is None:
             logger.warning("close_session called but no active session")
             return
         
         logger.info(f"Closing session {self.active_session.id}")
         
-        # Copy palio_games_status_temp_path.json to palio_games_status.json
-        if self.palio_games_status_temp_path.exists():
-            logger.info(f"Copying {self.palio_games_status_temp_path} to {self.palio_games_status_path}")
-            shutil.copy2(self.palio_games_status_temp_path, self.palio_games_status_path)
-            self.palio_games_status_temp_path.unlink()  # Remove palio_games_status_temp_path.json
-            logger.info("Changes saved to palio.json")
-            
-            # Update leaderboard with completed games
-            try:
-                logger.info("Updating leaderboard with completed games")
-                leaderboard_updater = LeaderboardUpdater(
-                    self.palio_file_path,
-                    self.palio_games_status_path,
-                    self.leader_board_file_path
-                )
-                leaderboard_updater.update_leaderboard()
-                logger.info("Leaderboard updated successfully")
-            except Exception as e:
-                logger.error(f"Error updating leaderboard: {e}")
-                # Don't raise the exception to avoid breaking session closure
-        else:
-            logger.warning("palio_games_status_temp_path.json not found, nothing to save")
+        # Copy all modified temp files back to their originals
+        modified_files = self.file_registry.get_modified_files()
+        for file_name in modified_files:
+            config = self.file_registry.get_config(file_name)
+            if config and config.use_safety_copy:
+                temp_path = self.file_registry.get_temp_path(file_name)
+                if temp_path and temp_path.exists():
+                    logger.info(f"Copying {temp_path} to {config.path}")
+                    shutil.copy2(temp_path, config.path)
+                    temp_path.unlink()  # Remove temp file
+                    logger.info(f"Changes saved to {file_name}")
+        
+        # Clear modified files tracking
+        self.file_registry.clear_modified()
+        
+        # # Update leaderboard if games file was modified
+        # if "games" in modified_files:
+        #     self._update_leaderboard()
         
         self.active_session = None
         
@@ -208,13 +209,22 @@ class System(Producer):
             self.session_file_path.unlink()
     
     def cancel_session(self) -> None:
-        """Cancel the active session and discard changes in palio_games_status_temp_path.json."""
+        """Cancel the active session and discard all changes."""
         if self.active_session is None:
             return
         
-        # Simply remove palio_games_status_temp_path.json to discard changes
-        if self.palio_games_status_temp_path.exists():
-            self.palio_games_status_temp_path.unlink()
+        logger.info(f"Cancelling session {self.active_session.id}")
+        
+        # Remove all temp files to discard changes
+        for file_name, config in self.file_registry.files.items():
+            if config.use_safety_copy:
+                temp_path = self.file_registry.get_temp_path(file_name)
+                if temp_path and temp_path.exists():
+                    logger.info(f"Removing temp file for {file_name}")
+                    temp_path.unlink()
+        
+        # Clear modified files tracking
+        self.file_registry.clear_modified()
         
         self.active_session = None
         
@@ -240,21 +250,23 @@ class System(Producer):
         return self._cancellation_requested
     
     def _create_session(self) -> None:
-        """Create a new session and copy palio_games_status.json to palio_games_status_temp_path.json."""
+        """Create a new session and copy all files that need safety copies."""
         session_id = str(uuid.uuid4())
         self.active_session = Session(id=session_id)
         logger.info(f"Created new session: {session_id}")
         
-        # Copy palio_games_status.json to palio_games_status_temp_path.json for editing
-        if self.palio_games_status_path.exists():
-            logger.info(f"Copying {self.palio_games_status_path} to {self.palio_games_status_temp_path}")
-            shutil.copy2(self.palio_games_status_path, self.palio_games_status_temp_path)
-        else:
-            # Create empty palio_games_status_temp_path.json if palio_games_status.json doesn't exist
-            logger.warning(f"{self.palio_games_status_path} not found, creating empty {self.palio_games_status_temp_path}")
-            with open(self.palio_games_status_temp_path, 'w', encoding='utf-8') as f:
-                json.dump({}, f)
-
+        # Copy all files that use safety copy
+        for file_name, config in self.file_registry.files.items():
+            if config.use_safety_copy and config.path.exists():
+                temp_path = self.file_registry.get_temp_path(file_name)
+                logger.info(f"Copying {config.path} to {temp_path}")
+                shutil.copy2(config.path, temp_path)
+            elif config.use_safety_copy and not config.path.exists():
+                # Create empty file if it doesn't exist
+                temp_path = self.file_registry.get_temp_path(file_name)
+                logger.warning(f"{config.path} not found, creating empty {temp_path}")
+                with open(temp_path, 'w', encoding='utf-8') as f:
+                    json.dump({}, f)
 
     def _save_session(self) -> None:
         """Save the current session to file."""
@@ -277,11 +289,14 @@ class System(Producer):
             self.active_session = Session.model_validate(session_data)
             logger.info(f"Loaded existing session: {self.active_session.id} with {len(self.active_session.messages)} messages")
             
-            # Check if palio_games_status_temp_path.json exists (session was interrupted)
-            if not self.palio_games_status_temp_path.exists() and self.palio_games_status_path.exists():
-                # Recreate palio_games_status_temp_path.json from palio_games_status.json
-                logger.warning("Session exists but palio_games_status_temp_path.json missing, recreating from palio_games_status.json")
-                shutil.copy2(self.palio_games_status_path, self.palio_games_status_temp_path)
+            # Check if temp files exist for all files that need them
+            for file_name, config in self.file_registry.files.items():
+                if config.use_safety_copy:
+                    temp_path = self.file_registry.get_temp_path(file_name)
+                    if not temp_path.exists() and config.path.exists():
+                        # Recreate temp file from original
+                        logger.warning(f"Session exists but {temp_path} missing, recreating from {config.path}")
+                        shutil.copy2(config.path, temp_path)
                 
         except Exception as e:
             # If session loading fails, remove corrupted file
@@ -289,41 +304,58 @@ class System(Producer):
             self.session_file_path.unlink()
             logger.warning("Removed corrupted session file")
     
-    def _get_palio_context_string(self) -> list[AgentContextBlock]:
-        """Get original palio.json content as a string context."""
-        if not self.palio_file_path.exists():
-            raise FileNotFoundError("palio.json does not exist")
+    def _update_leaderboard(self) -> None:
+        """Update leaderboard with completed games."""
+        try:
+            logger.info("Updating leaderboard with completed games")
+            leaderboard_updater = LeaderboardUpdater(
+                self.palio_file_path,
+                self.palio_games_status_path,
+                self.leader_board_file_path
+            )
+            leaderboard_updater.update_leaderboard()
+            logger.info("Leaderboard updated successfully")
+        except Exception as e:
+            logger.error(f"Error updating leaderboard: {e}")
+            # Don't raise the exception to avoid breaking session closure
+    
+    def _get_context_from_registry(self) -> list[AgentContextBlock]:
+        """Get context from registered files (multi-file mode)."""
         result = []
 
+        # Add game status models documentation
         result.append(AgentContextBlock(
             context_name="game_status_models",
             content=extract_model_docs()
         ))
 
-        with open(self.palio_file_path, 'r', encoding='utf-8') as f:
-            content = json.load(f)
+        # Add palio specification if registered
+        if "palio" in self.file_registry.files:
+            config = self.file_registry.get_config("palio")
+            if config.path.exists():
+                with open(config.path, 'r', encoding='utf-8') as f:
+                    content = json.load(f)
+                    result.append(AgentContextBlock(
+                        context_name="palio_specification",
+                        content=json.dumps(content, indent=4),
+                    ))
+                    
+                    # Add game ID mapping
+                    ids = '\n'.join([f"{game['id']} - {game['name']}" for game in content['games']])
+                    result.append(AgentContextBlock(
+                        context_name="palio_game_id_mapping",
+                        content=ids,
+                    ))
 
-            result.append(AgentContextBlock(
-                context_name="palio_specification",
-                content=json.dumps(content, indent=4),
-            ))
-
-        with open(self.leader_board_file_path, 'r', encoding='utf-8') as f:
-            content = json.load(f)
-
-            result.append(AgentContextBlock(
-                context_name="current_leaderboard",
-                content=json.dumps(content, indent=4),
-            ))
-
-        with open(self.palio_file_path, 'r', encoding='utf-8') as f:
-            content = json.load(f)
-
-            ids = '\n'.join([f"{game['id']} - {game['name']}" for game in content['games']])
-
-            result.append(AgentContextBlock(
-                context_name="palio_game_id_mapping",
-                content=ids,
-            ))
+        # Add current leaderboard if registered
+        if "leaderboard" in self.file_registry.files:
+            config = self.file_registry.get_config("leaderboard")
+            if config.path.exists():
+                with open(config.path, 'r', encoding='utf-8') as f:
+                    content = json.load(f)
+                    result.append(AgentContextBlock(
+                        context_name="current_leaderboard",
+                        content=json.dumps(content, indent=4),
+                    ))
 
         return result
