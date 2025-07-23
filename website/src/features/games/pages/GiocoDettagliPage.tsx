@@ -107,23 +107,18 @@ const GiocoDettagliPage: React.FC = () => {
     return palioData?.villages_colors?.[village];
   };
 
-  const getRowBackgroundColor = (village: string, isWinner: boolean): string | undefined => {
-    if (!isWinner) return undefined;
+  const getRowBackgroundColor = (village: string, isWinner: boolean = false): string | undefined => {
     const villageColor = getVillageColor(village);
     if (!villageColor) return undefined;
     
     // Get the current theme background color
     const backgroundColor = theme.palette.mode === 'dark' ? '#121212' : '#ffffff';
-    return getVillageBackgroundColor(villageColor, backgroundColor, 0.15);
+    // Use stronger opacity for winners, lighter for regular rows
+    return getVillageBackgroundColor(villageColor, backgroundColor, 0.4);
   };
 
-  const getSortedScores = (scores: GameScore): [string, number | string][] => {
-    return Object.entries(scores).sort(([, a], [, b]) => {
-      // Handle mixed numeric and string scores
-      const aNum = typeof a === 'number' ? a : -Infinity;
-      const bNum = typeof b === 'number' ? b : -Infinity;
-      return bNum - aNum;
-    });
+  const toEntries = (scores: GameScore): [string, number | string][] => {
+    return Object.entries(scores);
   };
 
   const getSortedLeaderboard = (leaderboard: { [key: string]: number | number }): [string, number][] => {
@@ -417,8 +412,14 @@ const GiocoDettagliPage: React.FC = () => {
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
-                                    {getSortedScores(round.scores || {}).map(([village, score]) => (
-                                      <TableRow key={village}>
+                                    {toEntries(round.scores || {}).map(([village, score], index) => (
+                                      <TableRow 
+                                        key={village}
+                                        sx={{ 
+                                          backgroundColor: getRowBackgroundColor(village, false),
+                                          transition: 'background-color 0.2s'
+                                        }}
+                                      >
                                         <TableCell>{village}</TableCell>
                                         <TableCell align="right">{score}</TableCell>
                                       </TableRow>
@@ -440,7 +441,7 @@ const GiocoDettagliPage: React.FC = () => {
                       {divisionScores && Object.keys(divisionScores).length > 0 && (
                         <Box>
                           <Typography variant="body1" fontWeight="medium" gutterBottom>
-                            Punteggi Finali
+                            Risultati
                           </Typography>
                           <TableContainer component={Paper} variant="outlined">
                             <Table size="small">
@@ -451,7 +452,7 @@ const GiocoDettagliPage: React.FC = () => {
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {getSortedScores(divisionScores).map(([village, score], index) => (
+                                {toEntries(divisionScores).map(([village, score], index) => (
                                   <TableRow 
                                     key={village}
                                     sx={{ 
@@ -482,7 +483,7 @@ const GiocoDettagliPage: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Punteggi Finali
+                    Risultati
                   </Typography>
 
                   <TableContainer component={Paper} variant="outlined">
@@ -494,7 +495,7 @@ const GiocoDettagliPage: React.FC = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {getSortedScores(gameScores).map(([village, score], index) => (
+                        {toEntries(gameScores).map(([village, score], index) => (
                           <TableRow 
                             key={village}
                             sx={{ 
@@ -547,8 +548,14 @@ const GiocoDettagliPage: React.FC = () => {
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {getSortedScores(round.scores || {}).map(([village, score]) => (
-                              <TableRow key={village}>
+                            {toEntries(round.scores || {}).map(([village, score], index) => (
+                              <TableRow 
+                                key={village}
+                                sx={{ 
+                                  backgroundColor: getRowBackgroundColor(village, false),
+                                  transition: 'background-color 0.2s'
+                                }}
+                              >
                                 <TableCell>{village}</TableCell>
                                 <TableCell align="right">{score}</TableCell>
                               </TableRow>

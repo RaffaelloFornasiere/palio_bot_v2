@@ -47,7 +47,7 @@ export function blendColors(color1: string, color2: string, alpha: number): stri
  * Gets a village color blended with the current theme background
  * @param villageColor - The village color (hex string)
  * @param backgroundColor - The background color to blend with (hex string)
- * @param alpha - The blend amount for the village color (default 0.2)
+ * @param alpha - The blend amount for the village color (default 0.4)
  */
 export function getVillageBackgroundColor(
   villageColor: string,

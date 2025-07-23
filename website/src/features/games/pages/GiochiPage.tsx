@@ -99,7 +99,7 @@ const GiochiPage: React.FC = () => {
     
     // Get the current theme background color
     const backgroundColor = theme.palette.mode === 'dark' ? '#121212' : '#ffffff';
-    return getVillageBackgroundColor(villageColor, backgroundColor, 0.1);
+    return getVillageBackgroundColor(villageColor, backgroundColor, 0.4);
   };
 
   const sortGamesByStatus = (games: [string, GameData][]): [string, GameData][] => {

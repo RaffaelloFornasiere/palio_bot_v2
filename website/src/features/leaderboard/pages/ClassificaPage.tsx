@@ -14,13 +14,15 @@ import {
    CardContent,
    CircularProgress,
    Alert,
-   Chip
+   Chip,
+   useTheme
 } from '@mui/material';
 import {useNavigate} from 'react-router-dom';
-import {Leaderboard} from '../../../generated/types.gen';
-import {getLeaderboardDataForYear} from '../../../utils/yearApi';
+import {Leaderboard, PalioData} from '../../../generated/types.gen';
+import {getLeaderboardDataForYear, getPalioDataForYear} from '../../../utils/yearApi';
 import {useYear} from '../../../contexts/YearContext';
 import YearSelector from '../../../components/YearSelector';
+import {getVillageBackgroundColor} from '../../../utils/colorUtils';
 
 interface VillagePoints {
    [village: string]: number;
@@ -35,21 +37,27 @@ interface LeaderboardEntry {
 
 const ClassificaPage: React.FC = () => {
    const [leaderboardData, setLeaderboardData] = useState<Leaderboard | null>(null);
+   const [palioData, setPalioData] = useState<PalioData | null>(null);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
    const {selectedYear} = useYear();
+   const theme = useTheme();
 
    useEffect(() => {
       const fetchData = async () => {
          try {
             setLoading(true);
-            const response = await getLeaderboardDataForYear(selectedYear);
+            const [leaderboardResponse, palioResponse] = await Promise.all([
+               getLeaderboardDataForYear(selectedYear),
+               getPalioDataForYear(selectedYear)
+            ]);
 
-            if (response.error) {
-               throw new Error('Failed to fetch leaderboard data');
+            if (leaderboardResponse.error || palioResponse.error) {
+               throw new Error('Failed to fetch data');
             }
 
-            setLeaderboardData(response.data!);
+            setLeaderboardData(leaderboardResponse.data!);
+            setPalioData(palioResponse.data!);
          } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
          } finally {
@@ -79,7 +87,7 @@ const ClassificaPage: React.FC = () => {
             return entry;
          }
 
-         const previousPositionPoints = sortedEntries[index - 1].points;
+         const previousPositionPoints = sortedEntries[0].points;
          const gap = previousPositionPoints - entry.points;
 
          return {
@@ -102,6 +110,19 @@ const ClassificaPage: React.FC = () => {
          default:
             return 'default';
       }
+   };
+
+   const getVillageColor = (village: string): string | undefined => {
+      return palioData?.villages_colors?.[village];
+   };
+
+   const getRowBackgroundColor = (village: string): string | undefined => {
+      const villageColor = getVillageColor(village);
+      if (!villageColor) return undefined;
+      
+      // Get the current theme background color
+      const backgroundColor = theme.palette.mode === 'dark' ? '#121212' : '#ffffff';
+      return getVillageBackgroundColor(villageColor, backgroundColor, 0.4);
    };
 
 
@@ -154,7 +175,13 @@ const ClassificaPage: React.FC = () => {
                         </TableHead>
                         <TableBody>
                            {leaderboardEntries.map((entry) => (
-                              <TableRow key={entry.village}>
+                              <TableRow 
+                                 key={entry.village}
+                                 sx={{ 
+                                    backgroundColor: getRowBackgroundColor(entry.village),
+                                    transition: 'background-color 0.3s ease'
+                                 }}
+                              >
                                  <TableCell>
                                     <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
                                        <Typography
