@@ -6,7 +6,7 @@ import asyncio
 import ollama
 
 from .base_client import BaseLLMClient
-from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool
+from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool, TokenUsage
 from palio_bot.utils.api_logger import APILogger
 
 
@@ -211,7 +211,21 @@ class OllamaClient(BaseLLMClient):
         if not content_list:
             content_list.append(TextContent(text=""))
         
+        # Extract token usage from Ollama response format
+        token_usage = None
+        if "prompt_eval_count" in response or "eval_count" in response:
+            input_tokens = response.get("prompt_eval_count", 0)
+            output_tokens = response.get("eval_count", 0)
+            total_tokens = input_tokens + output_tokens
+            
+            token_usage = TokenUsage(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens
+            )
+        
         return Message(
             role="assistant",
-            content=content_list
+            content=content_list,
+            token_usage=token_usage
         )

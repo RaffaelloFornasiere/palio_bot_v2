@@ -9,6 +9,7 @@ from palio_bot.stream.events import (
     Event, UserMessageEvent, AgentUpdateEvent, ToolUseEvent,
     ToolResultEvent, AgentCompleteEvent, AgentCancelledEvent, ErrorEvent
 )
+from palio_bot.agent.models import TokenUsage
 from palio_bot.agent.models import TextContent
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,8 @@ class TelegramConsumer:
         # Send initial processing message
         msg = await self.bot.send_message(
             self.chat_id,
-            f"🔄 Processing: {event.content}\n\n⏳ Thinking..."
+            f"🔄 Processing: {event.content}\n\n⏳ Thinking...",
+            parse_mode='HTML'
         )
         self.message_stack[event.session_id] = msg.message_id
         self.current_text[event.session_id] = ""
@@ -117,6 +119,10 @@ class TelegramConsumer:
             current = self.current_text.get(event.session_id, "")
             agent_text = "\n\n🤖 " + "\n".join(text_parts)
             
+            # Add token usage if available
+            if event.message.token_usage:
+                agent_text += f"\n{self._format_token_usage(event.message.token_usage)}"
+            
             updated_text = current + agent_text
             self.current_text[event.session_id] = updated_text
             
@@ -133,6 +139,10 @@ class TelegramConsumer:
             final_text += "\n\n✅ Processing complete!"
         else:
             final_text = "✅ Processing complete!"
+        
+        # Add total token usage if available
+        if event.total_token_usage:
+            final_text += f"\n\n{self._format_token_usage(event.total_token_usage)}"
             
         # Update with final message
         await self._update_message(event.session_id, final_text)
@@ -169,7 +179,8 @@ class TelegramConsumer:
         # Always send error as a new message to preserve previous steps
         await self.bot.send_message(
             self.chat_id,
-            error_text
+            error_text,
+            parse_mode='HTML'
         )
         
         # Clean up session tracking
@@ -191,7 +202,8 @@ class TelegramConsumer:
             await self.bot.edit_message_text(
                 chat_id=self.chat_id,
                 message_id=self.message_stack[session_id],
-                text=text
+                text=text,
+                parse_mode='HTML'
             )
         except TelegramError as e:
             # If edit fails (e.g., text unchanged), ignore
@@ -230,3 +242,7 @@ class TelegramConsumer:
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;"))
+    
+    def _format_token_usage(self, token_usage: TokenUsage) -> str:
+        """Format token usage for display."""
+        return f"📊 <i>Tokens: {token_usage.input_tokens}→{token_usage.output_tokens} ({token_usage.total_tokens})</i>"

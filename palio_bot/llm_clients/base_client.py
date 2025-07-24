@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from palio_bot.agent.models import Message, Tool, TextContent
+from palio_bot.agent.models import Message, Tool, TextContent, TokenUsage
 
 
 class BaseLLMClient(ABC):

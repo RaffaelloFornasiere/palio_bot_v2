@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from palio_bot.agent.models import (
-    Message, Session, AgentContextBlock, TextContent, ToolUseContent, ToolResultContent
+    Message, Session, AgentContextBlock, TextContent, ToolUseContent, ToolResultContent, TokenUsage
 )
 from palio_bot.agent.agent import Agent
 from palio_bot.models.game_status_models import extract_model_docs
@@ -103,6 +103,9 @@ class System(Producer):
             
             # Process message through agent generator
             logger.info("Calling agent.run()")
+            
+            # Track total token usage for this interaction
+            total_token_usage = TokenUsage()
 
             async for message in self.agent.run(
                 messages=self.active_session.messages.copy(),
@@ -122,6 +125,10 @@ class System(Producer):
                 # Add message to session
                 self.active_session.add_message(message)
                 self._save_session()
+                
+                # Accumulate token usage if present
+                if message.token_usage:
+                    total_token_usage = total_token_usage + message.token_usage
                 
                 # Check message content and emit appropriate events
                 for content in message.content:
@@ -147,9 +154,10 @@ class System(Producer):
                         ))
             
             logger.info("Agent processing complete")
-            logger.info(f"Producing AgentCompleteEvent")
+            logger.info(f"Producing AgentCompleteEvent with token usage: {total_token_usage}")
             await self.produce(AgentCompleteEvent(
                 session_id=self.active_session.id,
+                total_token_usage=total_token_usage if total_token_usage.total_tokens > 0 else None
             ))
             
             # Save session after interaction
@@ -175,13 +183,13 @@ class System(Producer):
             
             raise
     
-    def close_session(self) -> None:
-        """Close the active session normally, copying all temp files back to originals."""
+    def save_session(self) -> None:
+        """Save changes from temp files to original files without closing the session."""
         if self.active_session is None:
-            logger.warning("close_session called but no active session")
+            logger.warning("save_session called but no active session")
             return
         
-        logger.info(f"Closing session {self.active_session.id}")
+        logger.info(f"Saving changes for session {self.active_session.id}")
         
         # Copy all modified temp files back to their originals
         modified_files = self.file_registry.get_modified_files()
@@ -201,6 +209,28 @@ class System(Producer):
         # # Update leaderboard if games file was modified
         # if "games" in modified_files:
         #     self._update_leaderboard()
+
+    def close_session(self, save_changes: bool = True) -> None:
+        """Close the active session, optionally saving changes."""
+        if self.active_session is None:
+            logger.warning("close_session called but no active session")
+            return
+        
+        logger.info(f"Closing session {self.active_session.id} (save_changes={save_changes})")
+        
+        if save_changes:
+            self.save_session()
+        else:
+            # Remove all temp files to discard changes
+            for file_name, config in self.file_registry.files.items():
+                if config.use_safety_copy:
+                    temp_path = self.file_registry.get_temp_path(file_name)
+                    if temp_path and temp_path.exists():
+                        logger.info(f"Removing temp file for {file_name}")
+                        temp_path.unlink()
+            
+            # Clear modified files tracking
+            self.file_registry.clear_modified()
         
         self.active_session = None
         
@@ -210,27 +240,7 @@ class System(Producer):
     
     def cancel_session(self) -> None:
         """Cancel the active session and discard all changes."""
-        if self.active_session is None:
-            return
-        
-        logger.info(f"Cancelling session {self.active_session.id}")
-        
-        # Remove all temp files to discard changes
-        for file_name, config in self.file_registry.files.items():
-            if config.use_safety_copy:
-                temp_path = self.file_registry.get_temp_path(file_name)
-                if temp_path and temp_path.exists():
-                    logger.info(f"Removing temp file for {file_name}")
-                    temp_path.unlink()
-        
-        # Clear modified files tracking
-        self.file_registry.clear_modified()
-        
-        self.active_session = None
-        
-        # Remove session file
-        if self.session_file_path.exists():
-            self.session_file_path.unlink()
+        self.close_session(save_changes=False)
     
     def get_active_session(self) -> Optional[Session]:
         """Get the currently active session."""

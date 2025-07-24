@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from .base_client import BaseLLMClient
-from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool
+from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool, TokenUsage
 from palio_bot.utils.api_logger import APILogger
 
 
@@ -218,7 +218,18 @@ class LlamaCPPClient(BaseLLMClient):
         if not content_list:
             content_list.append(TextContent(text=""))
         
+        # Extract token usage from response
+        token_usage = None
+        if "usage" in response:
+            usage = response["usage"]
+            token_usage = TokenUsage(
+                input_tokens=usage.get("prompt_tokens", 0),
+                output_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0)
+            )
+        
         return Message(
             role="assistant",
-            content=content_list
+            content=content_list,
+            token_usage=token_usage
         )

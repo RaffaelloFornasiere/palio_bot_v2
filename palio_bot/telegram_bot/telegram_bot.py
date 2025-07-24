@@ -80,6 +80,7 @@ class PalioTelegramBot:
             "/status - Mostra lo stato del sistema\n"
             "/games_status - Mostra lo stato dei giochi\n"
             "/leaderboard - Aggiorna la classifica\n"
+            "/save - Salva modifiche senza chiudere sessione\n"
             "/cancel - Annulla le modifiche della sessione corrente\n"
             "/close - Chiudi la sessione salvando le modifiche\n"
             "/stop - Interrompi l'elaborazione in corso",
@@ -121,6 +122,23 @@ class PalioTelegramBot:
             logger.error(f"Error in status: {e}")
             await update.message.reply_text(f"❌ Errore: {str(e)}")
             
+    async def save(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /save command"""
+        if not self.validate(update):
+            return
+            
+        system = self.container.system()
+        
+        try:
+            system.save_session()
+            await update.message.reply_text(
+                "💾 Modifiche salvate\n"
+                "La sessione rimane attiva per ulteriori modifiche."
+            )
+        except Exception as e:
+            logger.error(f"Error in save: {e}")
+            await update.message.reply_text(f"❌ Errore: {str(e)}")
+
     async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /cancel command"""
         if not self.check_user_authorized(update.effective_user.id):
@@ -504,6 +522,7 @@ def main():
     application.add_handler(CommandHandler("status", bot.status))
     application.add_handler(CommandHandler("games_status", bot.games_status))
     application.add_handler(CommandHandler("leaderboard", bot.leaderboard))
+    application.add_handler(CommandHandler("save", bot.save))
     application.add_handler(CommandHandler("cancel", bot.cancel))
     application.add_handler(CommandHandler("close", bot.close))
     application.add_handler(CommandHandler("stop", bot.stop_command))

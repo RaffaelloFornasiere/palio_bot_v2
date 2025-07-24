@@ -25,8 +25,9 @@ def print_welcome():
         "Benvenuto! Sono qui per aiutarti a gestire i dati del palio.\n"
         "Posso aggiornare eventi, risultati e classifiche.\n\n"
         "[dim]Comandi speciali:[/dim]\n"
+        "[green]/save[/green] - Salva modifiche senza chiudere sessione\n"
         "[green]/close[/green] - Chiudi sessione salvando modifiche\n"
-        "[yellow]/cancel[/yellow] - Annulla sessione scartando modifiche\n"
+        "[yellow]/cancel[/yellow] - Annulla sessione scartando modifiche\n" 
         "[blue]/status[/blue] - Mostra stato sistema\n"
         "[magenta]/leaderboard[/magenta] - Aggiorna classifica\n"
         "[red]/quit[/red] - Esci dal programma",
@@ -71,6 +72,14 @@ async def handle_commands(command: str, system, container) -> bool:
             console.print("Usa [green]/close[/green] per salvare o [yellow]/cancel[/yellow] per annullare.")
             return True
         return False
+    
+    elif command == "/save":
+        if system.get_active_session():
+            system.save_session()
+            console.print("\n[green]✓ Modifiche salvate (sessione ancora attiva)[/green]")
+        else:
+            console.print("\n[yellow]Nessuna sessione attiva da salvare[/yellow]")
+        return True
     
     elif command == "/close":
         if system.get_active_session():

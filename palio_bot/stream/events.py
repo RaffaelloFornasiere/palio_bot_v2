@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 import uuid
 
-from palio_bot.agent.models import Message, ToolResult
+from palio_bot.agent.models import Message, ToolResult, TokenUsage
 
 
 class Event(BaseModel):
@@ -51,6 +51,7 @@ class ToolResultEvent(Event):
 class AgentCompleteEvent(Event):
     """Event emitted when agent completes processing."""
     type: Literal["AgentCompleteEvent"] = "AgentCompleteEvent"
+    total_token_usage: Optional[TokenUsage] = None
 
 
 class AgentCancelledEvent(Event):
