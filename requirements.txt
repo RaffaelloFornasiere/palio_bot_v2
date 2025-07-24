@@ -12,3 +12,4 @@ pydub
 setuptools~=80.9.0
 PyYAML~=6.0.2
 httpx~=0.28.1
+ollama

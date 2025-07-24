@@ -12,6 +12,7 @@ from palio_bot.tools.multi_json_editor_tool import create_multi_json_editor_tool
 from palio_bot.tools.file_registry import FileRegistry, FileConfig
 from .llm_clients.llamacpp_client import LlamaCPPClient
 from .llm_clients.anthropic_client import AnthropicClient
+from .llm_clients.ollama_client import OllamaClient
 from .llm_clients.base_client import BaseLLMClient
 from palio_bot.agent.models import Tool
 from palio_bot.config import Config
@@ -30,8 +31,9 @@ class Container:
     def __init__(
         self, 
         config: Config = None,
-        llm_provider: Literal["llamacpp", "anthropic"] = None,
+        llm_provider: Literal["llamacpp", "anthropic", "ollama"] = None,
         anthropic_api_key: Optional[str] = None,
+        ollama_model: Optional[str] = None,
     ):
         """Initialize the container with configuration.
         
@@ -39,6 +41,7 @@ class Container:
             config: Configuration object (will create default if not provided)
             llm_provider: Which LLM provider to use (overrides config if provided)
             anthropic_api_key: API key for Anthropic (overrides config if provided)
+            ollama_model: Model name for Ollama (defaults to "llama3.2")
         """
         if config is None:
             config = Config()
@@ -47,6 +50,7 @@ class Container:
         self.llamacpp_url = config.llama_cpp_url
         self.llm_provider = llm_provider or config.llm_provider
         self.anthropic_api_key = anthropic_api_key or config.anthropic_api_key
+        self.ollama_model = ollama_model or config.ollama_model
 
         # Initialize all services lazily
         self._llm_client: Optional[BaseLLMClient] = None
@@ -70,6 +74,11 @@ class Container:
             elif self.llm_provider == "anthropic":
                 logger.debug("Using Anthropic API")
                 self._llm_client = AnthropicClient(api_key=self.anthropic_api_key)
+            elif self.llm_provider == "ollama":
+                logger.debug(f"Using Ollama with model: {self.ollama_model}")
+                # Use same URL as llamacpp but with port 11434
+                ollama_url = self.llamacpp_url.replace(":11454", ":11434")
+                self._llm_client = OllamaClient(base_url=ollama_url, model=self.ollama_model)
             else:
                 raise ValueError(f"Unknown LLM provider: {self.llm_provider}")
             logger.info("LLM client created successfully")

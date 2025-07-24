@@ -32,8 +32,14 @@ class Config:
     groq_api_key: str | None = os.getenv("GROQ_API_KEY")
     
     # General LLM Configuration
-    llm_provider: str = "llamacpp"
+    llm_provider: str = os.getenv("LLM_PROVIDER", "llamacpp")
     max_tokens: int = 8192
     cache_responses: bool = True
+    
+    # Ollama Configuration
+    ollama_model: str = os.getenv("OLLAMA_MODEL", "mistral-optimized")
+    ollama_num_gpu: int = int(os.getenv("OLLAMA_NUM_GPU", "-1"))  # -1 means all layers
+    ollama_num_batch: int = int(os.getenv("OLLAMA_NUM_BATCH", "512"))
+    ollama_num_thread: int = int(os.getenv("OLLAMA_NUM_THREAD", "8"))
 
 

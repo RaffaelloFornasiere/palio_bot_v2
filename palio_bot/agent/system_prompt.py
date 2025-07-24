@@ -87,10 +87,8 @@ Qui trovi la struttura da adottare per i tuoi ragionamenti.
 </thinking>
 
 Mostra il tuo ragionamento in un messaggio di testo, e poi procedi con i tool necessari per completare l'operazione.
-Il tuo primo messaggio deve essere un messaggio di testo che spiega cosa stai facendo e perché. L'utente poi confermerà o meno l'operazione.
 Fai solo ed esclusivamente ciò che ti viene richiesto, senza aggiungere altro.
 
-Non usare tool nel primo messaggio, ma solo dopo che l'utente ha confermato il tuo ragionamento.
 </general_instructions>
 
 """.format(
