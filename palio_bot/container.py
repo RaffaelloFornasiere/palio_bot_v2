@@ -122,7 +122,9 @@ class Container:
         """Get or create tools based on configuration."""
         if self._tools is None:
             logger.info("Creating multi-file JSON editor tools")
-            self._tools = create_multi_json_editor_tools(self.file_registry())
+            # Pass system if it's already created, otherwise None (will be set later)
+            system = self._system if hasattr(self, '_system') and self._system else None
+            self._tools = create_multi_json_editor_tools(self.file_registry(), system)
             logger.info(f"Created {len(self._tools)} tools: {list(self._tools.keys())}")
         return self._tools
 
@@ -154,6 +156,15 @@ class Container:
                 file_registry=self.file_registry(),
                 config=self.config
             )
+            
+            # Now update tools with system reference if they don't have it
+            if self._tools:
+                for tool_name, tool in self._tools.items():
+                    if hasattr(tool.function, '__self__') and hasattr(tool.function.__self__, 'system'):
+                        if not tool.function.__self__.system:
+                            tool.function.__self__.system = self._system
+                            logger.debug(f"Updated tool {tool_name} with system reference")
+            
             logger.info("System created successfully")
         return self._system
     

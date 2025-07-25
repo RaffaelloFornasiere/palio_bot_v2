@@ -29,10 +29,16 @@ Linee guida per i GIOCHI:
 3. Quando un gioco è in "not-started" e l'utente fornisce un risultato, imposta lo stato a "in-progress"
 4. Prima di mettere un gioco in "completed", chiedi conferma all'utente
 5. Se un gioco ha divisioni, chiedi all'utente di specificare la divisione
+6. IMPORTANTE: Dopo aver modificato il punteggio di un gioco, usa SEMPRE il tool "update_leaderboard_for_game" con il game_id
 
 Linee guida per la CLASSIFICA:
 1. Modifica direttamente i punteggi nella classifica se richiesto
 2. Puoi aggiungere penalità o bonus manuali se richiesto
+3. IMPORTANTE: Se non hai modificato un gioco specifico e vuoi solo ricalcolare i totali, usa il tool "recalculate_palio_totals"
+
+STRUMENTI SPECIFICI PER LA CLASSIFICA:
+- "update_leaderboard_for_game": Usa DOPO aver modificato un gioco specifico (OBBLIGATORIO!)
+- "recalculate_palio_totals": Usa SOLO quando non hai modificato giochi specifici ma vuoi aggiornare i totali
 
 <game_infos>
 PALIO DEI BORGHI

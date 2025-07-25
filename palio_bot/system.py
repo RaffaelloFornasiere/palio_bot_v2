@@ -314,20 +314,44 @@ class System(Producer):
             self.session_file_path.unlink()
             logger.warning("Removed corrupted session file")
     
-    def _update_leaderboard(self) -> None:
-        """Update leaderboard with completed games."""
+    def _update_leaderboard(self, specific_game_id: str = None) -> None:
+        """Update leaderboard with completed games.
+        
+        Args:
+            specific_game_id: If provided, only update this specific game.
+                            If None, update all completed games.
+        """
         try:
-            logger.info("Updating leaderboard with completed games")
+            if specific_game_id:
+                logger.info(f"Updating leaderboard for specific game: {specific_game_id}")
+            else:
+                logger.info("Updating leaderboard with all completed games")
+                
             leaderboard_updater = LeaderboardUpdater(
                 self.palio_file_path,
                 self.palio_games_status_path,
                 self.leader_board_file_path
             )
-            leaderboard_updater.update_leaderboard()
+            leaderboard_updater.update_leaderboard(specific_game_id)
             logger.info("Leaderboard updated successfully")
         except Exception as e:
             logger.error(f"Error updating leaderboard: {e}")
             # Don't raise the exception to avoid breaking session closure
+    
+    def _recalculate_palio_totals(self) -> None:
+        """Recalculate only the palio_leaderboard totals from existing games."""
+        try:
+            logger.info("Recalculating palio leaderboard totals")
+            leaderboard_updater = LeaderboardUpdater(
+                self.palio_file_path,
+                self.palio_games_status_path,
+                self.leader_board_file_path
+            )
+            leaderboard_updater.recalculate_palio_totals()
+            logger.info("Palio leaderboard totals recalculated successfully")
+        except Exception as e:
+            logger.error(f"Error recalculating palio totals: {e}")
+            # Don't raise the exception
     
     def _get_context_from_registry(self) -> list[AgentContextBlock]:
         """Get context from registered files (multi-file mode)."""

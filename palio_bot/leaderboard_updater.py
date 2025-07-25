@@ -28,9 +28,17 @@ class LeaderboardUpdater:
             5: 1
         }
     
-    def update_leaderboard(self) -> None:
-        """Update the leaderboard with all completed games."""
-        logger.info("Starting leaderboard update")
+    def update_leaderboard(self, specific_game_id: str = None) -> None:
+        """Update the leaderboard with completed games.
+        
+        Args:
+            specific_game_id: If provided, only update this specific game.
+                            If None, update all completed games.
+        """
+        if specific_game_id:
+            logger.info(f"Starting leaderboard update for specific game: {specific_game_id}")
+        else:
+            logger.info("Starting leaderboard update for all games")
         
         try:
             # Load game definitions
@@ -45,11 +53,11 @@ class LeaderboardUpdater:
             if self.leaderboard_file_path.exists():
                 with open(self.leaderboard_file_path, 'r', encoding='utf-8') as f:
                     old_leaderboard = json.load(f)
-                    # Create new structure from old data
+                    # Preserve existing structure
                     leaderboard = {
                         'villages': old_leaderboard.get('villages', []),
                         'palio_leaderboard': {},
-                        'game_leaderboards': {}  # Will be rebuilt from scratch
+                        'game_leaderboards': old_leaderboard.get('game_leaderboards', {})
                     }
             else:
                 leaderboard = {
@@ -58,8 +66,22 @@ class LeaderboardUpdater:
                     'game_leaderboards': {}
                 }
             
-            # Process each completed game
-            for game_id, game_data in games_status.get('game_scores', {}).items():
+            # Process completed games (all or specific)
+            games_to_process = games_status.get('game_scores', {})
+            if specific_game_id:
+                # Only process the specific game if it exists and is completed
+                if specific_game_id in games_to_process:
+                    game_data = games_to_process[specific_game_id]
+                    if game_data.get('status') == 'completed':
+                        games_to_process = {specific_game_id: game_data}
+                    else:
+                        logger.warning(f"Game {specific_game_id} is not completed, skipping update")
+                        return
+                else:
+                    logger.warning(f"Game {specific_game_id} not found, skipping update")
+                    return
+            
+            for game_id, game_data in games_to_process.items():
                 if game_data.get('status') == 'completed':
                     logger.info(f"Processing completed game: {game_id}")
                     
@@ -74,7 +96,8 @@ class LeaderboardUpdater:
                     if game_leaderboard:
                         leaderboard['game_leaderboards'][game_id] = game_leaderboard
             
-            # Recalculate total points and positions
+            # Always recalculate total points and positions
+            # (even for single game updates, we need to recalculate the overall standings)
             self._recalculate_palio_leaderboard(leaderboard)
             
             # Convert to Pydantic model for validation
@@ -90,6 +113,41 @@ class LeaderboardUpdater:
             
         except Exception as e:
             logger.error(f"Error updating leaderboard: {e}")
+            raise
+    
+    def recalculate_palio_totals(self) -> None:
+        """Recalculate only the palio_leaderboard totals from existing game_leaderboards.
+        
+        This method doesn't recompute individual games, it just sums up the points
+        from the existing game_leaderboards and updates the palio_leaderboard.
+        """
+        logger.info("Recalculating palio leaderboard totals from existing games")
+        
+        try:
+            # Load current leaderboard
+            if not self.leaderboard_file_path.exists():
+                logger.warning("Leaderboard file doesn't exist, nothing to recalculate")
+                return
+                
+            with open(self.leaderboard_file_path, 'r', encoding='utf-8') as f:
+                leaderboard = json.load(f)
+            
+            # Recalculate total points and positions from existing game data
+            self._recalculate_palio_leaderboard(leaderboard)
+            
+            # Convert to Pydantic model for validation
+            leaderboard_obj = Leaderboard.model_validate(leaderboard)
+            # Convert back to dict for JSON serialization
+            leaderboard = leaderboard_obj.model_dump()
+            
+            # Save updated leaderboard
+            with open(self.leaderboard_file_path, 'w', encoding='utf-8') as f:
+                json.dump(leaderboard, f, ensure_ascii=False, indent=2, default=str)
+            
+            logger.info("Palio leaderboard totals recalculated successfully")
+            
+        except Exception as e:
+            logger.error(f"Error recalculating palio totals: {e}")
             raise
     
     def _find_game_definition(self, palio_data: Dict[str, Any], game_id: str) -> Optional[Dict[str, Any]]:
@@ -247,6 +305,20 @@ class LeaderboardUpdater:
         rounds = division_data.get('rounds', [])
         
         for round_data in rounds:
+            # Handle case where round_data might be a list instead of dict
+            if isinstance(round_data, list):
+                # If it's a list, take the first element
+                if len(round_data) > 0 and isinstance(round_data[0], dict):
+                    round_data = round_data[0]
+                else:
+                    logger.warning(f"Skipping invalid round data: {round_data}")
+                    continue
+            
+            # Now round_data should be a dict
+            if not isinstance(round_data, dict):
+                logger.warning(f"Skipping non-dict round data: {round_data}")
+                continue
+                
             scores = round_data.get('scores', {})
             villages = list(scores.keys())
             if len(villages) != 2:

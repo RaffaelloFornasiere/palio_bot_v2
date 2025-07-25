@@ -8,6 +8,7 @@ import logging
 
 from palio_bot.agent.models import Tool, ToolResult
 from palio_bot.tools.file_registry import FileRegistry
+from palio_bot.leaderboard_updater import LeaderboardUpdater
 
 logger = logging.getLogger(__name__)
 
@@ -15,13 +16,15 @@ logger = logging.getLogger(__name__)
 class MultiJSONEditorTool:
     """Tool for editing multiple JSON files using JSONPath expressions."""
     
-    def __init__(self, file_registry: FileRegistry):
+    def __init__(self, file_registry: FileRegistry, system=None):
         """Initialize with file registry.
         
         Args:
             file_registry: Registry of allowed files and their configurations
+            system: Optional System instance for calling leaderboard updates
         """
         self.registry = file_registry
+        self.system = system
         self._last_content: Dict[str, str] = {}  # Track last content per file
     
     def _load_json(self, file_name: str) -> tuple[dict, Optional[str]]:
@@ -531,15 +534,69 @@ class MultiJSONEditorTool:
                 success=False,
                 error=f"Errore nell'annullamento: {str(e)}"
             )
+    
+    def update_leaderboard_for_game(self, game_id: str) -> ToolResult:
+        """Update leaderboard for a specific game.
+        
+        Args:
+            game_id: ID of the game to update (e.g., "G01", "G03")
+        """
+        try:
+            if not self.system:
+                return ToolResult(
+                    success=False,
+                    error="Sistema non disponibile per aggiornamento classifica"
+                )
+            
+            # Call system method to update leaderboard for specific game
+            self.system._update_leaderboard(specific_game_id=game_id)
+            
+            return ToolResult(
+                success=True,
+                data={"game_id": game_id, "action": "update_specific_game", "message": f"Classifica aggiornata per il gioco {game_id}"}
+            )
+            
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                error=f"Errore nell'aggiornamento classifica per {game_id}: {str(e)}"
+            )
+    
+    def recalculate_palio_totals(self) -> ToolResult:
+        """Recalculate palio leaderboard totals from existing game data.
+        
+        This doesn't recompute individual games, just sums the points.
+        """
+        try:
+            if not self.system:
+                return ToolResult(
+                    success=False,
+                    error="Sistema non disponibile per ricalcolo totali"
+                )
+            
+            # Call system method to recalculate palio totals
+            self.system._recalculate_palio_totals()
+            
+            return ToolResult(
+                success=True,
+                data={"action": "recalculate_totals", "message": "Totali classifica palio ricalcolati con successo"}
+            )
+            
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                error=f"Errore nel ricalcolo totali: {str(e)}"
+            )
 
 
-def create_multi_json_editor_tools(file_registry: FileRegistry) -> Dict[str, Tool]:
+def create_multi_json_editor_tools(file_registry: FileRegistry, system=None) -> Dict[str, Tool]:
     """Create all JSON editor tools for multiple files.
     
     Args:
         file_registry: Registry of allowed files and their configurations
+        system: Optional System instance for leaderboard updates
     """
-    editor = MultiJSONEditorTool(file_registry)
+    editor = MultiJSONEditorTool(file_registry, system)
     
     # Get list of editable files for tool descriptions
     editable_files = file_registry.get_editable_files()
@@ -707,6 +764,33 @@ def create_multi_json_editor_tools(file_registry: FileRegistry) -> Dict[str, Too
                 "required": ["file_name"]
             },
             function=editor.undo
+        ),
+        
+        "update_leaderboard_for_game": Tool(
+            name="update_leaderboard_for_game",
+            description="Aggiorna la classifica per un gioco specifico dopo aver modificato i suoi punteggi",
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "game_id": {
+                        "type": "string",
+                        "description": "ID del gioco da aggiornare (es. 'G01', 'G03', 'G05')"
+                    }
+                },
+                "required": ["game_id"]
+            },
+            function=editor.update_leaderboard_for_game
+        ),
+        
+        "recalculate_palio_totals": Tool(
+            name="recalculate_palio_totals",
+            description="Ricalcola solo i totali della classifica palio dai giochi esistenti, senza ricomputare i singoli giochi",
+            parameters_schema={
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+            function=editor.recalculate_palio_totals
         )
     }
     
