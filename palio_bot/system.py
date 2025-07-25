@@ -207,7 +207,7 @@ class System(Producer):
         self.file_registry.clear_modified()
         
         # # Update leaderboard if games file was modified
-        # if "games" in modified_files:
+        # if "palio_games_status" in modified_files:
         #     self._update_leaderboard()
 
     def close_session(self, save_changes: bool = True) -> None:
@@ -389,6 +389,17 @@ class System(Producer):
                     content = json.load(f)
                     result.append(AgentContextBlock(
                         context_name="current_leaderboard",
+                        content=json.dumps(content, indent=4),
+                    ))
+
+        # Add palio games status if registered
+        if "palio_games_status" in self.file_registry.files:
+            config = self.file_registry.get_config("palio_games_status")
+            if config.path.exists():
+                with open(config.path, 'r', encoding='utf-8') as f:
+                    content = json.load(f)
+                    result.append(AgentContextBlock(
+                        context_name="palio_games_status",
                         content=json.dumps(content, indent=4),
                     ))
 

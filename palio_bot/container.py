@@ -99,7 +99,7 @@ class Container:
             ))
             
             # Register palio_games_status.json (editable)
-            registry.register("games", FileConfig(
+            registry.register("palio_games_status", FileConfig(
                 path=self.config.palio_games_status_path,
                 validator=PalioGamesStatus,
                 allow_edit=True,

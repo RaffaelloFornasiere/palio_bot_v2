@@ -91,7 +91,7 @@ registry.register("palio", FileConfig(
 ))
 
 # Editable with safety copy
-registry.register("games", FileConfig(
+registry.register("palio_games_status", FileConfig(
     path=config.palio_games_status_path,
     validator=PalioGamesStatus,
     allow_edit=True,

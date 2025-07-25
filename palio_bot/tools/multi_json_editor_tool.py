@@ -98,7 +98,7 @@ class MultiJSONEditorTool:
         """View JSON content from a specific file, optionally filtered by JSONPath.
         
         Args:
-            file_name: Name of the registered file (e.g., "palio", "games", "leaderboard")
+            file_name: Name of the registered file (e.g., "palio", "palio_games_status", "leaderboard")
             path: Optional JSONPath expression (e.g., "$.palio.eventi[0]")
                  If not provided, shows entire JSON
         """

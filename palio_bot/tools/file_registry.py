@@ -34,7 +34,7 @@ class FileRegistry:
         """Register a file configuration.
         
         Args:
-            name: Unique name for the file (e.g., "palio", "games", "leaderboard")
+            name: Unique name for the file (e.g., "palio", "palio_games_status", "leaderboard")
             config: File configuration
         """
         self.files[name] = config
