@@ -172,9 +172,7 @@ export type GameRound = {
      * Scores
      * Village scores in this round
      */
-    scores?: {
-        [key: string]: number | number | string;
-    };
+    scores?: Array<RoundRobinScore>;
     /**
      * Score Penalties
      * Score penalties applied in this round
@@ -358,6 +356,23 @@ export type RoundRobinGameStatus = {
      * Game-level penalties
      */
     applied_penalties?: Array<GamePenalty>;
+};
+
+/**
+ * RoundRobinScore
+ * A score for a village in a round-robin game.
+ */
+export type RoundRobinScore = {
+    /**
+     * Village
+     * The village name
+     */
+    village: string;
+    /**
+     * Points
+     * Points scored by the village in this round
+     */
+    points: number | number | string;
 };
 
 /**

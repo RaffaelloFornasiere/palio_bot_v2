@@ -30,6 +30,7 @@ def print_welcome():
         "[yellow]/cancel[/yellow] - Annulla sessione scartando modifiche\n" 
         "[blue]/status[/blue] - Mostra stato sistema\n"
         "[magenta]/leaderboard[/magenta] - Aggiorna classifica\n"
+        "[red]/clear[/red] - Elimina sessione e file temporanei\n"
         "[red]/quit[/red] - Esci dal programma",
         title="Sistema Palio Bot",
         border_style="cyan"
@@ -122,6 +123,39 @@ async def handle_commands(command: str, system, container) -> bool:
         except Exception as e:
             logger.error(f"Error updating leaderboard: {e}", exc_info=True)
             console.print(f"\n[red]Errore nell'aggiornamento della classifica: {e}[/red]")
+        
+        return True
+    
+    elif command == "/clear":
+        config = Config()
+        files_deleted = []
+        
+        # Cancel active session first
+        if system.get_active_session():
+            system.cancel_session()
+            cli_consumer.current_session_id = None
+            console.print("\n[yellow]✓ Sessione attiva annullata[/yellow]")
+        
+        # Delete session.json
+        if config.session_file_path.exists():
+            config.session_file_path.unlink()
+            files_deleted.append(str(config.session_file_path))
+        
+        # Delete temp file (palio_games_status_tmp.json)
+        if config.palio_games_status_temp_path.exists():
+            config.palio_games_status_temp_path.unlink()
+            files_deleted.append(str(config.palio_games_status_temp_path))
+        
+        # Also check for palio_updated.json (legacy temp file)
+        palio_updated_path = Path("data/palio_updated.json")
+        if palio_updated_path.exists():
+            palio_updated_path.unlink()
+            files_deleted.append(str(palio_updated_path))
+        
+        if files_deleted:
+            console.print(f"\n[green]✓ File eliminati:[/green] {', '.join(files_deleted)}")
+        else:
+            console.print("\n[yellow]Nessun file temporaneo da eliminare[/yellow]")
         
         return True
     

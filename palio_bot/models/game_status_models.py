@@ -25,10 +25,14 @@ class GameBonus(BaseModel):
     description: str = Field(..., description="Description of the bonus")
     points: int = Field(..., description="Points awarded to leaderboard points (positive number)")
 
+class RoundRobinScore(BaseModel):
+    """A score for a village in a round-robin game."""
+    village: str = Field(..., description="The village name")
+    points: int | float | str = Field(..., description="Points scored by the village in this round")
 
 class GameRound(BaseModel):
     """A single round in a round-robin game."""
-    scores: Dict[str, int | float | str] = Field(default_factory=dict, description="Village scores in this round")
+    scores: List[RoundRobinScore] = Field(default=[], description="Village scores in this round")
     score_penalties: List[ScorePenalty] = Field(default_factory=list, description="Score penalties applied in this round")
     
     def __getitem__(self, key):

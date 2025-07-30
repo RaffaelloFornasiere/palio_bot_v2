@@ -24,7 +24,10 @@ import {
   ScoreBasedGameStatus, 
   RoundRobinGameStatus,
   ScoreBasedDivision,
-  RoundRobinDivision
+  RoundRobinDivision,
+  GamePenalty,
+  GameBonus,
+  ScorePenalty
 } from '../../../generated';
 import { useYear } from '../../../contexts/YearContext';
 import YearSelector from '../../../components/YearSelector';

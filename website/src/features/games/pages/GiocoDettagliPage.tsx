@@ -37,7 +37,8 @@ import {
   GameRound,
   GamePenalty,
   GameBonus,
-  ScorePenalty
+  ScorePenalty,
+  RoundRobinScore
 } from '../../../generated';
 import { useYear } from '../../../contexts/YearContext';
 import { getStatusText, formatDate, getStatusColor } from '../utils';
@@ -117,7 +118,12 @@ const GiocoDettagliPage: React.FC = () => {
     return getVillageBackgroundColor(villageColor, backgroundColor, 0.4);
   };
 
-  const toEntries = (scores: GameScore): [string, number | string][] => {
+  const toEntries = (scores: GameScore | RoundRobinScore[]): [string, number | string][] => {
+    if (Array.isArray(scores)) {
+      // Handle RoundRobinScore[] format
+      return scores.map(score => [score.village, score.points]);
+    }
+    // Handle object format
     return Object.entries(scores);
   };
 
@@ -412,7 +418,7 @@ const GiocoDettagliPage: React.FC = () => {
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
-                                    {toEntries(round.scores || {}).map(([village, score], index) => (
+                                    {toEntries(round.scores || []).map(([village, score], index) => (
                                       <TableRow 
                                         key={village}
                                         sx={{ 
@@ -548,7 +554,7 @@ const GiocoDettagliPage: React.FC = () => {
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {toEntries(round.scores || {}).map(([village, score], index) => (
+                            {toEntries(round.scores || []).map(([village, score], index) => (
                               <TableRow 
                                 key={village}
                                 sx={{ 
