@@ -72,8 +72,17 @@ class Container:
                 logger.debug(f"LlamaCPP URL: {self.llamacpp_url}")
                 self._llm_client = LlamaCPPClient(base_url=self.llamacpp_url)
             elif self.llm_provider == "anthropic":
-                logger.debug("Using Anthropic API")
-                self._llm_client = AnthropicClient(api_key=self.anthropic_api_key)
+                logger.debug(f"Using Anthropic API with model: {self.config.anthropic_model}, "
+                           f"timeout: {self.config.anthropic_timeout}s, "
+                           f"temperature: {self.config.anthropic_temperature}, "
+                           f"max_tokens: {self.config.anthropic_max_tokens}")
+                self._llm_client = AnthropicClient(
+                    api_key=self.anthropic_api_key,
+                    model=self.config.anthropic_model,
+                    timeout=self.config.anthropic_timeout,
+                    temperature=self.config.anthropic_temperature,
+                    max_tokens=self.config.anthropic_max_tokens
+                )
             elif self.llm_provider == "ollama":
                 logger.debug(f"Using Ollama with model: {self.ollama_model}")
                 # Use same URL as llamacpp but with port 11434

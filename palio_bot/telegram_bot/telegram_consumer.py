@@ -4,6 +4,7 @@ from typing import Dict, Any
 from telegram import Bot
 from telegram.error import TelegramError
 import logging
+import re
 
 from palio_bot.stream.events import (
     Event, UserMessageEvent, AgentUpdateEvent, ToolUseEvent,
@@ -206,8 +207,20 @@ class TelegramConsumer:
                 parse_mode='HTML'
             )
         except TelegramError as e:
+            # If HTML parsing fails, retry without parse mode
+            if "can't parse entities" in str(e).lower():
+                try:
+                    logger.warning(f"HTML parsing failed, retrying without parse mode: {e}")
+                    await self.bot.edit_message_text(
+                        chat_id=self.chat_id,
+                        message_id=self.message_stack[session_id],
+                        text=text,
+                        parse_mode=None
+                    )
+                except TelegramError as fallback_e:
+                    logger.error(f"Failed to update message even without parse mode: {fallback_e}")
             # If edit fails (e.g., text unchanged), ignore
-            if "message is not modified" not in str(e).lower():
+            elif "message is not modified" not in str(e).lower():
                 logger.error(f"Failed to update message: {e}")
     
     def _format_parameters(self, parameters: Dict[str, Any]) -> str:
@@ -244,5 +257,20 @@ class TelegramConsumer:
                 .replace(">", "&gt;"))
     
     def _format_token_usage(self, token_usage: TokenUsage) -> str:
-        """Format token usage for display."""
-        return f"📊 <i>Tokens: {token_usage.input_tokens}→{token_usage.output_tokens} ({token_usage.total_tokens})</i>"
+        """Format token usage and timing for display."""
+        parts = [f"Tokens: {token_usage.input_tokens}→{token_usage.output_tokens} ({token_usage.total_tokens})"]
+        
+        # Add timing information if available
+        timing_parts = []
+        if token_usage.get_prompt_eval_duration_ms() is not None:
+            prompt_eval_ms = token_usage.get_prompt_eval_duration_ms()
+            timing_parts.append(f"Prompt: {prompt_eval_ms:.0f}ms")
+            
+        if token_usage.get_eval_duration_ms() is not None:
+            eval_ms = token_usage.get_eval_duration_ms()
+            timing_parts.append(f"Gen: {eval_ms:.0f}ms")
+            
+        if timing_parts:
+            parts.append(" | ".join(timing_parts))
+        
+        return f"📊 <i>{' | '.join(parts)}</i>"

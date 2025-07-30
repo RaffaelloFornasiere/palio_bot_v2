@@ -58,6 +58,8 @@ class CLIConsumer:
                 self._display_tool_result(event)
 
             elif isinstance(event, AgentCompleteEvent):
+                self._display_agent_complete(event)
+                
                 # Clean up accumulated text and conversation history for this session
                 if event.session_id in self.accumulated_text:
                     del self.accumulated_text[event.session_id]
@@ -207,3 +209,43 @@ class CLIConsumer:
                 parts.append(f"value: `{value_str}`")
         
         return " | ".join(parts[:2])  # Limit to 2 parts for brevity
+    
+    def _display_agent_complete(self, event: AgentCompleteEvent) -> None:
+        """Display completion stats with timing information."""
+        if not event.total_token_usage:
+            return
+            
+        usage = event.total_token_usage
+        
+        # Build timing info display
+        timing_parts = []
+        
+        if usage.get_prompt_eval_duration_ms() is not None:
+            prompt_eval_ms = usage.get_prompt_eval_duration_ms()
+            timing_parts.append(f"Prompt eval: {prompt_eval_ms:.0f}ms")
+            
+        if usage.get_eval_duration_ms() is not None:
+            eval_ms = usage.get_eval_duration_ms()
+            timing_parts.append(f"Generation: {eval_ms:.0f}ms")
+            
+        if usage.get_total_duration_ms() is not None:
+            total_ms = usage.get_total_duration_ms()
+            timing_parts.append(f"Total: {total_ms:.0f}ms")
+        
+        # Build complete stats message
+        stats_parts = []
+        stats_parts.append(f"Tokens: {usage.input_tokens}⬆️ {usage.output_tokens}⬇️ ({usage.total_tokens} total)")
+        
+        if timing_parts:
+            stats_parts.append(" | ".join(timing_parts))
+        
+        stats_text = "\n".join(stats_parts)
+        
+        self.console.print()
+        self.console.print(
+            Panel(
+                stats_text,
+                title="[bold dim]📊 Stats[/bold dim]",
+                border_style="dim"
+            )
+        )

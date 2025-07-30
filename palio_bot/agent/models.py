@@ -27,14 +27,39 @@ class TokenUsage(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
     total_tokens: int = 0
+    prompt_eval_duration_ns: Optional[int] = None  # nanoseconds
+    eval_duration_ns: Optional[int] = None  # nanoseconds
+    total_duration_ns: Optional[int] = None  # nanoseconds
     
     def __add__(self, other: "TokenUsage") -> "TokenUsage":
         """Add two TokenUsage objects together."""
         return TokenUsage(
             input_tokens=self.input_tokens + other.input_tokens,
             output_tokens=self.output_tokens + other.output_tokens,
-            total_tokens=self.total_tokens + other.total_tokens
+            total_tokens=self.total_tokens + other.total_tokens,
+            # Keep timing from the most recent (other) TokenUsage as it's more meaningful
+            prompt_eval_duration_ns=other.prompt_eval_duration_ns,
+            eval_duration_ns=other.eval_duration_ns,
+            total_duration_ns=other.total_duration_ns
         )
+    
+    def get_prompt_eval_duration_ms(self) -> Optional[float]:
+        """Get prompt evaluation duration in milliseconds."""
+        if self.prompt_eval_duration_ns is not None:
+            return self.prompt_eval_duration_ns / 1_000_000
+        return None
+    
+    def get_eval_duration_ms(self) -> Optional[float]:
+        """Get generation duration in milliseconds."""
+        if self.eval_duration_ns is not None:
+            return self.eval_duration_ns / 1_000_000
+        return None
+    
+    def get_total_duration_ms(self) -> Optional[float]:
+        """Get total duration in milliseconds."""
+        if self.total_duration_ns is not None:
+            return self.total_duration_ns / 1_000_000
+        return None
 
 
 class ToolResult(BaseModel):

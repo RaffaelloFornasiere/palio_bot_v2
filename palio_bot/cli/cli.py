@@ -200,8 +200,7 @@ async def main():
     container = Container(
         config=config,
         llm_provider=llm_provider,  # Can override config
-        anthropic_api_key=anthropic_api_key,  # Can override config
-        use_json_editor=True  # Use JSON editor by default
+        anthropic_api_key=anthropic_api_key  # Can override config
     )
     
     try:

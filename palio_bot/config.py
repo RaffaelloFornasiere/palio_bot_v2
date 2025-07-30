@@ -23,7 +23,10 @@ class Config:
 
     # Anthropic Configuration
     anthropic_api_key: str | None = os.getenv("ANTHROPIC_API_KEY")
-    anthropic_model: str = "claude-sonnet-4-20250514"
+    anthropic_model: str = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-latest")
+    anthropic_timeout: float = float(os.getenv("ANTHROPIC_TIMEOUT", "300.0"))
+    anthropic_temperature: float = float(os.getenv("ANTHROPIC_TEMPERATURE", "0.7"))
+    anthropic_max_tokens: int = int(os.getenv("ANTHROPIC_MAX_TOKENS", "4096"))
 
     # llama.cpp Configuration
     llama_cpp_url: str = "http://mac-studio.local:11454"

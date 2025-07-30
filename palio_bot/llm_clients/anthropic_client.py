@@ -6,25 +6,37 @@ from typing import Any, Dict, List, Optional
 from anthropic import AsyncAnthropic
 
 from .base_client import BaseLLMClient
-from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool
+from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool, TokenUsage
 from palio_bot.utils.api_logger import APILogger
 
 
 class AnthropicClient(BaseLLMClient):
     """Anthropic client for Claude API."""
     
-    def __init__(self, api_key: Optional[str] = None, log_dir: str = "logs"):
+    def __init__(self, api_key: Optional[str] = None, log_dir: str = "logs", 
+                 model: str = "claude-3-5-sonnet-20241022", timeout: float = 300.0,
+                 temperature: float = 0.7, max_tokens: int = 4096):
         """Initialize Anthropic client.
         
         Args:
             api_key: Anthropic API key. If not provided, will use ANTHROPIC_API_KEY env var.
             log_dir: Directory for API logs (default: "logs")
+            model: Model name to use (default: "claude-3-5-sonnet-20241022")
+            timeout: Request timeout in seconds (default: 300.0)
+            temperature: Sampling temperature (default: 0.7)
+            max_tokens: Maximum tokens to generate (default: 4096)
         """
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
             raise ValueError("Anthropic API key is required. Set ANTHROPIC_API_KEY environment variable or pass api_key parameter.")
         
-        self.client = AsyncAnthropic(api_key=self.api_key)
+        # Store configuration parameters
+        self.model = model
+        self.timeout = timeout
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        
+        self.client = AsyncAnthropic(api_key=self.api_key, timeout=self.timeout)
         self.api_logger = APILogger(log_dir=log_dir)
     
     async def generate_message(
@@ -45,26 +57,42 @@ class AnthropicClient(BaseLLMClient):
         Returns:
             Message containing the Claude response
         """
-        # Prepare system prompt with context if provided
-        full_system_prompt = system_prompt or ""
-        if context:
-            context_text = "\n\n".join([c.text for c in context])
-            full_system_prompt = f"{full_system_prompt}\n\n{context_text}" if full_system_prompt else context_text
+        # Convert messages to Anthropic format with caching
+        anthropic_messages = self._convert_messages_to_anthropic(messages, add_cache_to_last=True)
         
-        # Convert messages to Anthropic format
-        anthropic_messages = self._convert_messages_to_anthropic(messages)
+        # Add context as a separate cached message if provided
+        if context:
+            context_text = "<context>\n" + "\n\n".join([c.text for c in context]) + "\n</context>"
+            context_message = {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": context_text,
+                        "cache_control": {"type": "ephemeral"}
+                    }
+                ]
+            }
+            # Insert context message at the beginning (after any existing context)
+            anthropic_messages.insert(0, context_message)
         
         # Prepare kwargs for create method
         create_kwargs = {
-            "model": "claude-3-5-sonnet-20241022",
+            "model": self.model,
             "messages": anthropic_messages,
-            "max_tokens": 4096,
-            "temperature": 0.7
+            "max_tokens": self.max_tokens,
+            "temperature": self.temperature
         }
         
-        # Add system prompt if provided
-        if full_system_prompt:
-            create_kwargs["system"] = full_system_prompt
+        # Add system prompt with caching if provided
+        if system_prompt:
+            create_kwargs["system"] = [
+                {
+                    "type": "text",
+                    "text": system_prompt,
+                    "cache_control": {"type": "ephemeral"}
+                }
+            ]
         
         # Add tools if provided
         if tools:
@@ -88,25 +116,31 @@ class AnthropicClient(BaseLLMClient):
         # Convert response to our Message format
         return self._convert_response_to_message(response)
     
-    def _convert_messages_to_anthropic(self, messages: List[Message]) -> List[Dict[str, Any]]:
+    def _convert_messages_to_anthropic(self, messages: List[Message], add_cache_to_last: bool = False) -> List[Dict[str, Any]]:
         """Convert our Message format to Anthropic message format."""
         anthropic_messages = []
         
-        for msg in messages:
+        for i, msg in enumerate(messages):
+            is_last_message = (i == len(messages) - 1)
             
             # Convert role
             role = msg.role
-            if role == "human":
-                role = "user"
             
             # Convert content
             content = []
             for content_item in msg.content:
                 if isinstance(content_item, TextContent):
-                    content.append({
+                    text_block = {
                         "type": "text",
                         "text": content_item.text
-                    })
+                    }
+                    # Add cache control if present on the content item
+                    if content_item.cache_control:
+                        text_block["cache_control"] = {"type": content_item.cache_control.type}
+                    # Or if this is the last message and we want to cache it
+                    elif add_cache_to_last and is_last_message:
+                        text_block["cache_control"] = {"type": "ephemeral"}
+                    content.append(text_block)
                 elif isinstance(content_item, ToolUseContent):
                     content.append({
                         "type": "tool_use",
@@ -122,6 +156,11 @@ class AnthropicClient(BaseLLMClient):
                                 "type": "text",
                                 "text": json.dumps(content_item.tool_result.data, indent=2)
                             })
+                        else:
+                            result_content.append({
+                                "type": "text",
+                                "text": "Tool executed successfully, no data returned."
+                            })
                     else:
                         # Use error field for error messages when success=False
                         error_msg = f"Tool error: {content_item.tool_result.error or 'Unknown error'}"
@@ -135,7 +174,7 @@ class AnthropicClient(BaseLLMClient):
                     content.append({
                         "type": "tool_result",
                         "tool_use_id": content_item.tool_use_id,
-                        "content": result_content if result_content else [{"type": "text", "text": "Success"}]
+                        "content": result_content
                     })
             
             # Only add message if it has content
@@ -175,7 +214,22 @@ class AnthropicClient(BaseLLMClient):
                     tool_use_id=content_block.id
                 ))
         
+        # Extract token usage from Anthropic response
+        token_usage = None
+        if hasattr(response, 'usage') and response.usage:
+            usage = response.usage
+            input_tokens = getattr(usage, 'input_tokens', 0)
+            output_tokens = getattr(usage, 'output_tokens', 0)
+            total_tokens = input_tokens + output_tokens
+            
+            token_usage = TokenUsage(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens
+            )
+        
         return Message(
             role="assistant",
-            content=content_list
+            content=content_list,
+            token_usage=token_usage
         )

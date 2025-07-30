@@ -535,58 +535,7 @@ class MultiJSONEditorTool:
                 error=f"Errore nell'annullamento: {str(e)}"
             )
     
-    def update_leaderboard_for_game(self, game_id: str) -> ToolResult:
-        """Update leaderboard for a specific game.
-        
-        Args:
-            game_id: ID of the game to update (e.g., "G01", "G03")
-        """
-        try:
-            if not self.system:
-                return ToolResult(
-                    success=False,
-                    error="Sistema non disponibile per aggiornamento classifica"
-                )
-            
-            # Call system method to update leaderboard for specific game
-            self.system._update_leaderboard(specific_game_id=game_id)
-            
-            return ToolResult(
-                success=True,
-                data={"game_id": game_id, "action": "update_specific_game", "message": f"Classifica aggiornata per il gioco {game_id}"}
-            )
-            
-        except Exception as e:
-            return ToolResult(
-                success=False,
-                error=f"Errore nell'aggiornamento classifica per {game_id}: {str(e)}"
-            )
-    
-    def recalculate_palio_totals(self) -> ToolResult:
-        """Recalculate palio leaderboard totals from existing game data.
-        
-        This doesn't recompute individual games, just sums the points.
-        """
-        try:
-            if not self.system:
-                return ToolResult(
-                    success=False,
-                    error="Sistema non disponibile per ricalcolo totali"
-                )
-            
-            # Call system method to recalculate palio totals
-            self.system._recalculate_palio_totals()
-            
-            return ToolResult(
-                success=True,
-                data={"action": "recalculate_totals", "message": "Totali classifica palio ricalcolati con successo"}
-            )
-            
-        except Exception as e:
-            return ToolResult(
-                success=False,
-                error=f"Errore nel ricalcolo totali: {str(e)}"
-            )
+
 
 
 def create_multi_json_editor_tools(file_registry: FileRegistry, system=None) -> Dict[str, Tool]:
@@ -765,33 +714,8 @@ def create_multi_json_editor_tools(file_registry: FileRegistry, system=None) -> 
             },
             function=editor.undo
         ),
+
         
-        "update_leaderboard_for_game": Tool(
-            name="update_leaderboard_for_game",
-            description="Aggiorna la classifica per un gioco specifico dopo aver modificato i suoi punteggi",
-            parameters_schema={
-                "type": "object",
-                "properties": {
-                    "game_id": {
-                        "type": "string",
-                        "description": "ID del gioco da aggiornare (es. 'G01', 'G03', 'G05')"
-                    }
-                },
-                "required": ["game_id"]
-            },
-            function=editor.update_leaderboard_for_game
-        ),
-        
-        "recalculate_palio_totals": Tool(
-            name="recalculate_palio_totals",
-            description="Ricalcola solo i totali della classifica palio dai giochi esistenti, senza ricomputare i singoli giochi",
-            parameters_schema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            },
-            function=editor.recalculate_palio_totals
-        )
     }
     
     return tools

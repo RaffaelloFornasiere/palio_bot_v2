@@ -211,17 +211,25 @@ class OllamaClient(BaseLLMClient):
         if not content_list:
             content_list.append(TextContent(text=""))
         
-        # Extract token usage from Ollama response format
+        # Extract token usage and timing from Ollama response format
         token_usage = None
         if "prompt_eval_count" in response or "eval_count" in response:
             input_tokens = response.get("prompt_eval_count", 0)
             output_tokens = response.get("eval_count", 0)
             total_tokens = input_tokens + output_tokens
             
+            # Extract timing information (all in nanoseconds)
+            prompt_eval_duration_ns = response.get("prompt_eval_duration")
+            eval_duration_ns = response.get("eval_duration")
+            total_duration_ns = response.get("total_duration")
+            
             token_usage = TokenUsage(
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
-                total_tokens=total_tokens
+                total_tokens=total_tokens,
+                prompt_eval_duration_ns=prompt_eval_duration_ns,
+                eval_duration_ns=eval_duration_ns,
+                total_duration_ns=total_duration_ns
             )
         
         return Message(
