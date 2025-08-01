@@ -4,5 +4,6 @@ games_status - Mostra lo stato dei giochi
 leaderboard - Aggiorna la classifica con i giochi completati
 save - Salva modifiche senza chiudere sessione
 cancel - Annulla le modifiche della sessione corrente
+clear - Pulisci la sessione corrente (rimuove tutti i file temporanei)
 close - Chiudi la sessione salvando le modifiche
 stop - Interrompi l'elaborazione in corso
