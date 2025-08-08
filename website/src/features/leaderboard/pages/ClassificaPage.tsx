@@ -153,7 +153,6 @@ const ClassificaPage: React.FC = () => {
    return (
       <Container maxWidth="lg">
          <Box sx={{mt: 4, mb: 4}}>
-            <p>ATTENZIONE: Sito provvisorio in fase di test. I punteggi non sono quelli reali.</p>
             <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3}}>
                <Typography variant="h4" component="h1">
                   Classifica Generale
