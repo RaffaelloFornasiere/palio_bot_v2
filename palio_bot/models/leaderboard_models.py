@@ -10,7 +10,7 @@ class LeaderboardEntry(BaseModel):
 class DivisionLeaderboard(BaseModel):
     """Leaderboard for a specific division within a game."""
     name: str
-    leaderboard: Dict[str, int] # village -> position
+    leaderboard: Dict[str, LeaderboardEntry] # village -> LeaderboardEntry
     updated_at: Optional[str] = None
 
 
@@ -28,4 +28,4 @@ class Leaderboard(BaseModel):
     """Main leaderboard model."""
     villages: List[str]
     palio_leaderboard: Dict[str, LeaderboardEntry] # village -> LeaderboardEntry
-    game_leaderboards: Dict[str, GameLeaderboard]  # game_id -> GameLeaderboard
+    game_leaderboards: Dict[str, GameLeaderboard]  # game_id -> GameLeaderboardno

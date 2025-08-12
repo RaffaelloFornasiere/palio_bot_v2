@@ -24,7 +24,7 @@ export type DivisionLeaderboard = {
      * Leaderboard
      */
     leaderboard: {
-        [key: string]: number;
+        [key: string]: LeaderboardEntry;
     };
     /**
      * Updated At

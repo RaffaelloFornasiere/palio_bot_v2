@@ -30,6 +30,7 @@ import {
   PalioGamesStatus,
   PalioData,
   Leaderboard,
+  LeaderboardEntry,
   ScoreBasedGameStatus,
   RoundRobinGameStatus,
   ScoreBasedDivision,
@@ -441,6 +442,62 @@ const GiocoDettagliPage: React.FC = () => {
                             </Box>
                           ))}
                         </Box>
+                      )}
+
+                      {/* Division Leaderboard - Show if available in gameLeaderboard */}
+                      {gameLeaderboard?.divisions && gameLeaderboard.divisions.length > 0 && (
+                        (() => {
+                          const divisionLeaderboard = gameLeaderboard.divisions.find(
+                            (d: any) => d.name === division.name
+                          );
+                          
+                          if (!divisionLeaderboard) return null;
+                          
+                          return (
+                            <Box sx={{ mb: 3 }}>
+                              <Typography variant="body1" fontWeight="medium" gutterBottom>
+                                Classifica {division.name}
+                              </Typography>
+                              <TableContainer component={Paper} variant="outlined">
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>Pos.</TableCell>
+                                      <TableCell>Borgo</TableCell>
+                                      <TableCell align="right">Punti</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {Object.entries(divisionLeaderboard.leaderboard)
+                                      .sort(([,a], [,b]) => {
+                                        const entryA = a as LeaderboardEntry;
+                                        const entryB = b as LeaderboardEntry;
+                                        return entryA.position - entryB.position;
+                                      })
+                                      .map(([village, entry]) => {
+                                        const leaderboardEntry = entry as LeaderboardEntry;
+                                        return (
+                                          <TableRow 
+                                            key={village}
+                                            sx={{ 
+                                              backgroundColor: getRowBackgroundColor(village, leaderboardEntry.position === 1),
+                                              transition: 'background-color 0.2s'
+                                            }}
+                                          >
+                                            <TableCell>{leaderboardEntry.position}</TableCell>
+                                            <TableCell>{village}</TableCell>
+                                            <TableCell align="right">
+                                              {leaderboardEntry.points}
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </Box>
+                          );
+                        })()
                       )}
 
                       {/* Division Final Scores Table */}
