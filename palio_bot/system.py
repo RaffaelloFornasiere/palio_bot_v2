@@ -201,15 +201,10 @@ class System(Producer):
                     logger.info(f"Copying {temp_path} to {config.path}")
                     shutil.copy2(temp_path, config.path)
                     logger.info(f"Changes saved to {file_name}")
-                    # Remove temp file after successful copy
-                    temp_path.unlink()
-                    logger.info(f"Removed temp file: {temp_path}")
+                    # DO NOT remove temp file - session is still active
+                    # Temp files should only be removed when session is closed
         
-        # Update leaderboard if games file was modified
-        if "palio_games_status" in modified_files:
-            self._update_leaderboard()
-        
-        # Clear modified files tracking
+        # Clear modified files tracking (but keep temp files)
         self.file_registry.clear_modified()
 
     def close_session(self, save_changes: bool = True) -> None:
@@ -222,9 +217,9 @@ class System(Producer):
         
         if save_changes:
             self.save_session()
-        else:
-            # Remove all temp files to discard changes
-            self._cleanup_temp_files()
+        
+        # Always cleanup temp files when closing session
+        self._cleanup_temp_files()
         
         self.active_session = None
         
@@ -327,30 +322,7 @@ class System(Producer):
             logger.error(f"Failed to load session: {e}")
             self.session_file_path.unlink()
             logger.warning("Removed corrupted session file")
-    
-    def _update_leaderboard(self, specific_game_id: str = None) -> None:
-        """Update leaderboard with completed games.
-        
-        Args:
-            specific_game_id: If provided, only update this specific game.
-                            If None, update all completed games.
-        """
-        try:
-            if specific_game_id:
-                logger.info(f"Updating leaderboard for specific game: {specific_game_id}")
-            else:
-                logger.info("Updating leaderboard with all completed games")
-                
-            leaderboard_updater = LeaderboardUpdater(
-                self.palio_file_path,
-                self.palio_games_status_path,
-                self.leader_board_file_path
-            )
-            leaderboard_updater.update_leaderboard(specific_game_id)
-            logger.info("Leaderboard updated successfully")
-        except Exception as e:
-            logger.error(f"Error updating leaderboard: {e}")
-            # Don't raise the exception to avoid breaking session closure
+
     
     
     def _get_context_from_registry(self) -> list[AgentContextBlock]:
