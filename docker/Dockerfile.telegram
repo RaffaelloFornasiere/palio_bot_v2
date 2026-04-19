@@ -1,34 +1,31 @@
 FROM python:3.11-slim
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Install deps first (cache layer)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy source
+COPY src/ ./src/
 
-# Copy the entire project
-COPY . .
+# Install the project itself
+RUN uv sync --frozen
 
-# Install the package in development mode
-RUN pip install -e .
-
-# Create directory for data persistence
 RUN mkdir -p /app/data
 
-# Set environment variables
-ENV PYTHONPATH=/app
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 ENV PALIO_FILE_PATH=/app/data/palio.json
 ENV SESSION_FILE_PATH=/app/data/session.json
 
-# Expose port (if needed for health checks)
 EXPOSE 8001
 
-# Command to run the telegram bot
 CMD ["python", "-m", "palio_bot.telegram_bot.telegram_bot"]

@@ -497,7 +497,7 @@ export type GetPalioDataData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/palio';
+    url: '/api/palio';
 };
 
 export type GetPalioDataResponses = {
@@ -513,7 +513,7 @@ export type GetLeaderboardDataData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/leaderboard';
+    url: '/api/leaderboard';
 };
 
 export type GetLeaderboardDataResponses = {
@@ -529,7 +529,7 @@ export type GetPalioGamesStatusData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/palio_games_status';
+    url: '/api/palio_games_status';
 };
 
 export type GetPalioGamesStatusResponses = {
@@ -545,7 +545,7 @@ export type GetAvailableYearsData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/years';
+    url: '/api/years';
 };
 
 export type GetAvailableYearsResponses = {
@@ -566,7 +566,7 @@ export type GetPalioDataByYearData = {
         year: number;
     };
     query?: never;
-    url: '/palio/{year}';
+    url: '/api/palio/{year}';
 };
 
 export type GetPalioDataByYearErrors = {
@@ -596,7 +596,7 @@ export type GetLeaderboardDataByYearData = {
         year: number;
     };
     query?: never;
-    url: '/leaderboard/{year}';
+    url: '/api/leaderboard/{year}';
 };
 
 export type GetLeaderboardDataByYearErrors = {
@@ -626,7 +626,7 @@ export type GetPalioGamesStatusByYearData = {
         year: number;
     };
     query?: never;
-    url: '/palio_games_status/{year}';
+    url: '/api/palio_games_status/{year}';
 };
 
 export type GetPalioGamesStatusByYearErrors = {

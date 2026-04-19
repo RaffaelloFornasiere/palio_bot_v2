@@ -3,55 +3,47 @@ FROM node:18-alpine AS react-builder
 
 WORKDIR /app
 
-# Copy React app package files
 COPY website/package*.json ./website/
 
-# Install React dependencies
 WORKDIR /app/website
 RUN npm ci --legacy-peer-deps
 
-# Copy React app source files
 COPY website/ .
 
-# Build React app (using existing generated types)
 RUN npm run build
 
 # Stage 2: Build Python API server
 FROM python:3.11-slim
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Install deps first (cache layer)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy source
+COPY src/ ./src/
+COPY data/ ./data/
 
-# Copy the entire project
-COPY . .
+# Install the project itself
+RUN uv sync --frozen
 
-# Install the package in development mode
-RUN pip install -e .
-
-# Copy React build from previous stage
+# Copy React build
 COPY --from=react-builder /app/website/build /app/website/build
 
-# Create directory for data persistence
 RUN mkdir -p /app/data
 
-# Set environment variables
-ENV PYTHONPATH=/app
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 ENV PALIO_FILE_PATH=/app/data/palio.json
 
-# palio.json is already in /app/data/ from COPY . .
-
-# Expose port for API
 EXPOSE 8000
 
-# Command to run the API server
 CMD ["python", "-m", "palio_bot.api.api_server"]

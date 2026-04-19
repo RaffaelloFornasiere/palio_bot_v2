@@ -24,7 +24,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  */
 export const getPalioData = <ThrowOnError extends boolean = false>(options?: Options<GetPalioDataData, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetPalioDataResponses, unknown, ThrowOnError>({
-        url: '/palio',
+        url: '/api/palio',
         ...options
     });
 };
@@ -35,7 +35,7 @@ export const getPalioData = <ThrowOnError extends boolean = false>(options?: Opt
  */
 export const getLeaderboardData = <ThrowOnError extends boolean = false>(options?: Options<GetLeaderboardDataData, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetLeaderboardDataResponses, unknown, ThrowOnError>({
-        url: '/leaderboard',
+        url: '/api/leaderboard',
         ...options
     });
 };
@@ -46,7 +46,7 @@ export const getLeaderboardData = <ThrowOnError extends boolean = false>(options
  */
 export const getPalioGamesStatus = <ThrowOnError extends boolean = false>(options?: Options<GetPalioGamesStatusData, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetPalioGamesStatusResponses, unknown, ThrowOnError>({
-        url: '/palio_games_status',
+        url: '/api/palio_games_status',
         ...options
     });
 };
@@ -57,7 +57,7 @@ export const getPalioGamesStatus = <ThrowOnError extends boolean = false>(option
  */
 export const getAvailableYears = <ThrowOnError extends boolean = false>(options?: Options<GetAvailableYearsData, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetAvailableYearsResponses, unknown, ThrowOnError>({
-        url: '/years',
+        url: '/api/years',
         ...options
     });
 };
@@ -68,7 +68,7 @@ export const getAvailableYears = <ThrowOnError extends boolean = false>(options?
  */
 export const getPalioDataByYear = <ThrowOnError extends boolean = false>(options: Options<GetPalioDataByYearData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).get<GetPalioDataByYearResponses, GetPalioDataByYearErrors, ThrowOnError>({
-        url: '/palio/{year}',
+        url: '/api/palio/{year}',
         ...options
     });
 };
@@ -79,7 +79,7 @@ export const getPalioDataByYear = <ThrowOnError extends boolean = false>(options
  */
 export const getLeaderboardDataByYear = <ThrowOnError extends boolean = false>(options: Options<GetLeaderboardDataByYearData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).get<GetLeaderboardDataByYearResponses, GetLeaderboardDataByYearErrors, ThrowOnError>({
-        url: '/leaderboard/{year}',
+        url: '/api/leaderboard/{year}',
         ...options
     });
 };
@@ -90,7 +90,7 @@ export const getLeaderboardDataByYear = <ThrowOnError extends boolean = false>(o
  */
 export const getPalioGamesStatusByYear = <ThrowOnError extends boolean = false>(options: Options<GetPalioGamesStatusByYearData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).get<GetPalioGamesStatusByYearResponses, GetPalioGamesStatusByYearErrors, ThrowOnError>({
-        url: '/palio_games_status/{year}',
+        url: '/api/palio_games_status/{year}',
         ...options
     });
 };
@@ -108,7 +108,7 @@ export const serveRootGet = <ThrowOnError extends boolean = false>(options?: Opt
 
 /**
  * Serve React App
- * Serve the React app for all routes not matching API endpoints
+ * Serve the React app for any non-API, non-docs route.
  */
 export const serveReactAppFullPathGet = <ThrowOnError extends boolean = false>(options: Options<ServeReactAppFullPathGetData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).get<ServeReactAppFullPathGetResponses, ServeReactAppFullPathGetErrors, ThrowOnError>({

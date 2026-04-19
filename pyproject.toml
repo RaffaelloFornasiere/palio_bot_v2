@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "palio-bot"
+version = "0.2.0"
+description = "Sistema di gestione dati del palio tramite linguaggio naturale"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic~=2.11.7",
+    "pydantic-settings>=2.5",
+    "aiofiles",
+    "python-telegram-bot~=22.2",
+    "python-dotenv~=1.1.1",
+    "jsonpath-ng~=1.7.0",
+    "fastapi~=0.116.1",
+    "uvicorn",
+    "rich~=14.0.0",
+    "groq~=0.30.0",
+    "pydub",
+    "PyYAML~=6.0.2",
+    "httpx~=0.28.1",
+    "ollama",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/palio_bot"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

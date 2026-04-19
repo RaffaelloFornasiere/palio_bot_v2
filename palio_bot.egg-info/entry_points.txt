@@ -1,3 +1,0 @@
-[console_scripts]
-palio-cli = palio_bot.cli:main
-palio-telegram = palio_bot.telegram_bot:main
