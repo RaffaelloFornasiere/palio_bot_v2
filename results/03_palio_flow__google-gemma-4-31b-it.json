@@ -1,17 +1,17 @@
 {
   "scenario": "evening_of_palio",
   "model": "google/gemma-4-31b-it",
-  "passed": 7,
+  "passed": 9,
   "total": 10,
-  "total_tokens": 381104,
-  "total_elapsed_s": 243.85,
+  "total_tokens": 294734,
+  "total_elapsed_s": 165.65,
   "steps": [
     {
       "id": "s1_inventory",
       "prompt": "elenca i giochi disponibili e indicami il loro stato attuale",
       "passed": true,
-      "elapsed_ms": 51681,
-      "tokens": 22431,
+      "elapsed_ms": 38057,
+      "tokens": 22485,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -23,13 +23,12 @@
       "id": "s2_taglio_start",
       "prompt": "Il Taglio del Tronco inizia. Metti sia il gioco sia entrambe le divisioni a 'in-progress'.",
       "passed": true,
-      "elapsed_ms": 18113,
-      "tokens": 37978,
+      "elapsed_ms": 25904,
+      "tokens": 25126,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_view",
-        "json_set",
+        "json_merge",
         "json_set",
         "json_set"
       ],
@@ -38,27 +37,28 @@
     {
       "id": "s3_taglio_complete",
       "prompt": "Taglio del Tronco è terminato. Marca il gioco e le divisioni come completati.",
-      "passed": false,
-      "elapsed_ms": 12717,
-      "tokens": 13272,
+      "passed": true,
+      "elapsed_ms": 7731,
+      "tokens": 25890,
       "send_error": null,
       "tool_failures": [],
-      "tool_calls": [],
-      "diffs": {
-        "palio_games_status.json": "--- expected\n+++ actual\n@@ -4,14 +4,14 @@\n       \"divisions\": [\n         {\n           \"name\": \"Maschile\",\n-          \"status\": \"completed\"\n+          \"status\": \"in-progress\"\n         },\n         {\n           \"name\": \"Femminile\",\n-          \"status\": \"completed\"\n+          \"status\": \"in-progress\"\n         }\n       ],\n-      \"status\": \"completed\"\n+      \"status\": \"in-progress\"\n     },\n     \"G02\": {\n       \"divisions\": ["
-      }
+      "tool_calls": [
+        "json_merge",
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {}
     },
     {
       "id": "s4_corsa_sacchi_mens",
       "prompt": "Corsa coi Sacchi: inizia e registra i risultati maschili. Salt 30s, Sottocastello 28s, Villa 35s, Sornico 32s, Sottomonte 31s. Completa la divisione maschile.",
       "passed": true,
-      "elapsed_ms": 29194,
-      "tokens": 42488,
+      "elapsed_ms": 15629,
+      "tokens": 26719,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_view",
-        "json_set",
+        "json_merge",
         "json_merge"
       ],
       "diffs": {}
@@ -66,44 +66,43 @@
     {
       "id": "s5_corsa_sacchi_women",
       "prompt": "Corsa coi Sacchi femminile: Salt 34, Sottocastello 32, Villa 40, Sornico 33, Sottomonte 36. Completa la divisione e il gioco.",
-      "passed": false,
-      "elapsed_ms": 16988,
-      "tokens": 30149,
+      "passed": true,
+      "elapsed_ms": 31632,
+      "tokens": 27590,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
+        "json_merge",
         "json_merge"
       ],
-      "diffs": {
-        "palio_games_status.json": "--- expected\n+++ actual\n@@ -44,7 +44,7 @@\n           \"status\": \"completed\"\n         }\n       ],\n-      \"status\": \"completed\"\n+      \"status\": \"in-progress\"\n     },\n     \"G03\": {\n       \"divisions\": ["
-      }
+      "diffs": {}
     },
     {
       "id": "s6_anguria_bonus",
       "prompt": "Imposta l'Anguria a 'in-progress' e assegna un bonus di 3 punti di classifica a Sornico nella divisione maschile per buona condotta.",
-      "passed": true,
-      "elapsed_ms": 10507,
-      "tokens": 46793,
+      "passed": false,
+      "elapsed_ms": 8958,
+      "tokens": 28529,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_view",
-        "json_set",
+        "json_merge",
         "json_append"
       ],
-      "diffs": {}
+      "diffs": {
+        "palio_games_status.json": "--- expected\n+++ actual\n@@ -51,7 +51,7 @@\n         {\n           \"applied_bonuses\": [\n             {\n-              \"description\": \"buona condotta\",\n+              \"description\": \"Buona condotta\",\n               \"points\": 3,\n               \"village\": \"Sornico\"\n             }"
+      }
     },
     {
       "id": "s7_scatolone_start",
       "prompt": "Lo Scatolone inizia. Metti il gioco e le due divisioni a 'in-progress'.",
       "passed": true,
-      "elapsed_ms": 12311,
-      "tokens": 48742,
+      "elapsed_ms": 6511,
+      "tokens": 29381,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_view",
-        "json_set",
+        "json_merge",
         "json_set",
         "json_set"
       ],
@@ -112,26 +111,23 @@
     {
       "id": "s8_strade_mate",
       "prompt": "Strade Mate: risultati unica divisione. Salt 12, Sottocastello 10, Villa 9, Sornico 11, Sottomonte 13. Completa.",
-      "passed": false,
-      "elapsed_ms": 35076,
-      "tokens": 50581,
+      "passed": true,
+      "elapsed_ms": 11212,
+      "tokens": 30169,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_view",
-        "json_set",
+        "json_merge",
         "json_merge"
       ],
-      "diffs": {
-        "palio_games_status.json": "--- expected\n+++ actual\n@@ -109,7 +109,7 @@\n           \"status\": \"completed\"\n         }\n       ],\n-      \"status\": \"completed\"\n+      \"status\": \"in-progress\"\n     },\n     \"G06\": {\n       \"divisions\": ["
-      }
+      "diffs": {}
     },
     {
       "id": "s9_cancel_penalty",
       "prompt": "annulla il bonus di Sornico sull'Anguria (era sbagliato)",
       "passed": true,
-      "elapsed_ms": 48412,
-      "tokens": 52205,
+      "elapsed_ms": 12315,
+      "tokens": 46386,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -144,8 +140,8 @@
       "id": "s10_summary",
       "prompt": "riepiloga quali giochi sono completati finora",
       "passed": true,
-      "elapsed_ms": 8510,
-      "tokens": 36465,
+      "elapsed_ms": 7346,
+      "tokens": 32459,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [

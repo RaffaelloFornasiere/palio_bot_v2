@@ -224,12 +224,13 @@ class LeaderboardUpdater:
         if not points:
             return None
         
-        # Sort villages by points and create position mapping
+        # Sort villages by points and build LeaderboardEntry dicts
         sorted_villages = sorted(points.items(), key=lambda x: x[1], reverse=True)
-        leaderboard = {}
-        for position, (village, _) in enumerate(sorted_villages, 1):
-            leaderboard[village] = position
-        
+        leaderboard = {
+            village: {'points': pts, 'position': position}
+            for position, (village, pts) in enumerate(sorted_villages, 1)
+        }
+
         return {
             'name': name,
             'leaderboard': leaderboard,
@@ -300,53 +301,58 @@ class LeaderboardUpdater:
             return {}
     
     def _calculate_round_robin_raw_scores(self, game_def: Dict[str, Any], division_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Calculate raw scores for round-robin games (total wins/points)."""
-        village_points = {}
-        rounds = division_data.get('rounds', [])
-        
-        for round_data in rounds:
-            # Handle case where round_data might be a list instead of dict
-            if isinstance(round_data, list):
-                # If it's a list, take the first element
-                if len(round_data) > 0 and isinstance(round_data[0], dict):
-                    round_data = round_data[0]
-                else:
-                    logger.warning(f"Skipping invalid round data: {round_data}")
-                    continue
-            
-            # Now round_data should be a dict
+        """Calculate round-robin win totals.
+
+        Expects each round in `rounds` to be:
+            { "scores": [ {"village": str, "points": number|str}, ... ] }
+        (the `RoundRobinScore` Pydantic shape). Exactly 2 entries per round.
+        """
+        village_points: Dict[str, int] = {}
+
+        for round_data in division_data.get('rounds', []) or []:
             if not isinstance(round_data, dict):
-                logger.warning(f"Skipping non-dict round data: {round_data}")
+                logger.warning(f"Skipping non-dict round data: {round_data!r}")
                 continue
-                
-            scores = round_data.get('scores', {})
-            villages = list(scores.keys())
-            if len(villages) != 2:
-                logger.warning(f"Round with {len(villages)} villages, expected 2")
+
+            scores_list = round_data.get('scores', []) or []
+            if not isinstance(scores_list, list) or len(scores_list) != 2:
+                logger.warning(
+                    f"Round with {len(scores_list) if isinstance(scores_list, list) else '?'} "
+                    f"entries, expected a list of 2 (RoundRobinScore objects)"
+                )
                 continue
-            
-            village1, village2 = villages
-            score1 = scores[village1]
-            score2 = scores[village2]
-            
-            # Initialize if not exists
-            if village1 not in village_points:
-                village_points[village1] = 0
-            if village2 not in village_points:
-                village_points[village2] = 0
-            
-            # Award points based on round result
+
+            def _unpack(entry: Any) -> Optional[tuple]:
+                if not isinstance(entry, dict):
+                    return None
+                v = entry.get('village')
+                p = entry.get('points')
+                if not v or p is None:
+                    return None
+                try:
+                    p = float(p) if not isinstance(p, (int, float)) else p
+                except (TypeError, ValueError):
+                    return None
+                return v, p
+
+            a = _unpack(scores_list[0])
+            b = _unpack(scores_list[1])
+            if a is None or b is None:
+                logger.warning(f"Invalid round score entries: {scores_list!r}")
+                continue
+
+            (village1, score1), (village2, score2) = a, b
+            village_points.setdefault(village1, 0)
+            village_points.setdefault(village2, 0)
+
             if score1 > score2:
-                village_points[village1] += 3  # Winner gets 3 points
-                village_points[village2] += 0  # Loser gets 0 points
+                village_points[village1] += 3
             elif score2 > score1:
-                village_points[village2] += 3  # Winner gets 3 points
-                village_points[village1] += 0  # Loser gets 0 points
+                village_points[village2] += 3
             else:
-                # Tie - both get 1 point
                 village_points[village1] += 1
                 village_points[village2] += 1
-        
+
         return village_points
     
     def _calculate_score_based_raw_scores(self, game_def: Dict[str, Any], division_data: Dict[str, Any]) -> Dict[str, Any]:

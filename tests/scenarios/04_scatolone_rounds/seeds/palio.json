@@ -1,0 +1,343 @@
+{
+  "competition_name": "Palio dei Borghi di Artegna",
+  "villages": [
+    "Sornico",
+    "Sottocastello",
+    "Salt",
+    "Sottomonte",
+    "Villa"
+  ],
+  "villages_colors": {
+    "Salt": "#007bff",
+    "Sornico": "#dc3545",
+    "Sottocastello": "#ffdb00",
+    "Sottomonte": "#28a745",
+    "Villa": "#000000"
+  },
+  "games": [
+    {
+      "id": "G01",
+      "name": "Taglio del Tronco",
+      "type": "score-based",
+      "description": "Il gioco consiste nel tagliare un tronco con una sega. Due concorrenti impugnano la sega, mentre un terzo borghesano tiene fermo il tronco. Si disputano due manches: una per gli uomini e una per le donne. Il tempo massimo per il taglio è fissato dalla C.P. e, se non ultimato, verranno misurati i cm tagliati.",
+      "measure_unit": "time",
+      "lower_is_better": true,
+      "dates": [
+        {
+          "start_datetime": "2025-08-01T21:00:00",
+          "end_datetime": "2025-08-01T23:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G02",
+      "name": "Corsa coi Sacchi",
+      "type": "score-based",
+      "description": "Staffetta con 4 giocatori per borgo (2 uomini e 2 donne). Tutti i borghi partecipano contemporaneamente. I giocatori devono saltellare all'interno di un sacco di juta. La classifica è stabilita in base all'ordine di arrivo. Ogni penalità comporta 5 secondi aggiunti al tempo totale.",
+      "measure_unit": "time_seconds",
+      "lower_is_better": true,
+      "dates": [
+        {
+          "start_datetime": "2025-08-02T09:00:00",
+          "end_datetime": "2025-08-02T10:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G03",
+      "name": "Anguria",
+      "type": "score-based",
+      "description": "Gara di mangiata di anguria (dettagli specifici da definire).",
+      "measure_unit": "points",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-02T10:00:00",
+          "end_datetime": "2025-08-02T11:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G04",
+      "name": "Lo Scatolone",
+      "type": "round-robin",
+      "description": "Un solo concorrente per borgo. L'obiettivo è indossare il maggior numero di vestiti (da uno scatolone) nel tempo prestabilito (1 minuto). Il vincitore è colui che indossa correttamente il maggior numero di vestiti. La vittoria vale 3 punti, il pareggio 1, la sconfitta 0.",
+      "measure_unit": "clothes_count",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-02T11:00:00",
+          "end_datetime": "2025-08-02T12:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G05",
+      "name": "Strade Mate",
+      "type": "score-based",
+      "description": "Il percorso è formato da 5 tappe. Ogni squadra è composta da tre elementi (almeno uno di sesso differente). Due componenti della squadra sono bendati, mentre il terzo non bendato fa da guida. Lo scopo è completare il percorso nel minor tempo possibile. Gli altri borghi possono creare rumore per rallentare.",
+      "measure_unit": "time_seconds",
+      "lower_is_better": true,
+      "dates": [
+        {
+          "start_datetime": "2025-08-02T15:00:00",
+          "end_datetime": "2025-08-02T18:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G06",
+      "name": "Staffetta",
+      "type": "score-based",
+      "description": "Staffetta con 4 concorrenti per borgo (2 maschi e 2 femmine). La staffetta segue un percorso stabilito e si effettuano 3 cambi. Vince la squadra che impiega meno tempo a effettuare il percorso. Ogni concorrente sarà seguito da un responsabile di un borgo avversario.",
+      "measure_unit": "time",
+      "lower_is_better": true,
+      "dates": [
+        {
+          "start_datetime": "2025-08-02T19:00:00",
+          "end_datetime": "2025-08-02T21:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G07",
+      "name": "Bicicletta",
+      "type": "score-based",
+      "description": "Gara con biciclette (dettagli specifici da definire).",
+      "measure_unit": "time",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-03T11:00:00",
+          "end_datetime": "2025-08-03T12:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G08",
+      "name": "Freccette",
+      "type": "round-robin",
+      "description": "Torneo a coppie miste (un uomo e una donna). L'obiettivo è azzerare il punteggio iniziale di 501. Vittoria per 3-0: 6 punti; 3-1: 5 punti; 3-2: 4 punti. Sconfitta per 0-3: 0 punti; 1-3: 1 punto; 2-3: 2 punti. Al termine del girone, si svolgono le finali terzo/quarto posto e primo/secondo posto.",
+      "measure_unit": "points",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-03T11:00:00",
+          "end_datetime": "2025-08-03T13:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G09",
+      "name": "Calcio a Cinque",
+      "type": "round-robin",
+      "description": "Torneo di calcio a cinque con girone all'italiana. Le prime quattro classificate disputano le finali. La vittoria è premiata con 3 punti, il pareggio con 1 punto e la sconfitta con 0 punti. Le partite sono suddivise in 2 tempi da 20 minuti con 5 minuti di pausa. Obbligatorio indossare parastinchi e scarpe da calcetto/ginnastica senza tacchetti.",
+      "measure_unit": "points",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-03T20:00:00",
+          "end_datetime": "2025-08-03T21:00:00",
+          "subtitle": "Sottocastello vs Salt"
+        },
+        {
+          "start_datetime": "2025-08-03T21:00:00",
+          "end_datetime": "2025-08-03T22:00:00",
+          "subtitle": "Villa vs Sottomonte"
+        },
+        {
+          "start_datetime": "2025-08-04T20:00:00",
+          "end_datetime": "2025-08-04T21:00:00",
+          "subtitle": "Sottomonte vs Sottocastello"
+        },
+        {
+          "start_datetime": "2025-08-04T21:00:00",
+          "end_datetime": "2025-08-04T22:00:00",
+          "subtitle": "Sornico vs Salt"
+        },
+        {
+          "start_datetime": "2025-08-05T20:00:00",
+          "end_datetime": "2025-08-05T21:00:00",
+          "subtitle": "Sornico vs Villa"
+        },
+        {
+          "start_datetime": "2025-08-05T21:00:00",
+          "end_datetime": "2025-08-05T22:00:00",
+          "subtitle": "Salt vs Sottomonte"
+        },
+        {
+          "start_datetime": "2025-08-06T20:00:00",
+          "end_datetime": "2025-08-06T21:00:00",
+          "subtitle": "Villa vs Salt"
+        },
+        {
+          "start_datetime": "2025-08-06T21:00:00",
+          "end_datetime": "2025-08-06T22:00:00",
+          "subtitle": "Sornico vs Sottocastello"
+        },
+        {
+          "start_datetime": "2025-08-07T20:00:00",
+          "end_datetime": "2025-08-07T21:00:00",
+          "subtitle": "Sottocastello vs Villa"
+        },
+        {
+          "start_datetime": "2025-08-07T21:00:00",
+          "end_datetime": "2025-08-07T22:00:00",
+          "subtitle": "Sottomonte vs Sornico"
+        },
+        {
+          "start_datetime": "2025-08-08T20:00:00",
+          "end_datetime": "2025-08-08T21:00:00",
+          "subtitle": "Semifinali"
+        },
+        {
+          "start_datetime": "2025-08-08T21:00:00",
+          "end_datetime": "2025-08-08T22:00:00",
+          "subtitle": "Finali"
+        }
+      ]
+    },
+    {
+      "id": "G10",
+      "name": "Pallavolo",
+      "type": "round-robin",
+      "description": "Torneo di pallavolo con girone all'italiana. Le squadre devono essere composte da almeno 3 donne. La vittoria 2-0 vale 3 punti, la vittoria 2-1 vale 2 punti, la sconfitta 1-2 vale 1 punto, la sconfitta 0-2 vale 0 punti. Le sfide si giocano al meglio dei tre set (vittoria del set al 25° punto con almeno due punti di vantaggio). Altezza rete: 2,35m.",
+      "measure_unit": "points",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-09T08:00:00",
+          "end_datetime": "2025-08-09T13:00:00",
+          "subtitle": "Prima sessione"
+        },
+        {
+          "start_datetime": "2025-08-09T14:00:00",
+          "end_datetime": "2025-08-09T23:00:00",
+          "subtitle": "Seconda sessione"
+        }
+      ]
+    },
+    {
+      "id": "G11",
+      "name": "Bocce",
+      "type": "round-robin",
+      "description": "Ogni squadra è composta da 2 giocatori (un maschio e una femmina), non tesserati FIB, che giocano con tre bocce a testa tipo Petanque. Le partite hanno una durata di 30 minuti o al raggiungimento dei 9 punti. La squadra vincente guadagna due punti, in caso di pareggio un punto per squadra, più la differenza punti.",
+      "measure_unit": "points",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-10T11:00:00",
+          "end_datetime": "2025-08-10T13:00:00",
+          "subtitle": "Prima sessione"
+        },
+        {
+          "start_datetime": "2025-08-10T14:00:00",
+          "end_datetime": "2025-08-10T16:00:00",
+          "subtitle": "Seconda sessione"
+        }
+      ]
+    },
+    {
+      "id": "G12",
+      "name": "Morra",
+      "type": "round-robin",
+      "description": "Torneo a coppie di giocatori maggiorenni. Si gioca in piedi di fronte a un tavolo. Si effettuano due partite da 21 punti. Il punto viene raggiunto indovinando il punteggio ottenuto sommando i punti segnati con le mani. Chi vince la singola manche guadagna 3 punti.",
+      "measure_unit": "points",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-10T20:00:00",
+          "end_datetime": "2025-08-10T22:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G13",
+      "name": "Briscola",
+      "type": "round-robin",
+      "description": "Due tornei separati (maschile e femminile) di briscola. Ogni singola vittoria vale 3 punti. Le squadre sono composte da due maschi (un over e un under 40, con almeno 10 anni di differenza) e due donne (una over e una under 40, con almeno 10 anni di differenza). La vittoria di ogni singola partita si ha al superamento dei 61 punti; una squadra per aggiudicarsi i 3 punti deve vincere 4 rajs. Se un raggio dovesse finire in parità verrà rigiocato.",
+      "measure_unit": "points",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-11T20:00:00",
+          "end_datetime": "2025-08-11T23:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G14",
+      "name": "Intesa Vincente",
+      "type": "score-based",
+      "description": "Ogni squadra è composta da tre giocatori. Due concorrenti devono far indovinare una parola al terzo, ponendogli una domanda alternativamente una sola parola a testa. Si svolgono due match da sessanta secondi. Ogni risposta corretta vale un punto, ogni errore sottrae un punto. La squadra con il punteggio maggiore vince.",
+      "measure_unit": "points",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-12T20:00:00",
+          "end_datetime": "2025-08-12T22:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G15",
+      "name": "Bale Pignote Jr",
+      "type": "round-robin",
+      "description": "Torneo per giovani (14-18 anni). Le squadre sono composte da 5 giocatori (3 uomini e 2 donne o viceversa). Il campo di gara è riempito di acqua saponata e le squadre devono sfidarsi restando a terra, con le mani appoggiate a terra e la pancia all'aria, mantenendo almeno un gluteo a contatto con il campo di gioco. La palla può essere colpita con tutto il corpo ad eccezione di mani e braccia. La vittoria vale 3 punti, il pareggio 1, la sconfitta 0.",
+      "measure_unit": "points",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-14T11:00:00",
+          "end_datetime": "2025-08-14T13:00:00",
+          "subtitle": "Prima sessione"
+        },
+        {
+          "start_datetime": "2025-08-14T14:00:00",
+          "end_datetime": "2025-08-14T16:00:00",
+          "subtitle": "Seconda sessione"
+        }
+      ]
+    },
+    {
+      "id": "G16",
+      "name": "I Camerieri",
+      "type": "score-based",
+      "description": "Lo scopo del gioco è trasportare la maggior quantità di acqua possibile su un vassoio pieno di bicchieri di plastica. Ogni borgo ha due manches di 4 minuti (3 donne nella prima, 3 uomini nella seconda). I concorrenti devono indossare abiti specifici. Gli altri borghi possono rallentare le operazioni lanciando secchiate d'acqua. La squadra con più acqua trasportata vince.",
+      "measure_unit": "water_quantity_cm",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-15T10:00:00",
+          "end_datetime": "2025-08-15T13:00:00"
+        }
+      ]
+    },
+    {
+      "id": "G17",
+      "name": "Bale Pignote Sr",
+      "type": "round-robin",
+      "description": "Torneo per adulti (over 18). Le squadre sono composte da 5 giocatori (3 uomini e 2 donne o viceversa). Il campo di gara è riempito di acqua saponata e le squadre devono sfidarsi restando a terra, con le mani appoggiate a terra e la pancia all'aria, mantenendo almeno un gluteo a contatto con il campo di gioco. La palla può essere colpita con tutto il corpo ad eccezione di mani e braccia. La vittoria vale 3 punti, il pareggio 1, la sconfitta 0.",
+      "measure_unit": "points",
+      "lower_is_better": false,
+      "dates": [
+        {
+          "start_datetime": "2025-08-15T14:00:00",
+          "end_datetime": "2025-08-15T20:00:00"
+        }
+      ]
+    }
+  ],
+  "non_game_events": [
+    {
+      "name": "Premiazioni",
+      "type": "ceremony",
+      "dates": [
+        {
+          "start_datetime": "2025-08-16T21:30:00",
+          "end_datetime": "2025-08-16T22:30:00"
+        }
+      ]
+    }
+  ]
+}

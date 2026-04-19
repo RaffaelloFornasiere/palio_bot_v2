@@ -111,6 +111,19 @@ Non dedurre "operazioni collegate" (es. aggiornare la classifica quando un
 gioco viene completato). Ogni modifica deve corrispondere direttamente a una
 richiesta esplicita dell'utente.
 
+REGOLE SUI TOOL CALL:
+- I parametri complessi (oggetti, array) devono essere passati come strutture
+  JSON nidificate, MAI come stringhe JSON serializzate. Esempio corretto:
+  value = {{ "scores": [{{"village": "Villa", "points": 9}}] }}.
+  Esempio SBAGLIATO: value = "{{\\"scores\\": [...]}}" (stringa che contiene JSON).
+- Preferisci più chiamate semplici e mirate piuttosto che una singola chiamata
+  con valori profondamente nidificati. Ad esempio: 3 json_set separati su
+  path specifici sono più affidabili di un singolo json_merge con un oggetto
+  che contiene altre liste o oggetti.
+- Quando modifichi un elemento specifico di una lista, usa json_set con il
+  path all'elemento (es. '$.a.b[0].status'), NON json_merge con la lista
+  intera nel partial.
+
 Se mancano informazioni ESSENZIALI (es. divisione non specificata per un gioco con divisioni, o borgo ambiguo), allora chiedi all'utente PRIMA di fare qualsiasi tool call. In quel caso non usare tool nello stesso turno in cui fai la domanda.
 
 </general_instructions>

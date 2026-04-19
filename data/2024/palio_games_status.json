@@ -7,7 +7,7 @@
         "Sottocastello": 22.49,
         "Villa": 24.52,
         "Sottomonte": 20.08,
-        "Sornico": 46.40
+        "Sornico": 46.4
       },
       "score_penalties": [],
       "applied_bonuses": [
@@ -22,7 +22,7 @@
     "G01F": {
       "status": "completed",
       "scores": {
-        "Salt": 25.90,
+        "Salt": 25.9,
         "Sottocastello": 34.7,
         "Villa": 42.02,
         "Sottomonte": 28.33,
@@ -81,73 +81,133 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Sottocastello": 17,
-            "Sottomonte": 34
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 17
+            },
+            {
+              "village": "Sottomonte",
+              "points": 34
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 84,
-            "Sornico": 44
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 84
+            },
+            {
+              "village": "Sornico",
+              "points": 44
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 56,
-            "Sottocastello": 53
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 56
+            },
+            {
+              "village": "Sottocastello",
+              "points": 53
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 70,
-            "Salt": 79
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 70
+            },
+            {
+              "village": "Salt",
+              "points": 79
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 61,
-            "Sottocastello": 60
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 61
+            },
+            {
+              "village": "Sottocastello",
+              "points": 60
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 29,
-            "Villa": 82
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 29
+            },
+            {
+              "village": "Villa",
+              "points": 82
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 84,
-            "Sottomonte": 44
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 84
+            },
+            {
+              "village": "Sottomonte",
+              "points": 44
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 22,
-            "Sornico": 82
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 22
+            },
+            {
+              "village": "Sornico",
+              "points": 82
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 44,
-            "Villa": 65
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 44
+            },
+            {
+              "village": "Villa",
+              "points": 65
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 41,
-            "Sottomonte": 54
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 41
+            },
+            {
+              "village": "Sottomonte",
+              "points": 54
+            }
+          ],
           "score_penalties": []
         }
       ],
@@ -158,73 +218,133 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Sottocastello": 9,
-            "Sottomonte": 2
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 9
+            },
+            {
+              "village": "Sottomonte",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 9,
-            "Sornico": 7
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 9
+            },
+            {
+              "village": "Sornico",
+              "points": 7
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 4,
-            "Sottocastello": 9
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 4
+            },
+            {
+              "village": "Sottocastello",
+              "points": 9
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 9,
-            "Salt": 3
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 9
+            },
+            {
+              "village": "Salt",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 0,
-            "Sottocastello": 9
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 0
+            },
+            {
+              "village": "Sottocastello",
+              "points": 9
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 2,
-            "Villa": 9
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 2
+            },
+            {
+              "village": "Villa",
+              "points": 9
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 1,
-            "Sottomonte": 9
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 1
+            },
+            {
+              "village": "Sottomonte",
+              "points": 9
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 8,
-            "Sornico": 9
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 8
+            },
+            {
+              "village": "Sornico",
+              "points": 9
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 9,
-            "Villa": 3
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 9
+            },
+            {
+              "village": "Villa",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 8,
-            "Sottomonte": 8
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 8
+            },
+            {
+              "village": "Sottomonte",
+              "points": 8
+            }
+          ],
           "score_penalties": []
         }
       ],
@@ -235,87 +355,159 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Villa": 7,
-            "Sornico": 2
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 7
+            },
+            {
+              "village": "Sornico",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 2,
-            "Sottomonte": 1
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 2
+            },
+            {
+              "village": "Sottomonte",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 0,
-            "Salt": 0
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 0
+            },
+            {
+              "village": "Salt",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 1,
-            "Villa": 10
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 1
+            },
+            {
+              "village": "Villa",
+              "points": 10
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 4,
-            "Sottomonte": 2
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 4
+            },
+            {
+              "village": "Sottomonte",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 2,
-            "Salt": 4
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 2
+            },
+            {
+              "village": "Salt",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 4,
-            "Salt": 2
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 4
+            },
+            {
+              "village": "Salt",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 4,
-            "Sornico": 2
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 4
+            },
+            {
+              "village": "Sornico",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 2,
-            "Villa": 1
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 2
+            },
+            {
+              "village": "Villa",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 5,
-            "Sottomonte": 4
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 5
+            },
+            {
+              "village": "Sottomonte",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 3,
-            "Salt": 4
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 3
+            },
+            {
+              "village": "Salt",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 3,
-            "Sottocastello": 1
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 3
+            },
+            {
+              "village": "Sottocastello",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         }
       ],
@@ -326,80 +518,146 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Sottomonte": 2,
-            "Sottocastello": 1
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 2
+            },
+            {
+              "village": "Sottocastello",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 2,
-            "Sornico": 0
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 2
+            },
+            {
+              "village": "Sornico",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 2,
-            "Sottocastello": 1
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 2
+            },
+            {
+              "village": "Sottocastello",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 2,
-            "Sottomonte": 1
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 2
+            },
+            {
+              "village": "Sottomonte",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 2,
-            "Sornico": 0
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 2
+            },
+            {
+              "village": "Sornico",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 2,
-            "Sottocastello": 0
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 2
+            },
+            {
+              "village": "Sottocastello",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 2,
-            "Sottomonte": 0
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 2
+            },
+            {
+              "village": "Sottomonte",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 0,
-            "Sottocastello": 2
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 0
+            },
+            {
+              "village": "Sottocastello",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 2,
-            "Sornico": 0
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 2
+            },
+            {
+              "village": "Sornico",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 2,
-            "Sottocastello": 1
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 2
+            },
+            {
+              "village": "Sottocastello",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 2,
-            "Villa": 1
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 2
+            },
+            {
+              "village": "Villa",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         }
       ],
@@ -410,80 +668,146 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Sottomonte": 1,
-            "Salt": 3
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 1
+            },
+            {
+              "village": "Salt",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 2,
-            "Sottocastello": 3
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 2
+            },
+            {
+              "village": "Sottocastello",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 3,
-            "Sornico": 0
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 3
+            },
+            {
+              "village": "Sornico",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 2,
-            "Sottocastello": 3
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 2
+            },
+            {
+              "village": "Sottocastello",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 3,
-            "Sornico": 0
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 3
+            },
+            {
+              "village": "Sornico",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 0,
-            "Villa": 3
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 0
+            },
+            {
+              "village": "Villa",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 3,
-            "Sornico": 0
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 3
+            },
+            {
+              "village": "Sornico",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 0,
-            "Villa": 3
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 0
+            },
+            {
+              "village": "Villa",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 0,
-            "Villa": 3
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 0
+            },
+            {
+              "village": "Villa",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 0,
-            "Villa": 3
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 0
+            },
+            {
+              "village": "Villa",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 0,
-            "Sottomonte": 3
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 0
+            },
+            {
+              "village": "Sottomonte",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         }
       ],
@@ -494,80 +818,146 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Sottocastello": 6,
-            "Sottomonte": 5
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 6
+            },
+            {
+              "village": "Sottomonte",
+              "points": 5
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 9,
-            "Sornico": 6
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 9
+            },
+            {
+              "village": "Sornico",
+              "points": 6
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 6,
-            "Sottocastello": 6
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 6
+            },
+            {
+              "village": "Sottocastello",
+              "points": 6
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 7,
-            "Salt": 7
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 7
+            },
+            {
+              "village": "Salt",
+              "points": 7
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 7,
-            "Sottocastello": 9
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 7
+            },
+            {
+              "village": "Sottocastello",
+              "points": 9
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 5,
-            "Villa": 8
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 5
+            },
+            {
+              "village": "Villa",
+              "points": 8
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 9,
-            "Sottomonte": 7
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 9
+            },
+            {
+              "village": "Sottomonte",
+              "points": 7
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 9,
-            "Sornico": 9
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 9
+            },
+            {
+              "village": "Sornico",
+              "points": 9
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 7,
-            "Villa": 7
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 7
+            },
+            {
+              "village": "Villa",
+              "points": 7
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 7,
-            "Sottomonte": 8
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 7
+            },
+            {
+              "village": "Sottomonte",
+              "points": 8
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 9,
-            "Villa": 10
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 9
+            },
+            {
+              "village": "Villa",
+              "points": 10
+            }
+          ],
           "score_penalties": []
         }
       ],
@@ -578,73 +968,133 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Sornico": 4,
-            "Salt": 2
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 4
+            },
+            {
+              "village": "Salt",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 4,
-            "Sottomonte": 2
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 4
+            },
+            {
+              "village": "Sottomonte",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 2,
-            "Salt": 4
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 2
+            },
+            {
+              "village": "Salt",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 2,
-            "Sottocastello": 4
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 2
+            },
+            {
+              "village": "Sottocastello",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 3,
-            "Sornico": 4
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 3
+            },
+            {
+              "village": "Sornico",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 3,
-            "Villa": 4
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 3
+            },
+            {
+              "village": "Villa",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 2,
-            "Sornico": 4
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 2
+            },
+            {
+              "village": "Sornico",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 4,
-            "Sottomonte": 0
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 4
+            },
+            {
+              "village": "Sottomonte",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 4,
-            "Villa": 1
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 4
+            },
+            {
+              "village": "Villa",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 1,
-            "Sottocastello": 4
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 1
+            },
+            {
+              "village": "Sottocastello",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         }
       ],
@@ -655,73 +1105,133 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Sornico": 4,
-            "Salt": 2
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 4
+            },
+            {
+              "village": "Salt",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 4,
-            "Sottocastello": 3
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 4
+            },
+            {
+              "village": "Sottocastello",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 4,
-            "Villa": 1
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 4
+            },
+            {
+              "village": "Villa",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 3,
-            "Salt": 4
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 3
+            },
+            {
+              "village": "Salt",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 1,
-            "Sornico": 4
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 1
+            },
+            {
+              "village": "Sornico",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 0,
-            "Sottocastello": 4
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 0
+            },
+            {
+              "village": "Sottocastello",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 4,
-            "Salt": 2
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 4
+            },
+            {
+              "village": "Salt",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 2,
-            "Sottomonte": 4
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 2
+            },
+            {
+              "village": "Sottomonte",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 4,
-            "Sornico": 3
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 4
+            },
+            {
+              "village": "Sornico",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 1,
-            "Villa": 4
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 1
+            },
+            {
+              "village": "Villa",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         }
       ],
@@ -732,73 +1242,133 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Salt": 2,
-            "Sornico": 0
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 2
+            },
+            {
+              "village": "Sornico",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 2,
-            "Sottomonte": 1
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 2
+            },
+            {
+              "village": "Sottomonte",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 0,
-            "Sottocastello": 2
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 0
+            },
+            {
+              "village": "Sottocastello",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 2,
-            "Sottomonte": 1
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 2
+            },
+            {
+              "village": "Sottomonte",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 2,
-            "Salt": 0
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 2
+            },
+            {
+              "village": "Salt",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 2,
-            "Sornico": 0
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 2
+            },
+            {
+              "village": "Sornico",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 0,
-            "Villa": 2
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 0
+            },
+            {
+              "village": "Villa",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 0,
-            "Sornico": 2
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 0
+            },
+            {
+              "village": "Sornico",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 2,
-            "Sornico": 1
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 2
+            },
+            {
+              "village": "Sornico",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 0,
-            "Salt": 2
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 0
+            },
+            {
+              "village": "Salt",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         }
       ],
@@ -815,80 +1385,146 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Sottocastello": 3,
-            "Sottomonte": 0
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 3
+            },
+            {
+              "village": "Sottomonte",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 1,
-            "Sornico": 1
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 1
+            },
+            {
+              "village": "Sornico",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 6,
-            "Sottocastello": 1
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 6
+            },
+            {
+              "village": "Sottocastello",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 4,
-            "Salt": 4
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 4
+            },
+            {
+              "village": "Salt",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 3,
-            "Sottocastello": 4
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 3
+            },
+            {
+              "village": "Sottocastello",
+              "points": 4
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 1,
-            "Villa": 2
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 1
+            },
+            {
+              "village": "Villa",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 2,
-            "Sottomonte": 0
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 2
+            },
+            {
+              "village": "Sottomonte",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottocastello": 3,
-            "Sornico": 6
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 3
+            },
+            {
+              "village": "Sornico",
+              "points": 6
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 1,
-            "Villa": 0
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 1
+            },
+            {
+              "village": "Villa",
+              "points": 0
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 5,
-            "Sottomonte": 3
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 5
+            },
+            {
+              "village": "Sottomonte",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 2,
-            "Sornico": 1
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 2
+            },
+            {
+              "village": "Sornico",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         }
       ],
@@ -950,38 +1586,68 @@
       "status": "completed",
       "rounds": [
         {
-          "scores": {
-            "Sottocastello": 3,
-            "Sottomonte": 2
-          },
+          "scores": [
+            {
+              "village": "Sottocastello",
+              "points": 3
+            },
+            {
+              "village": "Sottomonte",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Salt": 2,
-            "Sornico": 3
-          },
+          "scores": [
+            {
+              "village": "Salt",
+              "points": 2
+            },
+            {
+              "village": "Sornico",
+              "points": 3
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Villa": 4,
-            "Sottocastello": 2
-          },
+          "scores": [
+            {
+              "village": "Villa",
+              "points": 4
+            },
+            {
+              "village": "Sottocastello",
+              "points": 2
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sottomonte": 1,
-            "Salt": 1
-          },
+          "scores": [
+            {
+              "village": "Sottomonte",
+              "points": 1
+            },
+            {
+              "village": "Salt",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         },
         {
-          "scores": {
-            "Sornico": 2,
-            "Villa": 1
-          },
+          "scores": [
+            {
+              "village": "Sornico",
+              "points": 2
+            },
+            {
+              "village": "Villa",
+              "points": 1
+            }
+          ],
           "score_penalties": []
         }
       ],

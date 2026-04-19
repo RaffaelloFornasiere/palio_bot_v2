@@ -15,6 +15,33 @@ logger = logging.getLogger(__name__)
 ROOT_PATH = "$"
 
 
+def _coerce_json_string(value: Any) -> Any:
+    """If `value` is a string that parses as a JSON object or array, return the
+    parsed structure; otherwise return the value unchanged.
+
+    Weaker LLMs (e.g. some fine-tunes routed via OpenRouter) sometimes pass
+    complex arguments as stringified JSON instead of as nested objects. This
+    helper silently corrects that at the tool boundary.
+    """
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if not stripped or stripped[0] not in ("{", "["):
+        return value
+    try:
+        parsed = json.loads(stripped)
+    except (json.JSONDecodeError, ValueError):
+        return value
+    if isinstance(parsed, (dict, list)):
+        logger.warning(
+            "Coerced stringified JSON argument (len=%d) into %s.",
+            len(value),
+            type(parsed).__name__,
+        )
+        return parsed
+    return value
+
+
 def _deep_merge(target: Any, source: Any) -> Any:
     """Recursively merge `source` into `target` and return the result.
 
@@ -212,6 +239,7 @@ class MultiJSONEditorTool:
         if err := self._require_viewed(file_name, path):
             return ToolResult(success=False, error=err)
 
+        value = _coerce_json_string(value)
         data, error = self._load_json(file_name)
         if error:
             return ToolResult(success=False, error=error)
@@ -243,6 +271,7 @@ class MultiJSONEditorTool:
         if err := self._require_viewed(file_name, path):
             return ToolResult(success=False, error=err)
 
+        partial = _coerce_json_string(partial)
         data, error = self._load_json(file_name)
         if error:
             return ToolResult(success=False, error=error)
@@ -340,6 +369,7 @@ class MultiJSONEditorTool:
         if err := self._require_viewed(file_name, path):
             return ToolResult(success=False, error=err)
 
+        value = _coerce_json_string(value)
         data, error = self._load_json(file_name)
         if error:
             return ToolResult(success=False, error=error)
@@ -385,6 +415,7 @@ class MultiJSONEditorTool:
         if err := self._require_viewed(file_name, path):
             return ToolResult(success=False, error=err)
 
+        value = _coerce_json_string(value)
         data, error = self._load_json(file_name)
         if error:
             return ToolResult(success=False, error=error)

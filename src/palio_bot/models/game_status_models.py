@@ -131,9 +131,10 @@ def extract_model_docs():
         RoundRobinDivision,
         ScoreBasedDivision,
         GameRound,
+        RoundRobinScore,
         ScorePenalty,
         GamePenalty,
-        GameBonus
+        GameBonus,
     ]
     
     # Add overview

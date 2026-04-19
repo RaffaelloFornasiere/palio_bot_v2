@@ -1,0 +1,130 @@
+{
+  "name": "progressive_rounds_scatolone",
+  "reset_between_steps": false,
+  "seed": {
+    "palio.json": "seeds/palio.json",
+    "leaderboard.json": "seeds/leaderboard.json",
+    "palio_games_status.json": "seeds/palio_games_status.json"
+  },
+  "steps": [
+    {
+      "id": "s1_status",
+      "prompt": "qual è lo stato dello Scatolone?"
+    },
+    {
+      "id": "s2_start",
+      "prompt": "lo Scatolone è iniziato",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G04.status", "set": "in-progress" }
+        ]
+      }
+    },
+    {
+      "id": "s3_round1",
+      "prompt": "villa 9 sottocastello 5",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G04.rounds", "set": [
+            {
+              "scores": [
+                { "village": "Villa", "points": 9 },
+                { "village": "Sottocastello", "points": 5 }
+              ],
+              "score_penalties": []
+            }
+          ]}
+        ]
+      }
+    },
+    {
+      "id": "s4_round2",
+      "prompt": "salt 5 sottomonte 7",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G04.rounds", "set": [
+            {
+              "scores": [
+                { "village": "Villa", "points": 9 },
+                { "village": "Sottocastello", "points": 5 }
+              ],
+              "score_penalties": []
+            },
+            {
+              "scores": [
+                { "village": "Salt", "points": 5 },
+                { "village": "Sottomonte", "points": 7 }
+              ],
+              "score_penalties": []
+            }
+          ]}
+        ]
+      }
+    },
+    {
+      "id": "s5_batch_of_four",
+      "prompt": "sornico 6 sottocastello 9\nvilla 10 sottomonte 8\nsalt 7 sottocastello 7\nsornico 7 villa 11",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G04.rounds", "set": [
+            { "scores": [{ "village": "Villa", "points": 9 }, { "village": "Sottocastello", "points": 5 }], "score_penalties": [] },
+            { "scores": [{ "village": "Salt", "points": 5 }, { "village": "Sottomonte", "points": 7 }], "score_penalties": [] },
+            { "scores": [{ "village": "Sornico", "points": 6 }, { "village": "Sottocastello", "points": 9 }], "score_penalties": [] },
+            { "scores": [{ "village": "Villa", "points": 10 }, { "village": "Sottomonte", "points": 8 }], "score_penalties": [] },
+            { "scores": [{ "village": "Salt", "points": 7 }, { "village": "Sottocastello", "points": 7 }], "score_penalties": [] },
+            { "scores": [{ "village": "Sornico", "points": 7 }, { "village": "Villa", "points": 11 }], "score_penalties": [] }
+          ]}
+        ]
+      }
+    },
+    {
+      "id": "s6_batch_of_three",
+      "prompt": "sottomonte 8 sottocastello 7\nsalt 8 villa 10\nsornico 8 sottomonte 8",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G04.rounds", "set": [
+            { "scores": [{ "village": "Villa", "points": 9 }, { "village": "Sottocastello", "points": 5 }], "score_penalties": [] },
+            { "scores": [{ "village": "Salt", "points": 5 }, { "village": "Sottomonte", "points": 7 }], "score_penalties": [] },
+            { "scores": [{ "village": "Sornico", "points": 6 }, { "village": "Sottocastello", "points": 9 }], "score_penalties": [] },
+            { "scores": [{ "village": "Villa", "points": 10 }, { "village": "Sottomonte", "points": 8 }], "score_penalties": [] },
+            { "scores": [{ "village": "Salt", "points": 7 }, { "village": "Sottocastello", "points": 7 }], "score_penalties": [] },
+            { "scores": [{ "village": "Sornico", "points": 7 }, { "village": "Villa", "points": 11 }], "score_penalties": [] },
+            { "scores": [{ "village": "Sottomonte", "points": 8 }, { "village": "Sottocastello", "points": 7 }], "score_penalties": [] },
+            { "scores": [{ "village": "Salt", "points": 8 }, { "village": "Villa", "points": 10 }], "score_penalties": [] },
+            { "scores": [{ "village": "Sornico", "points": 8 }, { "village": "Sottomonte", "points": 8 }], "score_penalties": [] }
+          ]}
+        ]
+      }
+    },
+    {
+      "id": "s7_last_two",
+      "prompt": "salt 9 sornico 6\nsalt 9 sottocastello 8",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G04.rounds", "set": [
+            { "scores": [{ "village": "Villa", "points": 9 }, { "village": "Sottocastello", "points": 5 }], "score_penalties": [] },
+            { "scores": [{ "village": "Salt", "points": 5 }, { "village": "Sottomonte", "points": 7 }], "score_penalties": [] },
+            { "scores": [{ "village": "Sornico", "points": 6 }, { "village": "Sottocastello", "points": 9 }], "score_penalties": [] },
+            { "scores": [{ "village": "Villa", "points": 10 }, { "village": "Sottomonte", "points": 8 }], "score_penalties": [] },
+            { "scores": [{ "village": "Salt", "points": 7 }, { "village": "Sottocastello", "points": 7 }], "score_penalties": [] },
+            { "scores": [{ "village": "Sornico", "points": 7 }, { "village": "Villa", "points": 11 }], "score_penalties": [] },
+            { "scores": [{ "village": "Sottomonte", "points": 8 }, { "village": "Sottocastello", "points": 7 }], "score_penalties": [] },
+            { "scores": [{ "village": "Salt", "points": 8 }, { "village": "Villa", "points": 10 }], "score_penalties": [] },
+            { "scores": [{ "village": "Sornico", "points": 8 }, { "village": "Sottomonte", "points": 8 }], "score_penalties": [] },
+            { "scores": [{ "village": "Salt", "points": 9 }, { "village": "Sornico", "points": 6 }], "score_penalties": [] },
+            { "scores": [{ "village": "Salt", "points": 9 }, { "village": "Sottocastello", "points": 8 }], "score_penalties": [] }
+          ]}
+        ]
+      }
+    },
+    {
+      "id": "s8_complete",
+      "prompt": "marca lo Scatolone come completato",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G04.status", "set": "completed" }
+        ]
+      }
+    }
+  ]
+}
