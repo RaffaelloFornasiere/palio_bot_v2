@@ -6,6 +6,8 @@ from telegram.error import TelegramError
 import logging
 import re
 
+TELEGRAM_MAX_TEXT = 4000  # safety margin under Telegram's 4096-char hard limit
+
 from palio_bot.stream.events import (
     Event, UserMessageEvent, AgentUpdateEvent, ToolUseEvent,
     ToolResultEvent, AgentCompleteEvent, AgentCancelledEvent, ErrorEvent
@@ -58,12 +60,12 @@ class TelegramConsumer:
     
     async def _handle_user_message(self, event: UserMessageEvent) -> None:
         """Handle user message event - start new conversation."""
-        # Send initial processing message
-        msg = await self.bot.send_message(
-            self.chat_id,
-            f"🔄 Processing: {event.content}\n\n⏳ Thinking...",
-            parse_mode='HTML'
-        )
+        # Escape user-controlled text; HTML parse mode blows up on unescaped <, >, &.
+        preview = self._escape_html(event.content)
+        if len(preview) > 500:
+            preview = preview[:500] + "…"
+        text = f"🔄 Processing: {preview}\n\n⏳ Thinking..."
+        msg = await self.bot.send_message(self.chat_id, text, parse_mode='HTML')
         self.message_stack[event.session_id] = msg.message_id
         self.current_text[event.session_id] = ""
     
@@ -175,14 +177,12 @@ class TelegramConsumer:
     
     async def _handle_error(self, event: ErrorEvent) -> None:
         """Handle error event - send new message without deleting previous one."""
-        error_text = f"❌ Error: {event.error}"
-        
-        # Always send error as a new message to preserve previous steps
-        await self.bot.send_message(
-            self.chat_id,
-            error_text,
-            parse_mode='HTML'
-        )
+        safe_error = self._escape_html(event.error)
+        if len(safe_error) > TELEGRAM_MAX_TEXT - 20:
+            safe_error = safe_error[: TELEGRAM_MAX_TEXT - 20] + "…"
+        error_text = f"❌ Error: {safe_error}"
+
+        await self.bot.send_message(self.chat_id, error_text, parse_mode='HTML')
         
         # Clean up session tracking
         if event.session_id in self.message_stack:
@@ -196,9 +196,8 @@ class TelegramConsumer:
             return
             
         try:
-            # Telegram has a 4096 character limit for messages
-            if len(text) > 4000:
-                text = text[:3997] + "..."
+            if len(text) > TELEGRAM_MAX_TEXT:
+                text = text[: TELEGRAM_MAX_TEXT - 3] + "..."
                 
             await self.bot.edit_message_text(
                 chat_id=self.chat_id,

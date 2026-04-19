@@ -1,0 +1,60 @@
+{
+  "game_scores": {
+    "G01": {
+      "status": "not-started",
+      "divisions": [
+        {
+          "name": "Maschile",
+          "status": "not-started"
+        },
+        {
+          "name": "Femminile",
+          "status": "not-started"
+        }
+      ]
+    },
+    "G02": {
+      "status": "not-started",
+      "divisions": [
+        {
+          "name": "Maschile",
+          "status": "not-started",
+          "scores": {},
+          "score_penalties": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        },
+        {
+          "name": "Femminile",
+          "status": "not-started",
+          "scores": {},
+          "score_penalties": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        }
+      ]
+    },
+    "G03": {
+      "status": "not-started",
+      "divisions": [
+        {
+          "name": "Maschile",
+          "status": "not-started",
+          "scores": {},
+          "score_penalties": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        },
+        {
+          "name": "Femminile",
+          "status": "not-started",
+          "scores": {},
+          "score_penalties": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        }
+      ]
+    }
+  },
+  "last_updated": "2026-04-19T00:00:00Z"
+}

@@ -1,0 +1,32 @@
+{
+  "villages": [
+    "Sornico",
+    "Sottocastello",
+    "Salt",
+    "Sottomonte",
+    "Villa"
+  ],
+  "palio_leaderboard": {
+    "Sornico": {
+      "points": 0,
+      "position": 1
+    },
+    "Sottocastello": {
+      "points": 0,
+      "position": 1
+    },
+    "Salt": {
+      "points": 0,
+      "position": 1
+    },
+    "Sottomonte": {
+      "points": 0,
+      "position": 1
+    },
+    "Villa": {
+      "points": 0,
+      "position": 1
+    }
+  },
+  "game_leaderboards": {}
+}

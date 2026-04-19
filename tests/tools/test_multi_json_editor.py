@@ -235,14 +235,16 @@ def test_view_does_not_leak_across_siblings(registry: FileRegistry, tmp_data_dir
     assert not result.success
 
 
-def test_write_invalidates_viewed_paths(editor: MultiJSONEditorTool):
-    """After a successful write, the next write must re-view first."""
-    editor.set_field("palio_games_status", "$.game_scores.calcetto.status", "in-progress")
-    # View was invalidated by the write; next edit should fail
-    result = editor.set_field(
-        "palio_games_status", "$.game_scores.calcetto.status", "completed"
-    )
-    assert not result.success
+def test_view_persists_across_writes(editor: MultiJSONEditorTool):
+    """Once viewed, subsequent edits to the same subtree are allowed without re-viewing.
+
+    The guardrail's goal is "don't edit what you haven't seen once" — not
+    "re-view before every follow-up edit". Sequential edits are common.
+    """
+    r1 = editor.set_field("palio_games_status", "$.game_scores.calcetto.status", "in-progress")
+    assert r1.success
+    r2 = editor.set_field("palio_games_status", "$.game_scores.calcetto.status", "completed")
+    assert r2.success
 
 
 # ---------- merge ----------

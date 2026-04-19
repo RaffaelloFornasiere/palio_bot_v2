@@ -1,15 +1,15 @@
 {
   "game_scores": {
     "G01": {
-      "status": "completed",
+      "status": "not-started",
       "divisions": [
         {
           "name": "Maschile",
-          "status": "completed"
+          "status": "not-started"
         },
         {
-          "status": "completed",
-          "name": "Femminile"
+          "name": "Femminile",
+          "status": "not-started"
         }
       ]
     },
@@ -36,148 +36,79 @@
     },
     "G03": {
       "status": "not-started",
-      "scores": {},
-      "score_penalties": [],
-      "applied_bonuses": [],
-      "applied_penalties": []
+      "divisions": [
+        {
+          "name": "Maschile",
+          "status": "not-started",
+          "scores": {},
+          "score_penalties": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        },
+        {
+          "name": "Femminile",
+          "status": "not-started",
+          "scores": {},
+          "score_penalties": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        }
+      ]
     },
     "G04": {
       "status": "not-started",
-      "rounds": [],
-      "applied_bonuses": [],
-      "applied_penalties": []
+      "divisions": [
+        {
+          "name": "Maschile",
+          "status": "not-started",
+          "rounds": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        },
+        {
+          "name": "Femminile",
+          "status": "not-started",
+          "rounds": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        }
+      ]
     },
     "G05": {
       "status": "not-started",
-      "scores": {},
-      "score_penalties": [],
-      "applied_bonuses": [],
-      "applied_penalties": []
+      "divisions": [
+        {
+          "name": "Unica",
+          "status": "not-started",
+          "scores": {},
+          "score_penalties": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        }
+      ]
     },
     "G06": {
       "status": "not-started",
-      "scores": {},
-      "score_penalties": [],
-      "applied_bonuses": [],
-      "applied_penalties": []
-    },
-    "G07": {
-      "status": "not-started",
-      "scores": {},
-      "score_penalties": [],
-      "applied_bonuses": [],
-      "applied_penalties": []
-    },
-    "G08": {
-      "status": "not-started",
-      "rounds": [],
-      "applied_bonuses": [],
-      "applied_penalties": []
+      "divisions": [
+        {
+          "name": "Maschile",
+          "status": "not-started",
+          "scores": {},
+          "score_penalties": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        },
+        {
+          "name": "Femminile",
+          "status": "not-started",
+          "scores": {},
+          "score_penalties": [],
+          "applied_bonuses": [],
+          "applied_penalties": []
+        }
+      ]
     },
     "G09": {
-      "status": "not-started",
-      "rounds": [],
-      "applied_bonuses": [],
-      "applied_penalties": []
-    },
-    "G10": {
-      "status": "not-started",
-      "divisions": [
-        {
-          "name": "Maschile",
-          "status": "not-started",
-          "rounds": [],
-          "applied_bonuses": [],
-          "applied_penalties": []
-        },
-        {
-          "name": "Femminile",
-          "status": "not-started",
-          "rounds": [],
-          "applied_bonuses": [],
-          "applied_penalties": []
-        }
-      ]
-    },
-    "G11": {
-      "status": "not-started",
-      "rounds": [],
-      "applied_bonuses": [],
-      "applied_penalties": []
-    },
-    "G12": {
-      "status": "not-started",
-      "rounds": [],
-      "applied_bonuses": [],
-      "applied_penalties": []
-    },
-    "G13": {
-      "status": "not-started",
-      "divisions": [
-        {
-          "name": "Maschile",
-          "status": "not-started",
-          "rounds": [],
-          "applied_bonuses": [],
-          "applied_penalties": []
-        },
-        {
-          "name": "Femminile",
-          "status": "not-started",
-          "rounds": [],
-          "applied_bonuses": [],
-          "applied_penalties": []
-        }
-      ]
-    },
-    "G14": {
-      "status": "not-started",
-      "scores": {},
-      "score_penalties": [],
-      "applied_bonuses": [],
-      "applied_penalties": []
-    },
-    "G15": {
-      "status": "not-started",
-      "divisions": [
-        {
-          "name": "Maschile",
-          "status": "not-started",
-          "rounds": [],
-          "applied_bonuses": [],
-          "applied_penalties": []
-        },
-        {
-          "name": "Femminile",
-          "status": "not-started",
-          "rounds": [],
-          "applied_bonuses": [],
-          "applied_penalties": []
-        }
-      ]
-    },
-    "G16": {
-      "status": "not-started",
-      "divisions": [
-        {
-          "name": "Maschile",
-          "status": "not-started",
-          "scores": {},
-          "score_penalties": [],
-          "applied_bonuses": [],
-          "applied_penalties": []
-        },
-        {
-          "name": "Femminile",
-          "status": "not-started",
-          "scores": {},
-          "score_penalties": [],
-          "applied_bonuses": [],
-          "applied_penalties": []
-        }
-      ]
-    },
-    "G17": {
       "status": "not-started",
       "divisions": [
         {
@@ -197,5 +128,5 @@
       ]
     }
   },
-  "last_updated": "2026-04-19T16:12:58.730967Z"
+  "last_updated": "2026-04-19T00:00:00Z"
 }

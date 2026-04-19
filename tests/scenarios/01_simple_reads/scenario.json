@@ -1,0 +1,27 @@
+{
+  "name": "simple_reads",
+  "reset_between_steps": true,
+  "seed": {
+    "palio.json": "seeds/palio.json",
+    "leaderboard.json": "seeds/leaderboard.json",
+    "palio_games_status.json": "seeds/palio_games_status.json"
+  },
+  "steps": [
+    {
+      "id": "s1_show_status",
+      "prompt": "mostra lo stato attuale dei giochi"
+    },
+    {
+      "id": "s2_show_leaderboard",
+      "prompt": "mostra la classifica attuale"
+    },
+    {
+      "id": "s3_specific_game",
+      "prompt": "qual è lo stato della gara di calcio a cinque?"
+    },
+    {
+      "id": "s4_count_pending",
+      "prompt": "quante gare non sono ancora iniziate?"
+    }
+  ]
+}

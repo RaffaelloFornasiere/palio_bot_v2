@@ -1,15 +1,27 @@
-"""LlamaCPP client implementation."""
+"""OpenAI-compatible chat-completions client.
 
+Works against any server that speaks the `/v1/chat/completions` protocol:
+llama.cpp, Ollama's OpenAI shim, OpenRouter, etc.
+"""
+
+import asyncio
 import json
+import logging
 from typing import Any, Dict, List, Optional
 import httpx
+
+logger = logging.getLogger(__name__)
+
+_RETRYABLE_STATUSES = {429, 502, 503, 504}
+_MAX_RETRIES = 4
+_BASE_BACKOFF_S = 1.5
 
 from .base_client import BaseLLMClient
 from palio_bot.agent.models import Message, TextContent, ToolUseContent, ToolResultContent, Tool, TokenUsage
 from palio_bot.utils.api_logger import APILogger
 
 
-class LlamaCPPClient(BaseLLMClient):
+class ChatClient(BaseLLMClient):
     """OpenAI-compatible chat-completions client.
 
     Works against any server that speaks the `/v1/chat/completions` protocol:
@@ -25,7 +37,12 @@ class LlamaCPPClient(BaseLLMClient):
         provider_label: str = "llamacpp",
         log_dir: str = "logs",
     ):
-        self.base_url = base_url.rstrip("/")
+        # Accept both "https://host/api" and "https://host/api/v1" — we append /v1
+        # ourselves, so strip a trailing /v1 if the caller already included it.
+        base = base_url.rstrip("/")
+        if base.endswith("/v1"):
+            base = base[: -len("/v1")]
+        self.base_url = base
         self.chat_endpoint = f"{self.base_url}/v1/chat/completions"
         self.api_key = api_key
         self.model = model
@@ -64,7 +81,7 @@ class LlamaCPPClient(BaseLLMClient):
 
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:
-                response = await client.post(self.chat_endpoint, json=payload, headers=headers)
+                response = await self._post_with_retry(client, payload, headers)
 
                 if response.status_code != 200:
                     raise Exception(
@@ -78,6 +95,43 @@ class LlamaCPPClient(BaseLLMClient):
         except Exception as e:
             self.api_logger.log_error(e, request_filepath, provider=self.provider_label)
             raise e
+
+    async def _post_with_retry(
+        self,
+        client: httpx.AsyncClient,
+        payload: Dict[str, Any],
+        headers: Dict[str, str],
+    ) -> httpx.Response:
+        """POST with exponential backoff on rate-limits and transient 5xx."""
+        last_response: Optional[httpx.Response] = None
+        for attempt in range(_MAX_RETRIES + 1):
+            response = await client.post(self.chat_endpoint, json=payload, headers=headers)
+            last_response = response
+
+            if response.status_code not in _RETRYABLE_STATUSES:
+                return response
+            if attempt == _MAX_RETRIES:
+                return response
+
+            # Honor Retry-After if present, else exponential backoff.
+            retry_after = response.headers.get("Retry-After")
+            if retry_after:
+                try:
+                    sleep_s = float(retry_after)
+                except ValueError:
+                    sleep_s = _BASE_BACKOFF_S * (2 ** attempt)
+            else:
+                sleep_s = _BASE_BACKOFF_S * (2 ** attempt)
+
+            logger.warning(
+                f"{self.provider_label} returned {response.status_code}; "
+                f"retrying in {sleep_s:.1f}s (attempt {attempt + 1}/{_MAX_RETRIES})"
+            )
+            await asyncio.sleep(sleep_s)
+
+        # Unreachable given the returns above, but keep mypy happy.
+        assert last_response is not None
+        return last_response
     
     def _convert_messages_to_openai(
         self, 
@@ -133,39 +187,35 @@ class LlamaCPPClient(BaseLLMClient):
                 })
                 continue
             
-            # Handle regular messages
-            openai_msg = {"role": msg.role}
-            
-            # Single text content
-            if len(msg.content) == 1 and isinstance(msg.content[0], TextContent):
-                openai_msg["content"] = msg.content[0].text
+            # Handle regular messages: may carry text, tool_calls, or both.
+            openai_msg: Dict[str, Any] = {"role": msg.role}
+            text_parts: List[str] = []
+            tool_calls: List[Dict[str, Any]] = []
+
+            for content in msg.content:
+                if isinstance(content, TextContent):
+                    if content.text.strip():
+                        text_parts.append(content.text)
+                elif isinstance(content, ToolUseContent):
+                    tool_calls.append({
+                        "id": content.tool_use_id,
+                        "type": "function",
+                        "function": {
+                            "name": content.tool_name,
+                            "arguments": json.dumps(content.tool_parameters),
+                        },
+                    })
+
+            # Always include tool_calls if present, even alongside text.
+            # OpenAI (and providers like Bedrock-via-OpenRouter) require the
+            # assistant's tool_calls to be in the same message as any
+            # preceding text, otherwise a later tool_result is orphaned.
+            if tool_calls:
+                openai_msg["tool_calls"] = tool_calls
+                openai_msg["content"] = "\n".join(text_parts) if text_parts else None
             else:
-                # Mixed content or tool calls
-                text_parts = []
-                tool_calls = []
-                
-                for content in msg.content:
-                    if isinstance(content, TextContent):
-                        if content.text.strip():
-                            text_parts.append(content.text)
-                    elif isinstance(content, ToolUseContent):
-                        tool_calls.append({
-                            "id": content.tool_use_id,
-                            "type": "function",
-                            "function": {
-                                "name": content.tool_name,
-                                "arguments": json.dumps(content.tool_parameters)
-                            }
-                        })
-                
-                if text_parts:
-                    openai_msg["content"] = "\n".join(text_parts)
-                elif tool_calls:
-                    openai_msg["tool_calls"] = tool_calls
-                    # OpenAI expects content to be null for tool calls
-                else:
-                    openai_msg["content"] = ""
-            
+                openai_msg["content"] = "\n".join(text_parts) if text_parts else ""
+
             openai_messages.append(openai_msg)
         
         return openai_messages

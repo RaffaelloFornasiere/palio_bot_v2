@@ -1,0 +1,94 @@
+{
+  "scenario": "complete_corsa_sacchi",
+  "model": "google/gemma-4-31b-it",
+  "passed": 6,
+  "total": 6,
+  "total_tokens": 156006,
+  "total_elapsed_s": 100.1,
+  "steps": [
+    {
+      "id": "s1_view",
+      "prompt": "mostra lo stato della Corsa coi Sacchi",
+      "passed": true,
+      "elapsed_ms": 12334,
+      "tokens": 19942,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view"
+      ],
+      "diffs": {}
+    },
+    {
+      "id": "s2_start_game",
+      "prompt": "la Corsa coi Sacchi è iniziata. Imposta lo stato del gioco e di entrambe le divisioni a 'in-progress'.",
+      "passed": true,
+      "elapsed_ms": 23314,
+      "tokens": 21785,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {}
+    },
+    {
+      "id": "s3_mens_scores",
+      "prompt": "divisione maschile della Corsa coi Sacchi: Salt 45, Sottocastello 38, Villa 52, Sornico 40, Sottomonte 47. Marca la divisione come completata.",
+      "passed": true,
+      "elapsed_ms": 18854,
+      "tokens": 22917,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {}
+    },
+    {
+      "id": "s4_womens_scores",
+      "prompt": "divisione femminile: Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48. Marca femminile e l'intero gioco come completati.",
+      "passed": true,
+      "elapsed_ms": 17044,
+      "tokens": 24657,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {}
+    },
+    {
+      "id": "s5_penalty",
+      "prompt": "applica una penalità di 5 secondi a Villa nella divisione maschile della Corsa coi Sacchi per partenza anticipata",
+      "passed": true,
+      "elapsed_ms": 17088,
+      "tokens": 39301,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view",
+        "json_append"
+      ],
+      "diffs": {}
+    },
+    {
+      "id": "s6_undo",
+      "prompt": "annulla l'ultima modifica ai giochi",
+      "passed": true,
+      "elapsed_ms": 11275,
+      "tokens": 27404,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_undo"
+      ],
+      "diffs": {}
+    }
+  ]
+}

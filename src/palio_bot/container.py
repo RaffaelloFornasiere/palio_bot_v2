@@ -11,7 +11,7 @@ from palio_bot.cli.cli_consumer import CLIConsumer
 from palio_bot.telegram_bot.telegram_consumer import TelegramConsumer
 from palio_bot.tools.multi_json_editor_tool import create_multi_json_editor_tools
 from palio_bot.tools.file_registry import FileRegistry, FileConfig
-from .llm_clients.llamacpp_client import LlamaCPPClient
+from .llm_clients.chat_client import ChatClient
 from .llm_clients.ollama_client import OllamaClient
 from .llm_clients.base_client import BaseLLMClient
 from palio_bot.agent.models import Tool
@@ -75,7 +75,7 @@ class Container:
                     f"OpenRouter: base_url={self.config.openrouter_base_url}, "
                     f"model={self.config.openrouter_model}"
                 )
-                self._llm_client = LlamaCPPClient(
+                self._llm_client = ChatClient(
                     base_url=self.config.openrouter_base_url,
                     api_key=self.config.openrouter_api_key,
                     model=self.config.openrouter_model,
@@ -83,7 +83,7 @@ class Container:
                 )
             elif self.llm_provider == "llamacpp":
                 logger.debug(f"LlamaCPP URL: {self.llamacpp_url}")
-                self._llm_client = LlamaCPPClient(base_url=self.llamacpp_url)
+                self._llm_client = ChatClient(base_url=self.llamacpp_url)
             elif self.llm_provider == "ollama":
                 logger.debug(f"Using Ollama with model: {self.ollama_model}")
                 ollama_url = self.llamacpp_url.replace(":11454", ":11434")

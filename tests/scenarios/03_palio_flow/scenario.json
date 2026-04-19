@@ -1,0 +1,112 @@
+{
+  "name": "evening_of_palio",
+  "reset_between_steps": false,
+  "seed": {
+    "palio.json": "seeds/palio.json",
+    "leaderboard.json": "seeds/leaderboard.json",
+    "palio_games_status.json": "seeds/palio_games_status.json"
+  },
+  "steps": [
+    {
+      "id": "s1_inventory",
+      "prompt": "elenca i giochi disponibili e indicami il loro stato attuale"
+    },
+    {
+      "id": "s2_taglio_start",
+      "prompt": "Il Taglio del Tronco inizia. Metti sia il gioco sia entrambe le divisioni a 'in-progress'.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G01.status", "set": "in-progress" },
+          { "path": "$.game_scores.G01.divisions[0].status", "set": "in-progress" },
+          { "path": "$.game_scores.G01.divisions[1].status", "set": "in-progress" }
+        ]
+      }
+    },
+    {
+      "id": "s3_taglio_complete",
+      "prompt": "Taglio del Tronco è terminato. Marca il gioco e le divisioni come completati.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G01.divisions[0].status", "set": "completed" },
+          { "path": "$.game_scores.G01.divisions[1].status", "set": "completed" },
+          { "path": "$.game_scores.G01.status", "set": "completed" }
+        ]
+      }
+    },
+    {
+      "id": "s4_corsa_sacchi_mens",
+      "prompt": "Corsa coi Sacchi: inizia e registra i risultati maschili. Salt 30s, Sottocastello 28s, Villa 35s, Sornico 32s, Sottomonte 31s. Completa la divisione maschile.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.status", "set": "in-progress" },
+          { "path": "$.game_scores.G02.divisions[0].status", "set": "completed" },
+          { "path": "$.game_scores.G02.divisions[0].scores", "set": {
+            "Salt": 30, "Sottocastello": 28, "Villa": 35, "Sornico": 32, "Sottomonte": 31
+          }}
+        ]
+      }
+    },
+    {
+      "id": "s5_corsa_sacchi_women",
+      "prompt": "Corsa coi Sacchi femminile: Salt 34, Sottocastello 32, Villa 40, Sornico 33, Sottomonte 36. Completa la divisione e il gioco.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.divisions[1].status", "set": "completed" },
+          { "path": "$.game_scores.G02.divisions[1].scores", "set": {
+            "Salt": 34, "Sottocastello": 32, "Villa": 40, "Sornico": 33, "Sottomonte": 36
+          }},
+          { "path": "$.game_scores.G02.status", "set": "completed" }
+        ]
+      }
+    },
+    {
+      "id": "s6_anguria_bonus",
+      "prompt": "Imposta l'Anguria a 'in-progress' e assegna un bonus di 3 punti di classifica a Sornico nella divisione maschile per buona condotta.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G03.status", "set": "in-progress" },
+          { "path": "$.game_scores.G03.divisions[0].applied_bonuses", "set": [
+            { "village": "Sornico", "description": "buona condotta", "points": 3 }
+          ]}
+        ]
+      }
+    },
+    {
+      "id": "s7_scatolone_start",
+      "prompt": "Lo Scatolone inizia. Metti il gioco e le due divisioni a 'in-progress'.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G04.status", "set": "in-progress" },
+          { "path": "$.game_scores.G04.divisions[0].status", "set": "in-progress" },
+          { "path": "$.game_scores.G04.divisions[1].status", "set": "in-progress" }
+        ]
+      }
+    },
+    {
+      "id": "s8_strade_mate",
+      "prompt": "Strade Mate: risultati unica divisione. Salt 12, Sottocastello 10, Villa 9, Sornico 11, Sottomonte 13. Completa.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G05.status", "set": "completed" },
+          { "path": "$.game_scores.G05.divisions[0].status", "set": "completed" },
+          { "path": "$.game_scores.G05.divisions[0].scores", "set": {
+            "Salt": 12, "Sottocastello": 10, "Villa": 9, "Sornico": 11, "Sottomonte": 13
+          }}
+        ]
+      }
+    },
+    {
+      "id": "s9_cancel_penalty",
+      "prompt": "annulla il bonus di Sornico sull'Anguria (era sbagliato)",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G03.divisions[0].applied_bonuses", "set": [] }
+        ]
+      }
+    },
+    {
+      "id": "s10_summary",
+      "prompt": "riepiloga quali giochi sono completati finora"
+    }
+  ]
+}

@@ -354,8 +354,11 @@ class PalioTelegramBot:
                 raise
             except Exception as e:
                 logger.error(f"Error processing message: {e}", exc_info=True)
+                err = str(e)
+                if len(err) > 3500:
+                    err = err[:3500] + "…"
                 await update.message.reply_text(
-                    f"❌ Errore durante l'elaborazione:\n`{str(e)}`",
+                    f"❌ Errore durante l'elaborazione:\n`{err}`",
                     parse_mode='Markdown'
                 )
             finally:

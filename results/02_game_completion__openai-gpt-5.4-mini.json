@@ -1,0 +1,102 @@
+{
+  "scenario": "complete_corsa_sacchi",
+  "model": "openai/gpt-5.4-mini",
+  "passed": 5,
+  "total": 6,
+  "total_tokens": 155136,
+  "total_elapsed_s": 24.06,
+  "steps": [
+    {
+      "id": "s1_view",
+      "prompt": "mostra lo stato della Corsa coi Sacchi",
+      "passed": true,
+      "elapsed_ms": 3436,
+      "tokens": 16139,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view"
+      ],
+      "diffs": {}
+    },
+    {
+      "id": "s2_start_game",
+      "prompt": "la Corsa coi Sacchi è iniziata. Imposta lo stato del gioco e di entrambe le divisioni a 'in-progress'.",
+      "passed": true,
+      "elapsed_ms": 3088,
+      "tokens": 16844,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {}
+    },
+    {
+      "id": "s3_mens_scores",
+      "prompt": "divisione maschile della Corsa coi Sacchi: Salt 45, Sottocastello 38, Villa 52, Sornico 40, Sottomonte 47. Marca la divisione come completata.",
+      "passed": true,
+      "elapsed_ms": 5166,
+      "tokens": 26217,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {}
+    },
+    {
+      "id": "s4_womens_scores",
+      "prompt": "divisione femminile: Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48. Marca femminile e l'intero gioco come completati.",
+      "passed": true,
+      "elapsed_ms": 4738,
+      "tokens": 36833,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {}
+    },
+    {
+      "id": "s5_penalty",
+      "prompt": "applica una penalità di 5 secondi a Villa nella divisione maschile della Corsa coi Sacchi per partenza anticipata",
+      "passed": false,
+      "elapsed_ms": 4973,
+      "tokens": 39002,
+      "send_error": null,
+      "tool_failures": [
+        {
+          "tool": "unknown",
+          "error": "Tool execution failed: MultiJSONEditorTool.merge() missing 1 required positional argument: 'partial'"
+        }
+      ],
+      "tool_calls": [
+        "json_view",
+        "json_merge",
+        "json_set"
+      ],
+      "diffs": {
+        "palio_games_status.json": "--- expected\n+++ actual\n@@ -22,7 +22,7 @@\n           \"score_penalties\": [\n             {\n               \"description\": \"partenza anticipata\",\n-              \"points\": 5,\n+              \"points\": -5,\n               \"village\": \"Villa\"\n             }\n           ],"
+      }
+    },
+    {
+      "id": "s6_undo",
+      "prompt": "annulla l'ultima modifica ai giochi",
+      "passed": true,
+      "elapsed_ms": 2502,
+      "tokens": 20101,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_undo"
+      ],
+      "diffs": {}
+    }
+  ]
+}

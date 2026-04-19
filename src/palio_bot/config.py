@@ -43,7 +43,7 @@ class Config(BaseSettings):
     # OpenRouter
     openrouter_api_key: Optional[str] = None
     openrouter_model: str = "anthropic/claude-3.5-haiku"
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_base_url: str = "https://openrouter.ai/api"
 
     # llama.cpp
     llama_cpp_url: str = Field(default="http://mac-studio.local:11454", alias="LLAMACPP_URL")

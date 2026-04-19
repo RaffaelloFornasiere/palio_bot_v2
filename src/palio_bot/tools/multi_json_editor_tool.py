@@ -108,8 +108,10 @@ class MultiJSONEditorTool:
                 json.dump(data, f, ensure_ascii=False, indent=2)
 
             self.registry.mark_modified(file_name)
-            # Invalidate the view-before-edit guardrail for this file — content changed
-            self._viewed_paths.pop(file_name, None)
+            # Intentionally DO NOT clear _viewed_paths — the agent is doing
+            # sequential edits within a subtree it already saw, and wiping
+            # the set after every write forces it to re-view before each
+            # follow-up edit (thrashes token usage for no safety gain).
 
             logger.info(f"File '{file_name}' salvato con successo")
             return None
@@ -505,6 +507,9 @@ class MultiJSONEditorTool:
 
             del self._last_content[file_name]
             self._viewed_paths.pop(file_name, None)
+            # Without this, save_session/commit skips the file and the undo
+            # effect never reaches the main JSON on disk.
+            self.registry.mark_modified(file_name)
 
             return ToolResult(
                 success=True,
@@ -522,7 +527,11 @@ def create_multi_json_editor_tools(file_registry: FileRegistry) -> Dict[str, Too
     editable_files = file_registry.get_editable_files()
     file_list = ", ".join(f'"{f}"' for f in editable_files)
 
-    value_schema = {"type": ["string", "number", "boolean", "object", "array", "null"]}
+    # No `type` on `value` — JSON Schema allows any type when omitted, and this
+    # keeps us portable across providers. Gemini in particular rejects the
+    # array-typed form `["string","number",...]`, and then fails the whole tool
+    # declaration because `required` references a "missing" property.
+    value_schema: Dict[str, Any] = {}
 
     tools = {
         "json_view": Tool(
@@ -573,8 +582,17 @@ def create_multi_json_editor_tools(file_registry: FileRegistry) -> Dict[str, Too
         "json_merge": Tool(
             name="json_merge",
             description=(
-                f"Deep-merge di un oggetto parziale nel sottoalbero al path indicato: i campi non specificati "
-                f"vengono preservati. Per le liste usa invece json_append. Richiede una precedente view(). "
+                "Deep-merge di un oggetto parziale nel sottoalbero al path indicato.\n"
+                "REGOLE:\n"
+                "  • Dict: unione chiave-per-chiave. Le chiavi non menzionate nel "
+                "partial vengono preservate. ✓ usa il merge per questo.\n"
+                "  • Liste: SOSTITUZIONE completa — la lista in `partial` rimpiazza "
+                "tutta la lista esistente. Elementi non menzionati SCOMPAIONO.\n"
+                "    → Se vuoi modificare UN elemento di una lista, NON mettere la "
+                "lista nel partial. Usa json_set con il path all'elemento specifico, "
+                "es. '$.a.b[0].status', oppure json_append/json_insert/json_remove.\n"
+                "  • Scalari: sostituzione.\n"
+                "Richiede una precedente view() sul path o un antenato.\n"
                 f"File disponibili: {file_list}"
             ),
             parameters_schema={

@@ -1,0 +1,71 @@
+{
+  "name": "complete_corsa_sacchi",
+  "reset_between_steps": false,
+  "seed": {
+    "palio.json": "seeds/palio.json",
+    "leaderboard.json": "seeds/leaderboard.json",
+    "palio_games_status.json": "seeds/palio_games_status.json"
+  },
+  "steps": [
+    {
+      "id": "s1_view",
+      "prompt": "mostra lo stato della Corsa coi Sacchi"
+    },
+    {
+      "id": "s2_start_game",
+      "prompt": "la Corsa coi Sacchi è iniziata. Imposta lo stato del gioco e di entrambe le divisioni a 'in-progress'.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.status", "set": "in-progress" },
+          { "path": "$.game_scores.G02.divisions[0].status", "set": "in-progress" },
+          { "path": "$.game_scores.G02.divisions[1].status", "set": "in-progress" }
+        ]
+      }
+    },
+    {
+      "id": "s3_mens_scores",
+      "prompt": "divisione maschile della Corsa coi Sacchi: Salt 45, Sottocastello 38, Villa 52, Sornico 40, Sottomonte 47. Marca la divisione come completata.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.divisions[0].scores", "set": {
+            "Salt": 45, "Sottocastello": 38, "Villa": 52, "Sornico": 40, "Sottomonte": 47
+          }},
+          { "path": "$.game_scores.G02.divisions[0].status", "set": "completed" }
+        ]
+      }
+    },
+    {
+      "id": "s4_womens_scores",
+      "prompt": "divisione femminile: Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48. Marca femminile e l'intero gioco come completati.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.divisions[1].scores", "set": {
+            "Salt": 42, "Sottocastello": 39, "Villa": 55, "Sornico": 44, "Sottomonte": 48
+          }},
+          { "path": "$.game_scores.G02.divisions[1].status", "set": "completed" },
+          { "path": "$.game_scores.G02.status", "set": "completed" }
+        ]
+      }
+    },
+    {
+      "id": "s5_penalty",
+      "prompt": "applica una penalità di 5 secondi a Villa nella divisione maschile della Corsa coi Sacchi per partenza anticipata",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.divisions[0].score_penalties", "set": [
+            { "village": "Villa", "description": "partenza anticipata", "points": -5 }
+          ]}
+        ]
+      }
+    },
+    {
+      "id": "s6_undo",
+      "prompt": "annulla l'ultima modifica ai giochi",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.divisions[0].score_penalties", "set": [] }
+        ]
+      }
+    }
+  ]
+}

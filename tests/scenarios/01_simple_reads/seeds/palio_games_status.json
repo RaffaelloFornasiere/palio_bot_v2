@@ -1,15 +1,33 @@
 {
   "game_scores": {
     "G01": {
-      "status": "completed",
+      "status": "in-progress",
       "divisions": [
         {
+          "score_penalties": [],
+          "scores": {
+            "Sornico": 54.97,
+            "Sottocastello": 26.22,
+            "Salt": 30.07,
+            "Villa": 63.23,
+            "Sottomonte": 28.2
+          },
+          "status": "in-progress",
           "name": "Maschile",
-          "status": "completed"
+          "applied_bonuses": [],
+          "applied_penalties": []
         },
         {
-          "status": "completed",
-          "name": "Femminile"
+          "score_penalties": [],
+          "applied_penalties": [],
+          "applied_bonuses": [],
+          "name": "Femminile",
+          "scores": {
+            "Sottomonte": "34.67",
+            "Sottocastello": "38.82",
+            "Villa": "61.05"
+          },
+          "status": "in-progress"
         }
       ]
     },
