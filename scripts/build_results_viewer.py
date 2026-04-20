@@ -161,7 +161,26 @@ HTML_TEMPLATE = r"""<!doctype html>
   .stat-row b { color: var(--text); }
   .empty { color: var(--muted); text-align: center; padding: 40px; }
   /* diff2html dark tweaks */
-  .diff-container { margin-top: 4px; }
+  .diff-file { margin-top: 8px; }
+  .diff-file-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; color: var(--muted);
+    padding: 4px 8px;
+    border: 1px solid var(--border); border-bottom: none;
+    background: var(--panel);
+    border-radius: 6px 6px 0 0;
+  }
+  .diff-container { position: relative; }
+  .diff-container .d2h-file-wrapper { border-radius: 0 0 6px 6px; }
+  /* diff2html's line-number column is position: absolute and anchors to the
+     nearest positioned ancestor. Without these, it anchors up to <body> and
+     "sticks" to the viewport while the code scrolls inside <main>. */
+  .diff-container .d2h-wrapper,
+  .diff-container .d2h-file-wrapper,
+  .diff-container .d2h-files-diff,
+  .diff-container .d2h-file-side-diff,
+  .diff-container .d2h-code-wrapper,
+  .diff-container .d2h-diff-table { position: relative; }
   .diff-container .d2h-file-header { background: var(--panel); border-color: var(--border); }
   .diff-container .d2h-file-name { color: var(--text); }
   .diff-container .d2h-code-line-ctn { white-space: pre-wrap; }
@@ -188,15 +207,18 @@ let diffCounter = 0;
 
 function queueDiff(diffs) {
   if (!diffs || !Object.keys(diffs).length) return "";
-  const id = "diff-" + (++diffCounter);
-  const unified = Object.entries(diffs).map(([path, text]) => {
-    // Rewrite "--- expected" / "+++ actual" so diff2html shows the filename as header.
-    return String(text)
-      .replace(/^--- expected$/m, `--- a/${path}`)
-      .replace(/^\+\+\+ actual$/m, `+++ b/${path}`);
-  }).join("\n");
-  pendingDiffs.push({ id, unified });
-  return `<div class="section"><h4>Diffs</h4><div id="${id}" class="diff-container"></div></div>`;
+  // One container per file so each gets its own filename label above.
+  const blocks = Object.entries(diffs).map(([path, text]) => {
+    const id = "diff-" + (++diffCounter);
+    // Keep "--- expected" / "+++ actual" so the diff2html header literally reads
+    // "expected → actual". Filename is shown separately above.
+    pendingDiffs.push({ id, unified: String(text) });
+    return `<div class="diff-file">
+      <div class="diff-file-name">${escapeHtml(path)}</div>
+      <div id="${id}" class="diff-container"></div>
+    </div>`;
+  }).join("");
+  return `<div class="section"><h4>Diffs</h4>${blocks}</div>`;
 }
 
 function flushDiffs() {
@@ -208,7 +230,7 @@ function flushDiffs() {
     const ui = new Diff2HtmlUI(target, unified, {
       drawFileList: false,
       matching: "lines",
-      outputFormat: "line-by-line",
+      outputFormat: "side-by-side",
       colorScheme: "dark",
       renderNothingWhenEmpty: true,
     });

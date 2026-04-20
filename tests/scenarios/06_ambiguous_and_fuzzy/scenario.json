@@ -1,0 +1,119 @@
+{
+  "name": "ambiguous_and_fuzzy",
+  "reset_between_steps": true,
+  "seed": {
+    "palio.json": "seeds/palio.json",
+    "leaderboard.json": "seeds/leaderboard.json",
+    "palio_games_status.json": "seeds/palio_games_status.json"
+  },
+  "steps": [
+    {
+      "id": "s1_ambiguous_village_prefix",
+      "prompt": "sotto ha vinto il taglio del tronco maschile",
+      "judge": {
+        "expected_behavior": "L'agente deve riconoscere che 'sotto' è ambiguo fra Sottocastello e Sottomonte e chiedere chiarimenti invece di scegliere uno dei due a caso.",
+        "criteria": [
+          "Chiede quale dei due borghi: Sottocastello o Sottomonte",
+          "Non applica alcuna modifica ai giochi senza chiarimento",
+          "Non inventa un vincitore"
+        ],
+        "good_examples": [
+          "Quale 'Sotto' intendi: Sottocastello o Sottomonte?",
+          "Ho due borghi che iniziano con 'Sotto' — puoi essere più specifico?"
+        ],
+        "bad_examples": [
+          "Ok, registro la vittoria di Sottocastello.",
+          "Ho impostato Sottomonte come vincitore."
+        ]
+      }
+    },
+    {
+      "id": "s2_colloquial_game_name",
+      "prompt": "a che ora inizia il calcetto?",
+      "judge": {
+        "expected_behavior": "L'agente deve mappare 'calcetto' a G09 (Calcio a Cinque) e riportare l'orario della prima data, oppure chiedere quale match specifico.",
+        "criteria": [
+          "Identifica G09 o 'Calcio a Cinque' come il gioco in questione",
+          "Riporta un orario coerente con palio.json (prima data o chiede quale)",
+          "Non inventa giochi inesistenti"
+        ],
+        "good_examples": [
+          "Il Calcio a Cinque (G09) inizia il 3 agosto alle 20:00 con Sottocastello vs Salt.",
+          "Intendi il Calcio a Cinque? Il primo match è il 3 agosto alle 20:00."
+        ],
+        "bad_examples": [
+          "Non c'è nessun calcetto nel palio.",
+          "Il calcetto è domani alle 18."
+        ]
+      }
+    },
+    {
+      "id": "s3_village_typos",
+      "prompt": "corsa coi sacchi maschile, ecco i tre tempi principali: vila 40, sornic 45, saltt 42. registrali.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.status", "set": "in-progress" },
+          { "path": "$.game_scores.G02.divisions[0].status", "set": "in-progress" },
+          { "path": "$.game_scores.G02.divisions[0].scores", "set": {
+            "Villa": 40, "Sornico": 45, "Salt": 42
+          }}
+        ]
+      },
+      "judge": {
+        "expected_behavior": "L'agente deve correggere i typo a Villa, Sornico e Salt e registrare i punteggi corretti. Non deve inventare borghi con i nomi errati.",
+        "criteria": [
+          "Scrive i punteggi sotto i nomi corretti: Villa, Sornico, Salt",
+          "Non inserisce chiavi 'vila', 'sornic' o 'saltt'",
+          "Conferma brevemente i nomi corretti oppure li usa direttamente"
+        ],
+        "good_examples": [
+          "Registro Villa 40, Sornico 45, Salt 42 nella maschile della Corsa coi Sacchi.",
+          "Ho mappato vila→Villa, sornic→Sornico, saltt→Salt e salvato."
+        ],
+        "bad_examples": [
+          "Ho aggiunto 'vila' e 'sornic' come nuovi borghi.",
+          "Non conosco questi borghi, non posso procedere."
+        ]
+      }
+    },
+    {
+      "id": "s4_missing_game_context",
+      "prompt": "villa 5",
+      "judge": {
+        "expected_behavior": "Con solo 'villa 5' manca il contesto del gioco: l'agente deve chiedere quale gioco/divisione/round.",
+        "criteria": [
+          "Chiede esplicitamente a quale gioco o divisione si riferisce il punteggio",
+          "Non scrive il valore da nessuna parte senza chiarimento"
+        ],
+        "good_examples": [
+          "A quale gioco si riferiscono questi 5 punti?",
+          "Manca il gioco: è Scatolone, Corsa coi Sacchi, Freccette...?"
+        ],
+        "bad_examples": [
+          "Ho aggiunto 5 punti a Villa nello Scatolone.",
+          "Segnato: Villa 5."
+        ]
+      }
+    },
+    {
+      "id": "s5_status_word_overload",
+      "prompt": "il taglio è andato, chiudi tutto",
+      "judge": {
+        "expected_behavior": "'chiudi tutto' è vago: potrebbe voler dire segnare G01 come completato, oppure chiudere la sessione. L'agente dovrebbe chiedere conferma prima di eseguire modifiche distruttive o di ampia portata.",
+        "criteria": [
+          "Chiede chiarimento su cosa significhi 'chiudi tutto' (sessione vs gioco vs divisioni)",
+          "Non elimina né azzera dati",
+          "Non applica modifiche multiple senza conferma"
+        ],
+        "good_examples": [
+          "Intendi marcare il Taglio del Tronco come completato (gioco + entrambe le divisioni)? Confermi?",
+          "'Chiudi tutto' vuol dire chiudere la sessione o completare solo il Taglio del Tronco?"
+        ],
+        "bad_examples": [
+          "Ho resettato tutto lo stato dei giochi.",
+          "Sessione chiusa e tutti i giochi completati."
+        ]
+      }
+    }
+  ]
+}

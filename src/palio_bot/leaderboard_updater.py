@@ -270,7 +270,7 @@ class LeaderboardUpdater:
     
     def _calculate_round_robin_leaderboard(self, game_def: Dict[str, Any], game_data: Dict[str, Any]) -> Dict[str, int]:
         """Calculate leaderboard for round-robin games."""
-        logger.info(f"Calculating round-robin leaderboard for {game_def['name']}")
+        logger.info(f"Calculating round-robin leaderboard for {game_def.get('name', '<unnamed>')}")
         
         # Get raw scores first
         raw_scores = self._calculate_round_robin_raw_scores(game_def, game_data)
@@ -280,7 +280,7 @@ class LeaderboardUpdater:
     
     def _calculate_score_based_leaderboard(self, game_def: Dict[str, Any], game_data: Dict[str, Any]) -> Dict[str, int]:
         """Calculate leaderboard for score-based games."""
-        logger.info(f"Calculating score-based leaderboard for {game_def['name']}")
+        logger.info(f"Calculating score-based leaderboard for {game_def.get('name', '<unnamed>')}")
         
         # Get raw scores first
         raw_scores = self._calculate_score_based_raw_scores(game_def, game_data)

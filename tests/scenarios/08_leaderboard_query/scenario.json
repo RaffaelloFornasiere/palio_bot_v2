@@ -1,0 +1,107 @@
+{
+  "name": "leaderboard_query",
+  "reset_between_steps": true,
+  "seed": {
+    "palio.json": "seeds/palio.json",
+    "leaderboard.json": "seeds/leaderboard.json",
+    "palio_games_status.json": "seeds/palio_games_status.json"
+  },
+  "steps": [
+    {
+      "id": "s1_total_points",
+      "prompt": "quanti punti ha Villa in classifica generale?",
+      "judge": {
+        "expected_behavior": "Legge leaderboard.json e risponde 42 per Villa.",
+        "criteria": [
+          "Indica il valore 42 per Villa",
+          "Non confonde con i punti parziali dei singoli giochi"
+        ],
+        "good_examples": [
+          "Villa ha 42 punti in classifica generale.",
+          "42."
+        ],
+        "bad_examples": [
+          "Villa ha 10 punti.",
+          "Villa ha 62 punti."
+        ]
+      }
+    },
+    {
+      "id": "s2_leader",
+      "prompt": "chi è in testa alla classifica?",
+      "judge": {
+        "expected_behavior": "Villa è prima con 42 punti.",
+        "criteria": [
+          "Indica Villa come primo",
+          "Cita 42 punti o la posizione #1"
+        ],
+        "good_examples": [
+          "È in testa Villa con 42 punti.",
+          "Villa (1º, 42 punti)."
+        ],
+        "bad_examples": [
+          "È in testa Sottocastello.",
+          "Non c'è un leader."
+        ]
+      }
+    },
+    {
+      "id": "s3_gap_first_last",
+      "prompt": "di quanti punti il primo è avanti sull'ultimo?",
+      "judge": {
+        "expected_behavior": "Primo = Villa 42, ultimo = Sornico 14, differenza = 28.",
+        "criteria": [
+          "Indica 28 come differenza",
+          "Identifica correttamente Villa come primo e Sornico come ultimo"
+        ],
+        "good_examples": [
+          "Villa (42) è avanti di 28 punti su Sornico (14).",
+          "28 punti."
+        ],
+        "bad_examples": [
+          "14 punti.",
+          "Sornico è primo."
+        ]
+      }
+    },
+    {
+      "id": "s4_gap_between_two",
+      "prompt": "quanti punti separano Salt da Sornico?",
+      "judge": {
+        "expected_behavior": "Salt 28, Sornico 14, differenza 14.",
+        "criteria": [
+          "Indica 14 come differenza",
+          "Cita i due punteggi (28 e 14) o almeno uno dei due"
+        ],
+        "good_examples": [
+          "Salt (28) ha 14 punti più di Sornico (14).",
+          "14 punti di differenza."
+        ],
+        "bad_examples": [
+          "Sono alla pari.",
+          "42 punti."
+        ]
+      }
+    },
+    {
+      "id": "s5_per_game_winner",
+      "prompt": "chi ha preso più punti nello Scatolone?",
+      "judge": {
+        "expected_behavior": "Nella sezione game_leaderboards.G04 Villa ha 20 punti, il massimo. L'agente deve leggere quella sezione.",
+        "criteria": [
+          "Indica Villa come chi ha preso più punti in G04",
+          "Riporta il valore 20 oppure il rank",
+          "Non confonde con la classifica generale"
+        ],
+        "good_examples": [
+          "Nello Scatolone Villa ha preso 20 punti, il massimo.",
+          "Villa (20 punti in G04)."
+        ],
+        "bad_examples": [
+          "Sottocastello con 17.",
+          "Non ho i dati per gioco."
+        ]
+      }
+    }
+  ]
+}

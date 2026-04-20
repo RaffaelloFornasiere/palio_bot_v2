@@ -54,45 +54,13 @@ data/
 
 **Default-year rule:** latest is `max(int(name) for name in data/* if name.isdigit())`. If `data/` contains no year dirs, fail fast with a clear error.
 
----
+## 2. Rename `MultiJSONEditorTool`
 
-## 2. API server `--reload` in dev
+The name suggests "a tool that edits multiple JSON files at once." It actually does the opposite: one tool instance exposes a single editor that targets *one of several registered files* per call (via a `file_name` argument). The "multi" refers to the registry it can reach, not to the edit scope.
 
-Current launch (`uv run python -m palio_bot.api.api_server`) doesn't hot-reload, so iterating on backend code needs manual restart. Consider:
+**Rename candidates:**
+- `RegisteredFileEditor` (preferred — names what it actually is: an editor over the `FileRegistry`)
+- `JSONFileEditor`
+- `RegistryJSONEditor`
 
-- Separate `api.__main__` with `uvicorn.run(..., reload=True)` when `PALIO_DEV=1`.
-- Or add a `scripts/dev_api.sh` that runs `uvicorn palio_bot.api.api_server:app --reload --port 8000`.
-
----
-
-## 3. CRA port note in docs / tmux
-
-The website runs on `:3010` (set in `website/.env` via `PORT=3010`), not the CRA default `:3000`. The `scripts/run_tmux.sh` header comment still says `:3000` — update when revisiting.
-
----
-
-## 4. Stale `REACT_APP_SERVER_URL` in `website/.env`
-
-Was hardcoded to `http://192.168.1.128:8000`. Commented out for now so it falls back to `localhost:8000`. If you need a LAN-visible deployment, set this to the machine's current IP or a stable hostname — don't re-hardcode an ephemeral IP.
-
----
-
-## 5. Deferred from refactor plan
-
-The following were explicitly deferred:
-
-- **Delete custom `Message`/`Content` abstraction** — touches 10+ files for ~350 LOC savings. Type safety it provides (agent loop, event payloads, session persistence) outweighs the ~40-line conversion cost in `LlamaCPPClient`. Revisit only if we add more providers or the abstraction starts leaking.
-- **Streaming LLM responses** — agent currently waits for the full response before yielding.
-- **Multi-level undo** — currently 1-level per file.
-- **Retry logic for transient LLM failures** — no retry on httpx errors.
-- **sage_v2's stricter stream features** (tick batching, `on_put_event`, bounded queue, consumer lock) — our stream is fine at current scale; revisit if we see memory growth or racing consumers.
-- **Trio migration** — blocked by `python-telegram-bot` being asyncio-only.
-- **Domain-specific tools** (`record_match_result` etc.) — revisit only if the generic JSON editor proves unreliable in practice.
-
----
-
-## 6. Known minor issues
-
-- `PydanticDeprecatedSince20` warning from `Tool.Config` class in `agent/models.py` — should migrate to `model_config = ConfigDict(...)`.
-- `src/palio_bot/telegram_bot/__init__.py` was missing and had to be added during the src-layout move — harmless, just noting.
-- `container.py` still has an unused `Literal` import.
+**Scope:** rename the class, the module (`tools/multi_json_editor_tool.py`), all imports, and any prompt/docstring references. Check `agent/system_prompt.py` and eval scenarios for hardcoded tool-name strings before renaming — tool names are surfaced to the LLM.

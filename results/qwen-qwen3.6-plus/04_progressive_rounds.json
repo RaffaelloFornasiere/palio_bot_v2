@@ -1,0 +1,149 @@
+{
+  "scenario": "progressive_rounds_scatolone",
+  "model": "qwen/qwen3.6-plus",
+  "passed": 3,
+  "total": 8,
+  "total_tokens": 291668,
+  "total_elapsed_s": 86.79,
+  "steps": [
+    {
+      "id": "s1_status",
+      "prompt": "qual è lo stato dello Scatolone?",
+      "passed": true,
+      "elapsed_ms": 5540,
+      "tokens": 19164,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view"
+      ],
+      "diffs": {},
+      "final_text": "Lo stato dello **Scatolone (G04)** è **not-started** (non ancora iniziato). Non ci sono round giocati, né bonus o penalità applicati.",
+      "judge": null
+    },
+    {
+      "id": "s2_start",
+      "prompt": "lo Scatolone è iniziato",
+      "passed": true,
+      "elapsed_ms": 4219,
+      "tokens": 19488,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "Lo stato dello **Scatolone** è stato aggiornato a **in-progress**.",
+      "judge": null
+    },
+    {
+      "id": "s3_round1",
+      "prompt": "villa 9 sottocastello 5",
+      "passed": false,
+      "elapsed_ms": 9403,
+      "tokens": 20147,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_append"
+      ],
+      "diffs": {
+        "palio_games_status.json": "--- expected\n+++ actual\n@@ -5,7 +5,6 @@\n       \"applied_penalties\": [],\n       \"rounds\": [\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 9,"
+      },
+      "final_text": "Risultato aggiunto: **Villa 9 - Sottocastello 5**.",
+      "judge": null
+    },
+    {
+      "id": "s4_round2",
+      "prompt": "salt 5 sottomonte 7",
+      "passed": false,
+      "elapsed_ms": 19369,
+      "tokens": 53480,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_append",
+        "json_append",
+        "json_view",
+        "json_remove"
+      ],
+      "diffs": {
+        "palio_games_status.json": "--- expected\n+++ actual\n@@ -5,7 +5,6 @@\n       \"applied_penalties\": [],\n       \"rounds\": [\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 9,\n@@ -18,7 +17,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 5,"
+      },
+      "final_text": "Risultato aggiunto correttamente: **Salt 5 - Sottomonte 7**.\n\nStato attuale dello Scatolone:\n1. Villa 9 - 5 Sottocastello\n2. Salt 5 - 7 Sottomonte",
+      "judge": null
+    },
+    {
+      "id": "s5_batch_of_four",
+      "prompt": "sornico 6 sottocastello 9\nvilla 10 sottomonte 8\nsalt 7 sottocastello 7\nsornico 7 villa 11",
+      "passed": false,
+      "elapsed_ms": 18665,
+      "tokens": 58845,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_append",
+        "json_append",
+        "json_append",
+        "json_append"
+      ],
+      "diffs": {
+        "palio_games_status.json": "--- expected\n+++ actual\n@@ -5,7 +5,6 @@\n       \"applied_penalties\": [],\n       \"rounds\": [\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 9,\n@@ -18,7 +17,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 5,\n@@ -31,7 +29,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 6,\n@@ -44,7 +41,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 10,\n@@ -57,7 +53,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 7,\n@@ -70,7 +65,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 7,"
+      },
+      "final_text": "Tutti i risultati sono stati aggiunti allo Scatolone:\n\n3. Sornico 6 - 9 Sottocastello\n4. Villa 10 - 8 Sottomonte\n5. Salt 7 - 7 Sottocastello\n6. Sornico 7 - 11 Villa\n\nLo stato attuale del torneo è **in-progress** con 6 round completati.",
+      "judge": null
+    },
+    {
+      "id": "s6_batch_of_three",
+      "prompt": "sottomonte 8 sottocastello 7\nsalt 8 villa 10\nsornico 8 sottomonte 8",
+      "passed": false,
+      "elapsed_ms": 13305,
+      "tokens": 51446,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_append",
+        "json_append",
+        "json_append"
+      ],
+      "diffs": {
+        "palio_games_status.json": "--- expected\n+++ actual\n@@ -5,7 +5,6 @@\n       \"applied_penalties\": [],\n       \"rounds\": [\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 9,\n@@ -18,7 +17,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 5,\n@@ -31,7 +29,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 6,\n@@ -44,7 +41,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 10,\n@@ -57,7 +53,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 7,\n@@ -70,7 +65,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 7,\n@@ -83,7 +77,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 8,\n@@ -96,7 +89,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 8,\n@@ -109,7 +101,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 8,"
+      },
+      "final_text": "Tutti i risultati sono stati aggiunti:\n\n7. Sottomonte 8 - 7 Sottocastello\n8. Salt 8 - 10 Villa\n9. Sornico 8 - 8 Sottomonte",
+      "judge": null
+    },
+    {
+      "id": "s7_last_two",
+      "prompt": "salt 9 sornico 6\nsalt 9 sottocastello 8",
+      "passed": false,
+      "elapsed_ms": 10661,
+      "tokens": 41004,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_append",
+        "json_append"
+      ],
+      "diffs": {
+        "palio_games_status.json": "--- expected\n+++ actual\n@@ -5,7 +5,6 @@\n       \"applied_penalties\": [],\n       \"rounds\": [\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 9,\n@@ -18,7 +17,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 5,\n@@ -31,7 +29,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 6,\n@@ -44,7 +41,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 10,\n@@ -57,7 +53,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 7,\n@@ -70,7 +65,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 7,\n@@ -83,7 +77,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 8,\n@@ -96,7 +89,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 8,\n@@ -109,7 +101,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 8,\n@@ -122,7 +113,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 9,\n@@ -135,7 +125,6 @@\n           ]\n         },\n         {\n-          \"score_penalties\": [],\n           \"scores\": [\n             {\n               \"points\": 9,"
+      },
+      "final_text": "Risultati aggiunti:\n\n10. Salt 9 - 6 Sornico\n11. Salt 9 - 8 Sottocastello",
+      "judge": null
+    },
+    {
+      "id": "s8_complete",
+      "prompt": "marca lo Scatolone come completato",
+      "passed": true,
+      "elapsed_ms": 5517,
+      "tokens": 28094,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "Lo **Scatolone (G04)** è stato marcato come **completed**.",
+      "judge": null
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "game_scores": {
+    "G01": {
+      "status": "completed",
+      "divisions": [
+        { "name": "Maschile", "status": "completed", "scores": { "Villa": 30, "Sottocastello": 32, "Salt": 35, "Sottomonte": 40, "Sornico": 42 }, "score_penalties": [], "applied_bonuses": [], "applied_penalties": [] },
+        { "name": "Femminile", "status": "completed", "scores": { "Villa": 33, "Sottocastello": 34, "Salt": 36, "Sottomonte": 41, "Sornico": 43 }, "score_penalties": [], "applied_bonuses": [], "applied_penalties": [] }
+      ]
+    },
+    "G02": {
+      "status": "completed",
+      "divisions": [
+        { "name": "Maschile", "status": "completed", "scores": { "Villa": 28, "Sottocastello": 30, "Salt": 31, "Sottomonte": 33, "Sornico": 35 }, "score_penalties": [], "applied_bonuses": [], "applied_penalties": [] },
+        { "name": "Femminile", "status": "completed", "scores": { "Villa": 29, "Sottocastello": 30, "Salt": 32, "Sottomonte": 34, "Sornico": 36 }, "score_penalties": [], "applied_bonuses": [], "applied_penalties": [] }
+      ]
+    },
+    "G04": {
+      "status": "completed",
+      "rounds": [],
+      "applied_bonuses": [],
+      "applied_penalties": []
+    }
+  },
+  "last_updated": "2026-04-19T00:00:00Z"
+}

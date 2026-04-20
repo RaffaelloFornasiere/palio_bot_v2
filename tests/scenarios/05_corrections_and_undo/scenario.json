@@ -1,0 +1,71 @@
+{
+  "name": "corrections_and_undo",
+  "reset_between_steps": false,
+  "seed": {
+    "palio.json": "seeds/palio.json",
+    "leaderboard.json": "seeds/leaderboard.json",
+    "palio_games_status.json": "seeds/palio_games_status.json"
+  },
+  "steps": [
+    {
+      "id": "s1_start_and_enter_wrong",
+      "prompt": "la corsa coi sacchi è iniziata, divisione maschile. Risultati: Villa 25, Salt 45, Sottocastello 38, Sornico 40, Sottomonte 47.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.status", "set": "in-progress" },
+          { "path": "$.game_scores.G02.divisions[0].status", "set": "in-progress" },
+          { "path": "$.game_scores.G02.divisions[0].scores", "set": {
+            "Villa": 25, "Salt": 45, "Sottocastello": 38, "Sornico": 40, "Sottomonte": 47
+          }}
+        ]
+      }
+    },
+    {
+      "id": "s2_correct_typo",
+      "prompt": "scusa, ho sbagliato: Villa era 52, non 25. Correggi.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.divisions[0].scores.Villa", "set": 52 }
+        ]
+      }
+    },
+    {
+      "id": "s3_mark_completed",
+      "prompt": "ok, segna la divisione maschile come completata.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.divisions[0].status", "set": "completed" }
+        ]
+      }
+    },
+    {
+      "id": "s4_verify_villa_score",
+      "prompt": "ricordami quanto ha totalizzato Villa nella maschile della corsa coi sacchi",
+      "judge": {
+        "expected_behavior": "L'agente legge lo stato attuale e risponde che Villa ha 52 (non 25, perché la correzione è stata applicata).",
+        "criteria": [
+          "Indica il valore 52 per Villa",
+          "Non menziona 25 come valore attuale",
+          "Fa riferimento a Corsa coi Sacchi o alla divisione maschile"
+        ],
+        "good_examples": [
+          "Villa ha totalizzato 52 nella divisione maschile della Corsa coi Sacchi.",
+          "Dopo la correzione, Villa è a 52."
+        ],
+        "bad_examples": [
+          "Villa ha 25.",
+          "Non ho quel dato."
+        ]
+      }
+    },
+    {
+      "id": "s5_undo_last_change",
+      "prompt": "annulla l'ultima modifica che hai fatto al file dei giochi",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.divisions[0].status", "set": "in-progress" }
+        ]
+      }
+    }
+  ]
+}

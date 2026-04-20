@@ -1,0 +1,107 @@
+{
+  "scenario": "complete_corsa_sacchi",
+  "model": "google/gemini-3-flash-preview",
+  "passed": 5,
+  "total": 6,
+  "total_tokens": 132242,
+  "total_elapsed_s": 22.92,
+  "steps": [
+    {
+      "id": "s1_view",
+      "prompt": "mostra lo stato della Corsa coi Sacchi",
+      "passed": true,
+      "elapsed_ms": 4348,
+      "tokens": 19432,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view"
+      ],
+      "diffs": {},
+      "final_text": "Ecco lo stato attuale della **Corsa coi Sacchi (G02)**:\n\nIl gioco è attualmente in stato **non iniziato** (`not-started`) per entrambe le divisioni:\n- **Divisione Maschile**: non iniziata, nessun punteggio o penalità registrati.\n- **Divisione Femminile**: non iniziata, nessun punteggio o penalità registrati.",
+      "judge": null
+    },
+    {
+      "id": "s2_start_game",
+      "prompt": "la Corsa coi Sacchi è iniziata. Imposta lo stato del gioco e di entrambe le divisioni a 'in-progress'.",
+      "passed": true,
+      "elapsed_ms": 4892,
+      "tokens": 20714,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "Lo stato della **Corsa coi Sacchi (G02)** e delle sue divisioni (Maschile e Femminile) è stato aggiornato correttamente a `in-progress`.",
+      "judge": null
+    },
+    {
+      "id": "s3_mens_scores",
+      "prompt": "divisione maschile della Corsa coi Sacchi: Salt 45, Sottocastello 38, Villa 52, Sornico 40, Sottomonte 47. Marca la divisione come completata.",
+      "passed": true,
+      "elapsed_ms": 4589,
+      "tokens": 21969,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "I punteggi per la divisione **Maschile** della **Corsa coi Sacchi (G02)** sono stati inseriti correttamente e lo stato della divisione è stato passato a `completed`.\n\nPunteggi inseriti:\n- Sottocastello: 38\n- Sornico: 40\n- Salt: 45\n- Sottomonte: 47\n- Villa: 52",
+      "judge": null
+    },
+    {
+      "id": "s4_womens_scores",
+      "prompt": "divisione femminile: Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48. Marca femminile e l'intero gioco come completati.",
+      "passed": true,
+      "elapsed_ms": 3370,
+      "tokens": 22822,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "I punteggi per la divisione **Femminile** della **Corsa coi Sacchi (G02)** sono stati registrati. Sia la divisione che l'intero gioco sono stati marcati come **completati** (`completed`).\n\n**Riepilogo punteggi Femminile:**\n- Sottocastello: 39\n- Salt: 42\n- Sornico: 44\n- Sottomonte: 48\n- Villa: 55",
+      "judge": null
+    },
+    {
+      "id": "s5_penalty",
+      "prompt": "applica una penalità di 5 secondi a Villa nella divisione maschile della Corsa coi Sacchi per partenza anticipata",
+      "passed": false,
+      "elapsed_ms": 2872,
+      "tokens": 23404,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_append"
+      ],
+      "diffs": {
+        "palio_games_status.json": "--- expected\n+++ actual\n@@ -21,7 +21,7 @@\n           \"name\": \"Maschile\",\n           \"score_penalties\": [\n             {\n-              \"description\": \"partenza anticipata\",\n+              \"description\": \"Partenza anticipata\",\n               \"points\": -5,\n               \"village\": \"Villa\"\n             }"
+      },
+      "final_text": "Penalità di **5 secondi** per **Villa** nella divisione **Maschile** della **Corsa coi Sacchi (G02)** registrata correttamente (causale: partenza anticipata).",
+      "judge": null
+    },
+    {
+      "id": "s6_undo",
+      "prompt": "annulla l'ultima modifica ai giochi",
+      "passed": true,
+      "elapsed_ms": 2682,
+      "tokens": 23901,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_undo"
+      ],
+      "diffs": {},
+      "final_text": "L'ultima modifica effettuata al file dei giochi è stata annullata. La penalità inflitta a Villa è stata rimossa.",
+      "judge": null
+    }
+  ]
+}

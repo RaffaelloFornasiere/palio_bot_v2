@@ -1,12 +1,41 @@
 """File registry system for managing editable JSON files."""
 
-from typing import Dict, Optional, Type
+from typing import Any, Dict, Optional, Set, Type
 from pathlib import Path
 from pydantic import BaseModel, Field, ValidationError
 import json
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+_VILLAGE_FIELD_KEYS = {"scores", "palio_leaderboard", "game_leaderboards"}
+
+
+def _collect_village_refs(obj: Any, refs: Set[str]) -> None:
+    """Walk a JSON tree and collect every string that appears as a village name.
+
+    Picks up:
+      - dict keys under `scores` / `palio_leaderboard` / any inner dict of
+        `game_leaderboards`
+      - string values of any `village` field (score_penalties, round scores,
+        applied_bonuses/penalties)
+    """
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k in _VILLAGE_FIELD_KEYS and isinstance(v, dict):
+                if k == "game_leaderboards":
+                    for inner in v.values():
+                        if isinstance(inner, dict):
+                            refs.update(inner.keys())
+                else:
+                    refs.update(v.keys())
+            if k == "village" and isinstance(v, str):
+                refs.add(v)
+            _collect_village_refs(v, refs)
+    elif isinstance(obj, list):
+        for x in obj:
+            _collect_village_refs(x, refs)
 
 
 class FileConfig(BaseModel):
@@ -106,7 +135,6 @@ class FileRegistry:
         try:
             # Validate with Pydantic model
             validated = config.validator(**data)
-            return True, None
         except ValidationError as e:
             # Format validation errors
             errors = []
@@ -114,11 +142,43 @@ class FileRegistry:
                 loc = " -> ".join(str(x) for x in error["loc"])
                 msg = error["msg"]
                 errors.append(f"{loc}: {msg}")
-            
+
             error_msg = f"Validation errors in {name}:\n" + "\n".join(errors)
             return False, error_msg
         except Exception as e:
             return False, f"Validation error: {str(e)}"
+
+        # Whitelist check: every village name used in editable files must be
+        # listed in palio.json. Catches typos ("vila") and garbage from weaker
+        # models (e.g. double-quoted keys like "\"Salt\"" post-sanitization
+        # leftovers, or hallucinated villages like "Cividale").
+        if name in ("palio_games_status", "leaderboard"):
+            known = self._get_known_villages()
+            if known:
+                refs: Set[str] = set()
+                _collect_village_refs(data, refs)
+                unknown = refs - known
+                if unknown:
+                    return False, (
+                        f"Borghi sconosciuti in {name}: {sorted(unknown)}. "
+                        f"I borghi validi sono: {sorted(known)}."
+                    )
+
+        return True, None
+
+    def _get_known_villages(self) -> Optional[Set[str]]:
+        """Load the village whitelist from the registered palio.json, if any."""
+        palio = self.files.get("palio")
+        if not palio or not palio.path.exists():
+            return None
+        try:
+            data = json.loads(palio.path.read_text(encoding="utf-8"))
+            villages = data.get("villages")
+            if isinstance(villages, list) and villages:
+                return {v for v in villages if isinstance(v, str)}
+        except Exception as exc:
+            logger.warning(f"Could not load villages from palio.json: {exc}")
+        return None
     
     def check_file_locked(self, name: str, data: dict) -> bool:
         """Check if file is locked via metadata.

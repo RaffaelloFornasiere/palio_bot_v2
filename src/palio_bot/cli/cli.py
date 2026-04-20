@@ -11,8 +11,8 @@ from rich.panel import Panel
 
 from palio_bot.container import Container
 from palio_bot.logging_config import setup_logging, get_logger
+from palio_bot.leaderboard_updater import LeaderboardUpdater
 from palio_bot.config import Config
-
 
 console = Console()
 logger = get_logger(__name__)
@@ -107,8 +107,7 @@ async def handle_commands(command: str, system, container) -> bool:
     elif command == "/leaderboard":
         console.print("\n[dim]Aggiornamento classifica in corso...[/dim]")
         try:
-            from palio_bot.leaderboard_updater import LeaderboardUpdater
-            from palio_bot.config import Config
+
             
             config = Config()
             leaderboard_updater = LeaderboardUpdater(

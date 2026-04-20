@@ -1,0 +1,149 @@
+{
+  "name": "near_complete_palio",
+  "reset_between_steps": false,
+  "seed": {
+    "palio.json": "seeds/palio.json",
+    "leaderboard.json": "seeds/leaderboard.json",
+    "palio_games_status.json": "seeds/palio_games_status.json"
+  },
+  "steps": [
+    {
+      "id": "s1_status_overview",
+      "prompt": "come sta andando il palio? quali gare mancano ancora da completare?",
+      "judge": {
+        "expected_behavior": "Mancano 3 gare: G03 Anguria, G14 Intesa Vincente, G16 I Camerieri (non-started). Le altre 14 sono completed.",
+        "criteria": [
+          "Elenca esattamente 3 gare mancanti",
+          "Menziona Anguria (G03), Intesa Vincente (G14), I Camerieri (G16)",
+          "Non inventa gare mancanti non presenti nel contesto"
+        ],
+        "good_examples": [
+          "Mancano 3 gare: G03 Anguria, G14 Intesa Vincente, G16 I Camerieri.",
+          "Sono rimaste Anguria, Intesa Vincente e I Camerieri."
+        ],
+        "bad_examples": [
+          "Mancano 5 gare.",
+          "Manca solo l'Anguria.",
+          "Manca la Corsa coi Sacchi."
+        ]
+      }
+    },
+    {
+      "id": "s2_complete_anguria",
+      "prompt": "G03 Anguria terminata. Punteggi: Villa 15, Salt 12, Sottocastello 10, Sornico 8, Sottomonte 6.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G03.status", "set": "completed" },
+          { "path": "$.game_scores.G03.scores", "set": {
+            "Villa": 15, "Salt": 12, "Sottocastello": 10, "Sornico": 8, "Sottomonte": 6
+          }}
+        ]
+      }
+    },
+    {
+      "id": "s3_start_intesa",
+      "prompt": "Intesa Vincente inizia ora",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G14.status", "set": "in-progress" }
+        ]
+      }
+    },
+    {
+      "id": "s4_complete_intesa",
+      "prompt": "Intesa Vincente è finita. Risultati: Sottocastello 22, Villa 20, Salt 18, Sottomonte 17, Sornico 15. Completata.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G14.status", "set": "completed" },
+          { "path": "$.game_scores.G14.scores", "set": {
+            "Sottocastello": 22, "Villa": 20, "Salt": 18, "Sottomonte": 17, "Sornico": 15
+          }}
+        ]
+      }
+    },
+    {
+      "id": "s5_start_camerieri",
+      "prompt": "I Camerieri parte ora, inizia la maschile",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G16.status", "set": "in-progress" },
+          { "path": "$.game_scores.G16.divisions[0].status", "set": "in-progress" }
+        ]
+      }
+    },
+    {
+      "id": "s6_camerieri_mens",
+      "prompt": "Camerieri maschile completata. Sottocastello 9, Villa 8, Salt 7, Sottomonte 6, Sornico 5.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G16.divisions[0].status", "set": "completed" },
+          { "path": "$.game_scores.G16.divisions[0].scores", "set": {
+            "Sottocastello": 9, "Villa": 8, "Salt": 7, "Sottomonte": 6, "Sornico": 5
+          }}
+        ]
+      }
+    },
+    {
+      "id": "s7_start_camerieri_f",
+      "prompt": "inizia anche la femminile dei Camerieri",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G16.divisions[1].status", "set": "in-progress" }
+        ]
+      }
+    },
+    {
+      "id": "s8_camerieri_f_complete_all",
+      "prompt": "Camerieri femminile: Salt 8, Villa 7, Sottocastello 6, Sornico 5, Sottomonte 4. Completa femminile e l'intero gioco — il palio è finito!",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G16.divisions[1].status", "set": "completed" },
+          { "path": "$.game_scores.G16.divisions[1].scores", "set": {
+            "Salt": 8, "Villa": 7, "Sottocastello": 6, "Sornico": 5, "Sottomonte": 4
+          }},
+          { "path": "$.game_scores.G16.status", "set": "completed" }
+        ]
+      }
+    },
+    {
+      "id": "s9_recap_last_three",
+      "prompt": "riassumi: chi ha vinto ciascuna delle ultime tre gare che ho appena registrato?",
+      "judge": {
+        "expected_behavior": "G03 Anguria: Villa (15). G14 Intesa Vincente: Sottocastello (22). G16 Camerieri maschile: Sottocastello (9), femminile: Salt (8).",
+        "criteria": [
+          "Indica Villa come vincitore dell'Anguria (o top score 15)",
+          "Indica Sottocastello come vincitore di Intesa Vincente (o top score 22)",
+          "Menziona Sottocastello per la maschile dei Camerieri e Salt per la femminile (o che sono a pari merito / che il vincitore globale dipende dalla somma)"
+        ],
+        "good_examples": [
+          "Anguria: Villa (15). Intesa Vincente: Sottocastello (22). Camerieri: Sottocastello nella maschile (9), Salt nella femminile (8).",
+          "Villa ha vinto l'Anguria, Sottocastello l'Intesa Vincente e la maschile dei Camerieri, Salt la femminile dei Camerieri."
+        ],
+        "bad_examples": [
+          "Non ho i dati delle ultime tre gare.",
+          "Ha vinto sempre Sornico."
+        ]
+      }
+    },
+    {
+      "id": "s10_all_complete_check",
+      "prompt": "sono tutte completate adesso? quante gare in totale e quante completate?",
+      "judge": {
+        "expected_behavior": "Tutte 17 le gare sono ora 'completed'. Totale gare: 17, completate: 17.",
+        "criteria": [
+          "Afferma che tutte le gare sono completate",
+          "Riporta il totale 17 (o 'tutte') completate",
+          "Non indica gare ancora non-started o in-progress"
+        ],
+        "good_examples": [
+          "Sì, tutte e 17 le gare sono completate.",
+          "17 su 17, palio finito."
+        ],
+        "bad_examples": [
+          "Ne mancano ancora 3.",
+          "Solo 14 completate."
+        ]
+      }
+    }
+  ]
+}

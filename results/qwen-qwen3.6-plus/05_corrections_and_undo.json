@@ -1,0 +1,92 @@
+{
+  "scenario": "corrections_and_undo",
+  "model": "qwen/qwen3.6-plus",
+  "passed": 5,
+  "total": 5,
+  "total_tokens": 115893,
+  "total_elapsed_s": 44.2,
+  "steps": [
+    {
+      "id": "s1_start_and_enter_wrong",
+      "prompt": "la corsa coi sacchi è iniziata, divisione maschile. Risultati: Villa 25, Salt 45, Sottocastello 38, Sornico 40, Sottomonte 47.",
+      "passed": true,
+      "elapsed_ms": 18802,
+      "tokens": 30370,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view",
+        "json_merge",
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "Aggiornati i risultati della **Corsa coi Sacchi – divisione Maschile**:\n\n| Borgo | Tempo (s) |\n|---|---|\n| Villa | 25 |\n| Sottocastello | 38 |\n| Sornico | 40 |\n| Salt | 45 |\n| Sottomonte | 47 |\n\nLo stato del gioco e della divisione maschile è ora **in-progress**. Fammi sapere quando ci sono altri risultati o se vuoi completare la divisione!",
+      "judge": null
+    },
+    {
+      "id": "s2_correct_typo",
+      "prompt": "scusa, ho sbagliato: Villa era 52, non 25. Correggi.",
+      "passed": true,
+      "elapsed_ms": 7279,
+      "tokens": 20925,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "Corretto! Il punteggio di **Villa** nella Corsa coi Sacchi (divisione Maschile) è ora **52**.",
+      "judge": null
+    },
+    {
+      "id": "s3_mark_completed",
+      "prompt": "ok, segna la divisione maschile come completata.",
+      "passed": true,
+      "elapsed_ms": 5355,
+      "tokens": 21232,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "La divisione **Maschile** della Corsa coi Sacchi è ora segnata come **completed**.",
+      "judge": null
+    },
+    {
+      "id": "s4_verify_villa_score",
+      "prompt": "ricordami quanto ha totalizzato Villa nella maschile della corsa coi sacchi",
+      "passed": true,
+      "elapsed_ms": 5419,
+      "tokens": 21560,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view"
+      ],
+      "diffs": {},
+      "final_text": "Villa ha totalizzato **52** nella divisione Maschile della Corsa coi Sacchi.",
+      "judge": {
+        "model": "google/gemini-3-flash-preview",
+        "passed": true,
+        "reasoning": "L'agente ha identificato correttamente il valore 52 per il borgo Villa nella divisione maschile della Corsa coi Sacchi, rispettando tutti i criteri e non citando valori errati o obsoleti.",
+        "failed_criteria": []
+      }
+    },
+    {
+      "id": "s5_undo_last_change",
+      "prompt": "annulla l'ultima modifica che hai fatto al file dei giochi",
+      "passed": true,
+      "elapsed_ms": 5641,
+      "tokens": 21806,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_undo"
+      ],
+      "diffs": {},
+      "final_text": "Annullata l'ultima modifica. La divisione **Maschile** della Corsa coi Sacchi è tornata allo stato **in-progress**.",
+      "judge": null
+    }
+  ]
+}

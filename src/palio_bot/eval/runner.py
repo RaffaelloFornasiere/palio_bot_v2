@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import difflib
 import json
 import logging
 import os
+import re
 import shutil
 import tempfile
 import time
@@ -56,6 +58,45 @@ def _write_seed(scenario_dir: Path, seed: dict[str, str], data_dir: Path) -> Non
 
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+# Matches strings that are purely a number optionally followed by a letter unit.
+# "30" "30.5" "-5" "30s" → coerce. "2026-04-19T00:00:00Z" "Villa" → leave alone.
+_NUMERIC_STR_RE = re.compile(r"^-?\d+(?:\.\d+)?[a-zA-Z]*$")
+
+
+def _coerce_numeric_strings(obj: Any) -> Any:
+    """Walk a JSON tree and coerce strings like '30' or '30s' to numbers.
+
+    Used on both expected and actual state before diffing so that a model
+    writing `"points": "30s"` when the scenario expected `"points": 30`
+    doesn't count as a diff.
+    """
+    if isinstance(obj, dict):
+        return {k: _coerce_numeric_strings(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_coerce_numeric_strings(x) for x in obj]
+    if isinstance(obj, str) and _NUMERIC_STR_RE.match(obj):
+        m = re.match(r"^-?\d+(?:\.\d+)?", obj)
+        if m:
+            num = m.group(0)
+            try:
+                return float(num) if "." in num else int(num)
+            except ValueError:
+                return obj
+    return obj
+
+
+def _normalize_for_diff(fname: str, data: Any) -> Any:
+    """Drop volatile/format-insensitive fields so diffs reflect real divergence.
+
+    - `last_updated` on palio_games_status.json changes on every write; ignore.
+    - Numeric strings in scores/points are treated as equivalent to their numeric form.
+    """
+    data = copy.deepcopy(data)
+    if fname == "palio_games_status.json" and isinstance(data, dict):
+        data.pop("last_updated", None)
+    return _coerce_numeric_strings(data)
 
 
 def _json_diff(expected: Any, actual: Any, *, context: int = 3) -> str:
@@ -193,8 +234,10 @@ async def run_scenario(
 
             diffs: dict[str, str] = {}
             for fname in seed:
-                if actual[fname] != expected[fname]:
-                    diffs[fname] = _json_diff(expected[fname], actual[fname])
+                exp_norm = _normalize_for_diff(fname, expected[fname])
+                act_norm = _normalize_for_diff(fname, actual[fname])
+                if exp_norm != act_norm:
+                    diffs[fname] = _json_diff(exp_norm, act_norm)
 
             # Judge (optional, per-step): LLM grades the final assistant text.
             judge_result: dict | None = None

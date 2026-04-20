@@ -1,0 +1,54 @@
+{
+  "villages": [
+    "Sornico",
+    "Sottocastello",
+    "Salt",
+    "Sottomonte",
+    "Villa"
+  ],
+  "palio_leaderboard": {
+    "Villa": {
+      "points": 42,
+      "position": 1
+    },
+    "Sottocastello": {
+      "points": 35,
+      "position": 2
+    },
+    "Salt": {
+      "points": 28,
+      "position": 3
+    },
+    "Sottomonte": {
+      "points": 21,
+      "position": 4
+    },
+    "Sornico": {
+      "points": 14,
+      "position": 5
+    }
+  },
+  "game_leaderboards": {
+    "G01": {
+      "Villa": 10,
+      "Sottocastello": 8,
+      "Salt": 6,
+      "Sottomonte": 4,
+      "Sornico": 2
+    },
+    "G02": {
+      "Villa": 12,
+      "Sottocastello": 10,
+      "Salt": 8,
+      "Sottomonte": 6,
+      "Sornico": 4
+    },
+    "G04": {
+      "Villa": 20,
+      "Sottocastello": 17,
+      "Salt": 14,
+      "Sottomonte": 11,
+      "Sornico": 8
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "name": "penalties_and_ties",
+  "reset_between_steps": false,
+  "seed": {
+    "palio.json": "seeds/palio.json",
+    "leaderboard.json": "seeds/leaderboard.json",
+    "palio_games_status.json": "seeds/palio_games_status.json"
+  },
+  "steps": [
+    {
+      "id": "s1_enter_tied_scores",
+      "prompt": "corsa coi sacchi maschile è terminata. Tempi: Villa 40, Salt 40, Sottocastello 38, Sornico 45, Sottomonte 42. Marca la divisione come completata.",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.status", "set": "in-progress" },
+          { "path": "$.game_scores.G02.divisions[0].status", "set": "completed" },
+          { "path": "$.game_scores.G02.divisions[0].scores", "set": {
+            "Villa": 40, "Salt": 40, "Sottocastello": 38, "Sornico": 45, "Sottomonte": 42
+          }}
+        ]
+      }
+    },
+    {
+      "id": "s2_query_winner_with_tie",
+      "prompt": "chi ha vinto la divisione maschile della corsa coi sacchi?",
+      "judge": {
+        "expected_behavior": "La misura è 'time_seconds' con lower_is_better=true. Sottocastello ha il tempo più basso (38) e quindi vince. L'utente ha chiesto solo chi ha vinto: indicare Sottocastello basta. Non è richiesto menzionare il pareggio fra Villa e Salt al secondo posto.",
+        "criteria": [
+          "Indica Sottocastello come vincitore della divisione maschile",
+          "Non indica Villa, Salt, Sornico o Sottomonte come vincitore"
+        ],
+        "good_examples": [
+          "Ha vinto Sottocastello con 38s.",
+          "Sottocastello.",
+          "Sottocastello (38s) è primo; pareggio fra Villa e Salt (40s)."
+        ],
+        "bad_examples": [
+          "Ha vinto Villa.",
+          "Sornico è primo con 45.",
+          "C'è un pareggio a tre."
+        ]
+      }
+    },
+    {
+      "id": "s3_apply_penalty",
+      "prompt": "applica una penalità di 5 secondi a Villa nella maschile per partenza anticipata",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.divisions[0].score_penalties", "set": [
+            { "village": "Villa", "description": "partenza anticipata", "points": -5 }
+          ]}
+        ]
+      }
+    },
+    {
+      "id": "s4_query_after_penalty",
+      "prompt": "ora com'è la classifica della maschile?",
+      "judge": {
+        "expected_behavior": "Con la penalità Villa passa da 40 a 45s (pareggio con Sornico ultimo). Sottocastello resta primo (38), Salt secondo (40), Sottomonte terzo (42), Villa e Sornico ultimi a 45.",
+        "criteria": [
+          "Menziona la penalità applicata a Villa o il suo nuovo tempo effettivo (45)",
+          "Indica Sottocastello come primo",
+          "Non dice più che Villa è seconda"
+        ],
+        "good_examples": [
+          "Con la penalità Villa è a 45s. Ordine: Sottocastello 38, Salt 40, Sottomonte 42, poi Villa e Sornico a 45.",
+          "Sottocastello primo a 38. Villa ora è penultima/ultima insieme a Sornico."
+        ],
+        "bad_examples": [
+          "Villa è ancora seconda.",
+          "La classifica non cambia."
+        ]
+      }
+    },
+    {
+      "id": "s5_remove_penalty",
+      "prompt": "annulla la penalità che ho dato a Villa, era un errore",
+      "changes": {
+        "palio_games_status.json": [
+          { "path": "$.game_scores.G02.divisions[0].score_penalties", "set": [] }
+        ]
+      }
+    }
+  ]
+}

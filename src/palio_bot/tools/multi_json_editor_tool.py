@@ -42,6 +42,40 @@ def _coerce_json_string(value: Any) -> Any:
     return value
 
 
+def _strip_surrounding_quotes(value: Any) -> Any:
+    """Recursively strip enclosing double-quote characters from dict keys and
+    short string values.
+
+    Guards against a specific bad pattern from weaker models (notably gemma),
+    which emit tool-call dicts like:
+
+        {"\"Salt\"": "\"30s\"", ...}
+
+    — the keys and values include literal `"` characters because the model
+    JSON-encoded them a second time. Left alone this garbage gets written to
+    disk and corrupts subsequent reads.
+
+    Only strips if the string begins AND ends with `"` and the inner content
+    has no embedded quotes (so we never mangle legitimate values that happen
+    to contain a quote).
+    """
+    def _unquote(s: str) -> str:
+        if len(s) >= 2 and s[0] == '"' and s[-1] == '"' and '"' not in s[1:-1]:
+            return s[1:-1]
+        return s
+
+    if isinstance(value, dict):
+        return {
+            (_unquote(k) if isinstance(k, str) else k): _strip_surrounding_quotes(v)
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_strip_surrounding_quotes(x) for x in value]
+    if isinstance(value, str):
+        return _unquote(value)
+    return value
+
+
 def _deep_merge(target: Any, source: Any) -> Any:
     """Recursively merge `source` into `target` and return the result.
 
@@ -239,7 +273,7 @@ class MultiJSONEditorTool:
         if err := self._require_viewed(file_name, path):
             return ToolResult(success=False, error=err)
 
-        value = _coerce_json_string(value)
+        value = _strip_surrounding_quotes(_coerce_json_string(value))
         data, error = self._load_json(file_name)
         if error:
             return ToolResult(success=False, error=error)
@@ -271,7 +305,7 @@ class MultiJSONEditorTool:
         if err := self._require_viewed(file_name, path):
             return ToolResult(success=False, error=err)
 
-        partial = _coerce_json_string(partial)
+        partial = _strip_surrounding_quotes(_coerce_json_string(partial))
         data, error = self._load_json(file_name)
         if error:
             return ToolResult(success=False, error=error)
@@ -369,7 +403,7 @@ class MultiJSONEditorTool:
         if err := self._require_viewed(file_name, path):
             return ToolResult(success=False, error=err)
 
-        value = _coerce_json_string(value)
+        value = _strip_surrounding_quotes(_coerce_json_string(value))
         data, error = self._load_json(file_name)
         if error:
             return ToolResult(success=False, error=error)
@@ -415,7 +449,7 @@ class MultiJSONEditorTool:
         if err := self._require_viewed(file_name, path):
             return ToolResult(success=False, error=err)
 
-        value = _coerce_json_string(value)
+        value = _strip_surrounding_quotes(_coerce_json_string(value))
         data, error = self._load_json(file_name)
         if error:
             return ToolResult(success=False, error=error)
