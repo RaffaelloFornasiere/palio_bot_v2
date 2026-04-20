@@ -19,7 +19,7 @@ def _parse_args() -> argparse.Namespace:
                         "The 'openrouter/' prefix is stripped if present.")
     p.add_argument("--out", type=Path, default=None,
                    help="Where to write the JSON report. Defaults to "
-                        "results/<scenario>__<model>.json")
+                        "results/<model>/<scenario>.json")
     p.add_argument("--api-key", default=None,
                    help="OpenRouter API key (else taken from OPENROUTER_API_KEY)")
     p.add_argument("--debug", action="store_true")
@@ -39,7 +39,8 @@ def main() -> None:
     out_path = args.out
     if out_path is None:
         slug = model.replace("/", "-")
-        out_path = Path("results") / f"{args.scenario.name}__{slug}.json"
+        out_path = Path("results") / slug / f"{args.scenario.name}.json"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
 
     report = asyncio.run(
         run_scenario(

@@ -5,9 +5,11 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from palio_bot.agent.models import TextContent
 from palio_bot.stream.events import (
     AgentCancelledEvent,
     AgentCompleteEvent,
+    AgentUpdateEvent,
     ErrorEvent,
     Event,
     ToolResultEvent,
@@ -30,6 +32,7 @@ class Recorder:
         self.total_tokens: int = 0
         self.complete: asyncio.Event = asyncio.Event()
         self.cancelled: bool = False
+        self.assistant_texts: list[str] = []
 
     # --- Consumer protocol ---
 
@@ -43,6 +46,13 @@ class Recorder:
             self.tool_failures.append(
                 {"tool": event.tool_name, "error": event.result.error}
             )
+        elif isinstance(event, AgentUpdateEvent):
+            # Collect assistant text blocks — last one is the final reply.
+            text_parts = [
+                c.text for c in event.message.content if isinstance(c, TextContent)
+            ]
+            if text_parts:
+                self.assistant_texts.append("\n".join(text_parts))
         elif isinstance(event, AgentCompleteEvent):
             if event.total_token_usage:
                 self.total_tokens = event.total_token_usage.total_tokens
@@ -63,3 +73,9 @@ class Recorder:
         self.total_tokens = 0
         self.cancelled = False
         self.complete = asyncio.Event()
+        self.assistant_texts = []
+
+    @property
+    def final_assistant_text(self) -> str:
+        """The last assistant text block seen this step, or '' if none."""
+        return self.assistant_texts[-1] if self.assistant_texts else ""

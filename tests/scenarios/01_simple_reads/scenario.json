@@ -22,6 +22,86 @@
     {
       "id": "s4_count_pending",
       "prompt": "quante gare non sono ancora iniziate?"
+    },
+    {
+      "id": "s5_count_in_progress",
+      "prompt": "quante gare sono attualmente in corso?",
+      "judge": {
+        "expected_behavior": "L'agente deve leggere palio_games_status e rispondere che c'è UNA sola gara in corso, identificandola come G01 (Taglio del Tronco).",
+        "criteria": [
+          "Indica che c'è esattamente UNA gara in corso",
+          "Menziona G01 o 'Taglio del Tronco'",
+          "Non inventa altre gare in corso non presenti nel contesto"
+        ],
+        "good_examples": [
+          "C'è una sola gara in corso: il Taglio del Tronco (G01).",
+          "Al momento solo il Taglio del Tronco è 'in-progress'."
+        ],
+        "bad_examples": [
+          "Ci sono 3 gare in corso.",
+          "Nessuna gara è in corso.",
+          "Sono in corso il Taglio del Tronco e la Staffetta."
+        ]
+      }
+    },
+    {
+      "id": "s6_leaderboard_standings",
+      "prompt": "chi sta vincendo nella classifica generale?",
+      "judge": {
+        "expected_behavior": "L'agente deve notare che tutti i borghi hanno 0 punti, quindi nessuno sta vincendo effettivamente (o sono tutti a pari merito).",
+        "criteria": [
+          "Riconosce che tutti i borghi hanno 0 punti / pari merito / il palio non è ancora iniziato",
+          "Non inventa punteggi diversi da 0"
+        ],
+        "good_examples": [
+          "Tutti i borghi hanno 0 punti, il palio non è ancora iniziato.",
+          "Al momento nessuno sta vincendo: tutti a 0 punti."
+        ],
+        "bad_examples": [
+          "Villa è in testa con 10 punti.",
+          "Sta vincendo Sottocastello."
+        ]
+      }
+    },
+    {
+      "id": "s7_ambiguous_vittoria",
+      "prompt": "villa ha vinto",
+      "judge": {
+        "expected_behavior": "Il messaggio è ambiguo: manca il gioco. L'agente deve chiedere quale gioco, SENZA eseguire modifiche.",
+        "criteria": [
+          "Chiede all'utente a quale gioco si riferisce",
+          "Formulato come domanda",
+          "Non afferma di aver registrato o aggiornato nulla"
+        ],
+        "good_examples": [
+          "A quale gioco ti riferisci?",
+          "Puoi specificare la gara? Villa ha vinto in quale competizione?"
+        ],
+        "bad_examples": [
+          "Ho registrato la vittoria di Villa.",
+          "Ok, segnato.",
+          "Ho aggiornato il Taglio del Tronco."
+        ]
+      }
+    },
+    {
+      "id": "s8_specific_village_points",
+      "prompt": "quanti punti ha Sottocastello nella classifica?",
+      "judge": {
+        "expected_behavior": "L'agente deve rispondere 0 punti basandosi sul current_leaderboard. Non deve allucinare un numero diverso.",
+        "criteria": [
+          "Dice esplicitamente che Sottocastello ha 0 punti",
+          "Non inventa un numero diverso da 0"
+        ],
+        "good_examples": [
+          "Sottocastello ha 0 punti.",
+          "Sottocastello è a 0 punti nella classifica generale."
+        ],
+        "bad_examples": [
+          "Sottocastello ha 10 punti.",
+          "Sottocastello è in testa con 15 punti."
+        ]
+      }
     }
   ]
 }

@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Palio Bot — Eval Results</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html-ui.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1d222b;
+    --border: #262c38;
+    --text: #e6e8eb;
+    --muted: #8a93a6;
+    --accent: #7aa2ff;
+    --pass: #3ecf8e;
+    --fail: #ff6b6b;
+    --warn: #f2c94c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  code, pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .app { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
+  aside {
+    background: var(--panel); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 16px 12px;
+  }
+  aside h2 {
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); margin: 12px 8px 8px;
+  }
+  .nav-item {
+    display: block; padding: 8px 10px; border-radius: 6px;
+    color: var(--text); text-decoration: none; cursor: pointer;
+    font-size: 13px; margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--panel-2); }
+  .nav-item.active { background: #2a3550; color: var(--accent); }
+  .nav-item .sub { color: var(--muted); font-size: 11px; margin-left: 6px; }
+  main { overflow-y: auto; padding: 24px 32px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .subtitle { color: var(--muted); margin-bottom: 24px; }
+  .scenario-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card h3 { margin: 0 0 6px; font-size: 14px; }
+  .card .meta { color: var(--muted); font-size: 12px; }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+  .pill.pass { background: rgba(62,207,142,.15); color: var(--pass); }
+  .pill.fail { background: rgba(255,107,107,.15); color: var(--fail); }
+  .pill.warn { background: rgba(242,201,76,.15); color: var(--warn); }
+  .pill.muted { background: var(--panel-2); color: var(--muted); }
+  .step {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 12px; overflow: hidden;
+  }
+  .step-head {
+    padding: 12px 16px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel);
+  }
+  .step-head:hover { background: var(--panel-2); }
+  .step-head .prompt {
+    flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    color: var(--text);
+  }
+  .step-head .id { color: var(--muted); font-size: 12px; font-family: ui-monospace, monospace; }
+  .step-body { padding: 16px; border-top: 1px solid var(--border); display: none; background: var(--panel-2); }
+  .step.open .step-body { display: block; }
+  .section { margin-bottom: 14px; }
+  .section h4 {
+    margin: 0 0 6px; font-size: 11px; letter-spacing: .5px;
+    text-transform: uppercase; color: var(--muted);
+  }
+  pre.text {
+    background: #0b0d12; border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px; white-space: pre-wrap;
+    overflow-x: auto; max-height: 500px; overflow-y: auto;
+    margin: 0; font-size: 12.5px;
+  }
+  .tool-calls { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 2px 8px; border-radius: 4px; font-size: 11px;
+    font-family: ui-monospace, monospace;
+  }
+  .judge {
+    background: #0b0d12; border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px; font-size: 12.5px;
+  }
+  .judge .crit { margin: 2px 0; color: var(--muted); }
+  .crumbs { color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+  .crumbs a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .crumbs a:hover { text-decoration: underline; }
+  .stat-row { display: flex; gap: 16px; color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+  .stat-row b { color: var(--text); }
+  .empty { color: var(--muted); text-align: center; padding: 40px; }
+  /* diff2html dark tweaks */
+  .diff-container { margin-top: 4px; }
+  .diff-container .d2h-file-header { background: var(--panel); border-color: var(--border); }
+  .diff-container .d2h-file-name { color: var(--text); }
+  .diff-container .d2h-code-line-ctn { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h2>Models</h2>
+    <div id="nav-models"></div>
+    <h2 style="margin-top: 20px;">Scenarios</h2>
+    <div id="nav-scenarios"></div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<script>
+const SCENARIOS = {"01_simple_reads": {"name": "simple_reads", "reset_between_steps": true, "seed": {"palio.json": "seeds/palio.json", "leaderboard.json": "seeds/leaderboard.json", "palio_games_status.json": "seeds/palio_games_status.json"}, "steps": [{"id": "s1_show_status", "prompt": "mostra lo stato attuale dei giochi"}, {"id": "s2_show_leaderboard", "prompt": "mostra la classifica attuale"}, {"id": "s3_specific_game", "prompt": "qual è lo stato della gara di calcio a cinque?"}, {"id": "s4_count_pending", "prompt": "quante gare non sono ancora iniziate?"}, {"id": "s5_count_in_progress", "prompt": "quante gare sono attualmente in corso?", "judge": {"expected_behavior": "L'agente deve leggere palio_games_status e rispondere che c'è UNA sola gara in corso, identificandola come G01 (Taglio del Tronco).", "criteria": ["Indica che c'è esattamente UNA gara in corso", "Menziona G01 o 'Taglio del Tronco'", "Non inventa altre gare in corso non presenti nel contesto"], "good_examples": ["C'è una sola gara in corso: il Taglio del Tronco (G01).", "Al momento solo il Taglio del Tronco è 'in-progress'."], "bad_examples": ["Ci sono 3 gare in corso.", "Nessuna gara è in corso.", "Sono in corso il Taglio del Tronco e la Staffetta."]}}, {"id": "s6_leaderboard_standings", "prompt": "chi sta vincendo nella classifica generale?", "judge": {"expected_behavior": "L'agente deve notare che tutti i borghi hanno 0 punti, quindi nessuno sta vincendo effettivamente (o sono tutti a pari merito).", "criteria": ["Riconosce che tutti i borghi hanno 0 punti / pari merito / il palio non è ancora iniziato", "Non inventa punteggi diversi da 0"], "good_examples": ["Tutti i borghi hanno 0 punti, il palio non è ancora iniziato.", "Al momento nessuno sta vincendo: tutti a 0 punti."], "bad_examples": ["Villa è in testa con 10 punti.", "Sta vincendo Sottocastello."]}}, {"id": "s7_ambiguous_vittoria", "prompt": "villa ha vinto", "judge": {"expected_behavior": "Il messaggio è ambiguo: manca il gioco. L'agente deve chiedere quale gioco, SENZA eseguire modifiche.", "criteria": ["Chiede all'utente a quale gioco si riferisce", "Formulato come domanda", "Non afferma di aver registrato o aggiornato nulla"], "good_examples": ["A quale gioco ti riferisci?", "Puoi specificare la gara? Villa ha vinto in quale competizione?"], "bad_examples": ["Ho registrato la vittoria di Villa.", "Ok, segnato.", "Ho aggiornato il Taglio del Tronco."]}}, {"id": "s8_specific_village_points", "prompt": "quanti punti ha Sottocastello nella classifica?", "judge": {"expected_behavior": "L'agente deve rispondere 0 punti basandosi sul current_leaderboard. Non deve allucinare un numero diverso.", "criteria": ["Dice esplicitamente che Sottocastello ha 0 punti", "Non inventa un numero diverso da 0"], "good_examples": ["Sottocastello ha 0 punti.", "Sottocastello è a 0 punti nella classifica generale."], "bad_examples": ["Sottocastello ha 10 punti.", "Sottocastello è in testa con 15 punti."]}}]}, "02_game_completion": {"name": "complete_corsa_sacchi", "reset_between_steps": false, "seed": {"palio.json": "seeds/palio.json", "leaderboard.json": "seeds/leaderboard.json", "palio_games_status.json": "seeds/palio_games_status.json"}, "steps": [{"id": "s1_view", "prompt": "mostra lo stato della Corsa coi Sacchi"}, {"id": "s2_start_game", "prompt": "la Corsa coi Sacchi è iniziata. Imposta lo stato del gioco e di entrambe le divisioni a 'in-progress'.", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G02.status", "set": "in-progress"}, {"path": "$.game_scores.G02.divisions[0].status", "set": "in-progress"}, {"path": "$.game_scores.G02.divisions[1].status", "set": "in-progress"}]}}, {"id": "s3_mens_scores", "prompt": "divisione maschile della Corsa coi Sacchi: Salt 45, Sottocastello 38, Villa 52, Sornico 40, Sottomonte 47. Marca la divisione come completata.", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G02.divisions[0].scores", "set": {"Salt": 45, "Sottocastello": 38, "Villa": 52, "Sornico": 40, "Sottomonte": 47}}, {"path": "$.game_scores.G02.divisions[0].status", "set": "completed"}]}}, {"id": "s4_womens_scores", "prompt": "divisione femminile: Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48. Marca femminile e l'intero gioco come completati.", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G02.divisions[1].scores", "set": {"Salt": 42, "Sottocastello": 39, "Villa": 55, "Sornico": 44, "Sottomonte": 48}}, {"path": "$.game_scores.G02.divisions[1].status", "set": "completed"}, {"path": "$.game_scores.G02.status", "set": "completed"}]}}, {"id": "s5_penalty", "prompt": "applica una penalità di 5 secondi a Villa nella divisione maschile della Corsa coi Sacchi per partenza anticipata", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G02.divisions[0].score_penalties", "set": [{"village": "Villa", "description": "partenza anticipata", "points": -5}]}]}}, {"id": "s6_undo", "prompt": "annulla l'ultima modifica ai giochi", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G02.divisions[0].score_penalties", "set": []}]}}]}, "03_palio_flow": {"name": "evening_of_palio", "reset_between_steps": false, "seed": {"palio.json": "seeds/palio.json", "leaderboard.json": "seeds/leaderboard.json", "palio_games_status.json": "seeds/palio_games_status.json"}, "steps": [{"id": "s1_inventory", "prompt": "elenca i giochi disponibili e indicami il loro stato attuale"}, {"id": "s2_taglio_start", "prompt": "Il Taglio del Tronco inizia. Metti sia il gioco sia entrambe le divisioni a 'in-progress'.", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G01.status", "set": "in-progress"}, {"path": "$.game_scores.G01.divisions[0].status", "set": "in-progress"}, {"path": "$.game_scores.G01.divisions[1].status", "set": "in-progress"}]}}, {"id": "s3_taglio_complete", "prompt": "Taglio del Tronco è terminato. Marca il gioco e le divisioni come completati.", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G01.divisions[0].status", "set": "completed"}, {"path": "$.game_scores.G01.divisions[1].status", "set": "completed"}, {"path": "$.game_scores.G01.status", "set": "completed"}]}}, {"id": "s4_corsa_sacchi_mens", "prompt": "Corsa coi Sacchi: inizia e registra i risultati maschili. Salt 30s, Sottocastello 28s, Villa 35s, Sornico 32s, Sottomonte 31s. Completa la divisione maschile.", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G02.status", "set": "in-progress"}, {"path": "$.game_scores.G02.divisions[0].status", "set": "completed"}, {"path": "$.game_scores.G02.divisions[0].scores", "set": {"Salt": 30, "Sottocastello": 28, "Villa": 35, "Sornico": 32, "Sottomonte": 31}}]}}, {"id": "s5_corsa_sacchi_women", "prompt": "Corsa coi Sacchi femminile: Salt 34, Sottocastello 32, Villa 40, Sornico 33, Sottomonte 36. Completa la divisione e il gioco.", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G02.divisions[1].status", "set": "completed"}, {"path": "$.game_scores.G02.divisions[1].scores", "set": {"Salt": 34, "Sottocastello": 32, "Villa": 40, "Sornico": 33, "Sottomonte": 36}}, {"path": "$.game_scores.G02.status", "set": "completed"}]}}, {"id": "s6_anguria_bonus", "prompt": "Imposta l'Anguria a 'in-progress' e assegna un bonus di 3 punti di classifica a Sornico nella divisione maschile per buona condotta.", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G03.status", "set": "in-progress"}, {"path": "$.game_scores.G03.divisions[0].applied_bonuses", "set": [{"village": "Sornico", "description": "buona condotta", "points": 3}]}]}}, {"id": "s7_scatolone_start", "prompt": "Lo Scatolone inizia. Metti il gioco e le due divisioni a 'in-progress'.", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G04.status", "set": "in-progress"}, {"path": "$.game_scores.G04.divisions[0].status", "set": "in-progress"}, {"path": "$.game_scores.G04.divisions[1].status", "set": "in-progress"}]}}, {"id": "s8_strade_mate", "prompt": "Strade Mate: risultati unica divisione. Salt 12, Sottocastello 10, Villa 9, Sornico 11, Sottomonte 13. Completa.", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G05.status", "set": "completed"}, {"path": "$.game_scores.G05.divisions[0].status", "set": "completed"}, {"path": "$.game_scores.G05.divisions[0].scores", "set": {"Salt": 12, "Sottocastello": 10, "Villa": 9, "Sornico": 11, "Sottomonte": 13}}]}}, {"id": "s9_cancel_penalty", "prompt": "annulla il bonus di Sornico sull'Anguria (era sbagliato)", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G03.divisions[0].applied_bonuses", "set": []}]}}, {"id": "s10_summary", "prompt": "riepiloga quali giochi sono completati finora"}]}, "04_progressive_rounds": {"name": "progressive_rounds_scatolone", "reset_between_steps": false, "seed": {"palio.json": "seeds/palio.json", "leaderboard.json": "seeds/leaderboard.json", "palio_games_status.json": "seeds/palio_games_status.json"}, "steps": [{"id": "s1_status", "prompt": "qual è lo stato dello Scatolone?"}, {"id": "s2_start", "prompt": "lo Scatolone è iniziato", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G04.status", "set": "in-progress"}]}}, {"id": "s3_round1", "prompt": "villa 9 sottocastello 5", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G04.rounds", "set": [{"scores": [{"village": "Villa", "points": 9}, {"village": "Sottocastello", "points": 5}], "score_penalties": []}]}]}}, {"id": "s4_round2", "prompt": "salt 5 sottomonte 7", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G04.rounds", "set": [{"scores": [{"village": "Villa", "points": 9}, {"village": "Sottocastello", "points": 5}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 5}, {"village": "Sottomonte", "points": 7}], "score_penalties": []}]}]}}, {"id": "s5_batch_of_four", "prompt": "sornico 6 sottocastello 9\nvilla 10 sottomonte 8\nsalt 7 sottocastello 7\nsornico 7 villa 11", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G04.rounds", "set": [{"scores": [{"village": "Villa", "points": 9}, {"village": "Sottocastello", "points": 5}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 5}, {"village": "Sottomonte", "points": 7}], "score_penalties": []}, {"scores": [{"village": "Sornico", "points": 6}, {"village": "Sottocastello", "points": 9}], "score_penalties": []}, {"scores": [{"village": "Villa", "points": 10}, {"village": "Sottomonte", "points": 8}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 7}, {"village": "Sottocastello", "points": 7}], "score_penalties": []}, {"scores": [{"village": "Sornico", "points": 7}, {"village": "Villa", "points": 11}], "score_penalties": []}]}]}}, {"id": "s6_batch_of_three", "prompt": "sottomonte 8 sottocastello 7\nsalt 8 villa 10\nsornico 8 sottomonte 8", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G04.rounds", "set": [{"scores": [{"village": "Villa", "points": 9}, {"village": "Sottocastello", "points": 5}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 5}, {"village": "Sottomonte", "points": 7}], "score_penalties": []}, {"scores": [{"village": "Sornico", "points": 6}, {"village": "Sottocastello", "points": 9}], "score_penalties": []}, {"scores": [{"village": "Villa", "points": 10}, {"village": "Sottomonte", "points": 8}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 7}, {"village": "Sottocastello", "points": 7}], "score_penalties": []}, {"scores": [{"village": "Sornico", "points": 7}, {"village": "Villa", "points": 11}], "score_penalties": []}, {"scores": [{"village": "Sottomonte", "points": 8}, {"village": "Sottocastello", "points": 7}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 8}, {"village": "Villa", "points": 10}], "score_penalties": []}, {"scores": [{"village": "Sornico", "points": 8}, {"village": "Sottomonte", "points": 8}], "score_penalties": []}]}]}}, {"id": "s7_last_two", "prompt": "salt 9 sornico 6\nsalt 9 sottocastello 8", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G04.rounds", "set": [{"scores": [{"village": "Villa", "points": 9}, {"village": "Sottocastello", "points": 5}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 5}, {"village": "Sottomonte", "points": 7}], "score_penalties": []}, {"scores": [{"village": "Sornico", "points": 6}, {"village": "Sottocastello", "points": 9}], "score_penalties": []}, {"scores": [{"village": "Villa", "points": 10}, {"village": "Sottomonte", "points": 8}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 7}, {"village": "Sottocastello", "points": 7}], "score_penalties": []}, {"scores": [{"village": "Sornico", "points": 7}, {"village": "Villa", "points": 11}], "score_penalties": []}, {"scores": [{"village": "Sottomonte", "points": 8}, {"village": "Sottocastello", "points": 7}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 8}, {"village": "Villa", "points": 10}], "score_penalties": []}, {"scores": [{"village": "Sornico", "points": 8}, {"village": "Sottomonte", "points": 8}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 9}, {"village": "Sornico", "points": 6}], "score_penalties": []}, {"scores": [{"village": "Salt", "points": 9}, {"village": "Sottocastello", "points": 8}], "score_penalties": []}]}]}}, {"id": "s8_complete", "prompt": "marca lo Scatolone come completato", "changes": {"palio_games_status.json": [{"path": "$.game_scores.G04.status", "set": "completed"}]}}]}};
+const RESULTS = {"google-gemma-4-31b-it": {"01_simple_reads": {"scenario": "simple_reads", "model": "google/gemma-4-31b-it", "passed": 8, "total": 8, "total_tokens": 126768, "total_elapsed_s": 88.55, "steps": [{"id": "s1_show_status", "prompt": "mostra lo stato attuale dei giochi", "passed": true, "elapsed_ms": 11444, "tokens": 24437, "send_error": null, "tool_failures": [], "tool_calls": ["json_view"], "diffs": {}, "final_text": "Ecco lo stato attuale dei giochi del Palio dei Borghi:\n\n**In corso:**\n*   **Taglio del Tronco (G01):** \n    *   Divisione Maschile: In corso (Sottocastello 26.22, Sottomonte 28.2, Salt 30.07, Sornico 54.97, Villa 63.23)\n    *   Divisione Femminile: In corso (Sottomonte 34.67, Sottocastello 38.82, Villa 61.05)\n\n**Non ancora iniziati:**\n*   Corsa coi Sacchi (G02)\n*   Anguria (G03)\n*   Lo Scatolone (G04)\n*   Strade Mate (G05)\n*   Staffetta (G06)\n*   Bicicletta (G07)\n*   Freccette (G08)\n*   Calcio a Cinque (G09)\n*   Pallavolo (G10)\n*   Bocce (G11)\n*   Morra (G12)\n*   Briscola (G13)\n*   Intesa Vincente (G14)\n*   Bale Pignote Jr (G15)\n*   I Camerieri (G16)\n*   Bale Pignote Sr (G17)", "judge": null}, {"id": "s2_show_leaderboard", "prompt": "mostra la classifica attuale", "passed": true, "elapsed_ms": 4628, "tokens": 22603, "send_error": null, "tool_failures": [], "tool_calls": ["json_view"], "diffs": {}, "final_text": "Ecco la classifica attuale del Palio dei Borghi:\n\n| Posizione | Borgo | Punti |\n| :--- | :--- | :--- |\n| 1 | Sornico | 0 |\n| 2 | Sottocastello | 0 |\n| 3 | Salt | 0 |\n| 4 | Sottomonte | 0 |\n| 5 | Villa | 0 |", "judge": null}, {"id": "s3_specific_game", "prompt": "qual è lo stato della gara di calcio a cinque?", "passed": true, "elapsed_ms": 13014, "tokens": 22878, "send_error": null, "tool_failures": [], "tool_calls": ["json_view"], "diffs": {}, "final_text": "La gara di Calcio a Cinque (G09) ha attualmente lo stato **\"not-started\"** (non ancora iniziata). Non sono stati registrati round, bonus o penalità.", "judge": null}, {"id": "s4_count_pending", "prompt": "quante gare non sono ancora iniziate?", "passed": true, "elapsed_ms": 7834, "tokens": 11403, "send_error": null, "tool_failures": [], "tool_calls": [], "diffs": {}, "final_text": "<thinking>\n<brainstorm>\n- L'utente vuole sapere quante gare non sono ancora iniziate.\n- Devo analizzare il file `palio_games_status.json` (fornito nel contesto come `palio_games_status`).\n- Devo contare quanti giochi all'interno di `game_scores` hanno lo stato `\"status\": \"not-started\"`.\n- I giochi sono identificati dalle chiavi di `game_scores` (G01, G02, ecc.).\n<\/brainstorm>\n\n<draft>\n- Analizzerò l'oggetto `game_scores` nel file `palio_games_status`.\n- Itererò su tutti i giochi e conterò quelli che hanno `status` uguale a `\"not-started\"`.\n<\/draft>\n\n<verify>\n- Ho accesso ai dati di `palio_games_status` nel contesto.\n- Non sono necessarie chiamate a tool poiché i dati sono già presenti nel contesto e l'utente chiede solo un'informazione (conteggio), non una modifica.\n<\/verify>\n<\/thinking>\n\nAnalizzando lo stato dei giochi, ci sono **16** gare che non sono ancora iniziate (tutte tranne il Taglio del Tronco - G01, che è \"in-progress\").", "judge": null}, {"id": "s5_count_in_progress", "prompt": "quante gare sono attualmente in corso?", "passed": true, "elapsed_ms": 7147, "tokens": 11370, "send_error": null, "tool_failures": [], "tool_calls": [], "diffs": {}, "final_text": "<thinking>\n<brainstorm>\n- L'utente vuole sapere quante gare sono attualmente \"in corso\".\n- Devo analizzare il file `palio_games_status.json` e contare quanti giochi hanno lo stato `status: \"in-progress\"`.\n- Alcuni giochi hanno divisioni; devo verificare se lo stato \"in corso\" si riferisce al gioco generale o se devo considerare anche le singole divisioni.\n- In base alla struttura JSON fornita nel contesto, ogni gioco in `game_scores` ha un campo `status`.\n<\/brainstorm>\n\n<draft>\n- Eseguirò una `json_view` sul file `palio_games_status` per analizzare l'attuale stato di tutti i giochi.\n- Conterò i giochi che hanno `status == \"in-progress\"`.\n<\/draft>\n\n<verify>\n- Ho accesso al contenuto di `palio_games_status` tramite il contesto fornito, quindi posso procedere all'analisi.\n<\/verify>\n<\/thinking>\n\nAttualmente c'è **1** sola gara in corso: il **Taglio del Tronco (G01)**.", "judge": {"model": "google/gemini-3-flash-preview", "passed": true, "reasoning": "The agent correctly identified that there is only one game in progress by analyzing the 'palio_games_status.json' file. It correctly named the game 'Taglio del Tronco' and its ID 'G01' as per the context.", "failed_criteria": []}}, {"id": "s6_leaderboard_standings", "prompt": "chi sta vincendo nella classifica generale?", "passed": true, "elapsed_ms": 8248, "tokens": 11348, "send_error": null, "tool_failures": [], "tool_calls": [], "diffs": {}, "final_text": "<thinking>\n<brainstorm>\n- L'utente chiede chi sta vincendo nella classifica generale.\n- Devo consultare il file `leaderboard.json` (rappresentato nel contesto come `current_leaderboard`).\n- La classifica generale è contenuta nell'oggetto `palio_leaderboard`.\n- Devo identificare il borgo con il maggior numero di punti o, in caso di parità, guardare la posizione (`position`).\n<\/brainstorm>\n\n<draft>\n- Visualizzerò il file `leaderboard` per leggere i punteggi attuali di tutti i borghi e determinare chi è in prima posizione.\n<\/draft>\n\n<verify>\n- Ho accesso a `current_leaderboard` nel contesto, quindi posso rispondere direttamente.\n- Al momento tutti i borghi hanno 0 punti, ma Sornico è indicato in posizione 1.\n<\/verify>\n<\/thinking>\n\nAl momento, tutti i borghi hanno **0 punti**, ma in base alla posizione indicata nella classifica generale, il borgo in testa è **Sornico**.", "judge": {"model": "google/gemini-3-flash-preview", "passed": true, "reasoning": "L'agente ha correttamente identificato che tutti i borghi hanno 0 punti, soddisfacendo il criterio principale. Ha inoltre specificato che Sornico è in testa basandosi sul campo 'position' presente nel file leaderboard.json, senza inventare punteggi diversi da zero.", "failed_criteria": []}}, {"id": "s7_ambiguous_vittoria", "prompt": "villa ha vinto", "passed": true, "elapsed_ms": 21185, "tokens": 11434, "send_error": null, "tool_failures": [], "tool_calls": [], "diffs": {}, "final_text": "<thinking>\nAnalizzo la richiesta dell'utente: \"villa ha vinto\".\n\n<brainstorm>\n- L'utente indica che il borgo \"Villa\" ha vinto, ma non specifica in quale gioco.\n- Guardando lo stato attuale dei giochi (`palio_games_status`), ci sono diversi giochi in vari stati:\n    - G01 (Taglio del Tronco) è \"in-progress\" e ha due divisioni (Maschile e Femminile), entrambe \"in-progress\".\n    - Molti altri giochi sono \"not-started\".\n- Non c'è abbastanza contesto per capire a quale gioco si riferisca la vittoria di Villa. Potrebbe trattarsi del completamento di una divisione di G01 o dell'inizio di un altro gioco.\n- Poiché non è specificato il gioco, non posso procedere con alcuna modifica ai file JSON.\n<\/brainstorm>\n\n<draft>\nDevo chiedere all'utente di specificare in quale gioco (e, se applicabile, in quale divisione) il borgo Villa ha vinto.\n<\/draft>\n\n<verify>\nL'informazione sul gioco è essenziale per identificare il path nel file `palio_games_status.json`. Senza di essa, qualsiasi azione sarebbe una supposizione non consentita dalle linee guida.\n<\/verify>\n<\/thinking>\n\nIn quale gioco ha vinto Villa? Se il gioco prevede delle divisioni (come ad esempio il Taglio del Tronco), per favore specifica anche quella.", "judge": {"model": "google/gemini-3-flash-preview", "passed": true, "reasoning": "L'agente ha correttamente identificato l'ambiguità della richiesta dell'utente e ha risposto con una domanda per specificare il gioco, senza apportare modifiche ai dati.", "failed_criteria": []}}, {"id": "s8_specific_village_points", "prompt": "quanti punti ha Sottocastello nella classifica?", "passed": true, "elapsed_ms": 7386, "tokens": 11295, "send_error": null, "tool_failures": [], "tool_calls": [], "diffs": {}, "final_text": "<thinking>\n<brainstorm>\n- L'utente vuole conoscere il punteggio di un borgo specifico (\"Sottocastello\") nella classifica generale.\n- Devo consultare il file \"leaderboard\" (che nel contesto è fornito come `current_leaderboard`).\n- Il valore da cercare è all'interno di `palio_leaderboard` per la chiave \"Sottocastello\".\n<\/brainstorm>\n\n<draft>\n- Accederò ai dati della classifica per estrarre i punti di Sottocastello.\n<\/draft>\n\n<verify>\n- Ho accesso a `current_leaderboard`.\n- Sottocastello è presente nella lista dei borghi.\n<\/verify>\n<\/thinking>\n\nSottocastello ha attualmente 0 punti nella classifica.", "judge": {"model": "google/gemini-3-flash-preview", "passed": true, "reasoning": "L'agente ha correttamente identificato il punteggio di Sottocastello (0 punti) consultando il file leaderboard.json senza inventare dati o allucinare numeri diversi.", "failed_criteria": []}}]}, "02_game_completion": {"scenario": "complete_corsa_sacchi", "model": "google/gemma-4-31b-it", "passed": 6, "total": 6, "total_tokens": 156006, "total_elapsed_s": 100.1, "steps": [{"id": "s1_view", "prompt": "mostra lo stato della Corsa coi Sacchi", "passed": true, "elapsed_ms": 12334, "tokens": 19942, "send_error": null, "tool_failures": [], "tool_calls": ["json_view"], "diffs": {}}, {"id": "s2_start_game", "prompt": "la Corsa coi Sacchi è iniziata. Imposta lo stato del gioco e di entrambe le divisioni a 'in-progress'.", "passed": true, "elapsed_ms": 23314, "tokens": 21785, "send_error": null, "tool_failures": [], "tool_calls": ["json_set", "json_set", "json_set"], "diffs": {}}, {"id": "s3_mens_scores", "prompt": "divisione maschile della Corsa coi Sacchi: Salt 45, Sottocastello 38, Villa 52, Sornico 40, Sottomonte 47. Marca la divisione come completata.", "passed": true, "elapsed_ms": 18854, "tokens": 22917, "send_error": null, "tool_failures": [], "tool_calls": ["json_set", "json_set"], "diffs": {}}, {"id": "s4_womens_scores", "prompt": "divisione femminile: Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48. Marca femminile e l'intero gioco come completati.", "passed": true, "elapsed_ms": 17044, "tokens": 24657, "send_error": null, "tool_failures": [], "tool_calls": ["json_set", "json_set", "json_set"], "diffs": {}}, {"id": "s5_penalty", "prompt": "applica una penalità di 5 secondi a Villa nella divisione maschile della Corsa coi Sacchi per partenza anticipata", "passed": true, "elapsed_ms": 17088, "tokens": 39301, "send_error": null, "tool_failures": [], "tool_calls": ["json_view", "json_append"], "diffs": {}}, {"id": "s6_undo", "prompt": "annulla l'ultima modifica ai giochi", "passed": true, "elapsed_ms": 11275, "tokens": 27404, "send_error": null, "tool_failures": [], "tool_calls": ["json_undo"], "diffs": {}}]}, "03_palio_flow": {"scenario": "evening_of_palio", "model": "google/gemma-4-31b-it", "passed": 9, "total": 10, "total_tokens": 294734, "total_elapsed_s": 165.65, "steps": [{"id": "s1_inventory", "prompt": "elenca i giochi disponibili e indicami il loro stato attuale", "passed": true, "elapsed_ms": 38057, "tokens": 22485, "send_error": null, "tool_failures": [], "tool_calls": ["json_view"], "diffs": {}}, {"id": "s2_taglio_start", "prompt": "Il Taglio del Tronco inizia. Metti sia il gioco sia entrambe le divisioni a 'in-progress'.", "passed": true, "elapsed_ms": 25904, "tokens": 25126, "send_error": null, "tool_failures": [], "tool_calls": ["json_merge", "json_set", "json_set"], "diffs": {}}, {"id": "s3_taglio_complete", "prompt": "Taglio del Tronco è terminato. Marca il gioco e le divisioni come completati.", "passed": true, "elapsed_ms": 7731, "tokens": 25890, "send_error": null, "tool_failures": [], "tool_calls": ["json_merge", "json_set", "json_set"], "diffs": {}}, {"id": "s4_corsa_sacchi_mens", "prompt": "Corsa coi Sacchi: inizia e registra i risultati maschili. Salt 30s, Sottocastello 28s, Villa 35s, Sornico 32s, Sottomonte 31s. Completa la divisione maschile.", "passed": true, "elapsed_ms": 15629, "tokens": 26719, "send_error": null, "tool_failures": [], "tool_calls": ["json_merge", "json_merge"], "diffs": {}}, {"id": "s5_corsa_sacchi_women", "prompt": "Corsa coi Sacchi femminile: Salt 34, Sottocastello 32, Villa 40, Sornico 33, Sottomonte 36. Completa la divisione e il gioco.", "passed": true, "elapsed_ms": 31632, "tokens": 27590, "send_error": null, "tool_failures": [], "tool_calls": ["json_merge", "json_merge"], "diffs": {}}, {"id": "s6_anguria_bonus", "prompt": "Imposta l'Anguria a 'in-progress' e assegna un bonus di 3 punti di classifica a Sornico nella divisione maschile per buona condotta.", "passed": false, "elapsed_ms": 8958, "tokens": 28529, "send_error": null, "tool_failures": [], "tool_calls": ["json_merge", "json_append"], "diffs": {"palio_games_status.json": "--- expected\n+++ actual\n@@ -51,7 +51,7 @@\n         {\n           \"applied_bonuses\": [\n             {\n-              \"description\": \"buona condotta\",\n+              \"description\": \"Buona condotta\",\n               \"points\": 3,\n               \"village\": \"Sornico\"\n             }"}}, {"id": "s7_scatolone_start", "prompt": "Lo Scatolone inizia. Metti il gioco e le due divisioni a 'in-progress'.", "passed": true, "elapsed_ms": 6511, "tokens": 29381, "send_error": null, "tool_failures": [], "tool_calls": ["json_merge", "json_set", "json_set"], "diffs": {}}, {"id": "s8_strade_mate", "prompt": "Strade Mate: risultati unica divisione. Salt 12, Sottocastello 10, Villa 9, Sornico 11, Sottomonte 13. Completa.", "passed": true, "elapsed_ms": 11212, "tokens": 30169, "send_error": null, "tool_failures": [], "tool_calls": ["json_merge", "json_merge"], "diffs": {}}, {"id": "s9_cancel_penalty", "prompt": "annulla il bonus di Sornico sull'Anguria (era sbagliato)", "passed": true, "elapsed_ms": 12315, "tokens": 46386, "send_error": null, "tool_failures": [], "tool_calls": ["json_view", "json_remove"], "diffs": {}}, {"id": "s10_summary", "prompt": "riepiloga quali giochi sono completati finora", "passed": true, "elapsed_ms": 7346, "tokens": 32459, "send_error": null, "tool_failures": [], "tool_calls": ["json_view"], "diffs": {}}]}}, "openai-gpt-5.4-mini": {"02_game_completion": {"scenario": "complete_corsa_sacchi", "model": "openai/gpt-5.4-mini", "passed": 5, "total": 6, "total_tokens": 155136, "total_elapsed_s": 24.06, "steps": [{"id": "s1_view", "prompt": "mostra lo stato della Corsa coi Sacchi", "passed": true, "elapsed_ms": 3436, "tokens": 16139, "send_error": null, "tool_failures": [], "tool_calls": ["json_view"], "diffs": {}}, {"id": "s2_start_game", "prompt": "la Corsa coi Sacchi è iniziata. Imposta lo stato del gioco e di entrambe le divisioni a 'in-progress'.", "passed": true, "elapsed_ms": 3088, "tokens": 16844, "send_error": null, "tool_failures": [], "tool_calls": ["json_set", "json_set", "json_set"], "diffs": {}}, {"id": "s3_mens_scores", "prompt": "divisione maschile della Corsa coi Sacchi: Salt 45, Sottocastello 38, Villa 52, Sornico 40, Sottomonte 47. Marca la divisione come completata.", "passed": true, "elapsed_ms": 5166, "tokens": 26217, "send_error": null, "tool_failures": [], "tool_calls": ["json_set", "json_set"], "diffs": {}}, {"id": "s4_womens_scores", "prompt": "divisione femminile: Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48. Marca femminile e l'intero gioco come completati.", "passed": true, "elapsed_ms": 4738, "tokens": 36833, "send_error": null, "tool_failures": [], "tool_calls": ["json_set", "json_set", "json_set"], "diffs": {}}, {"id": "s5_penalty", "prompt": "applica una penalità di 5 secondi a Villa nella divisione maschile della Corsa coi Sacchi per partenza anticipata", "passed": false, "elapsed_ms": 4973, "tokens": 39002, "send_error": null, "tool_failures": [{"tool": "unknown", "error": "Tool execution failed: MultiJSONEditorTool.merge() missing 1 required positional argument: 'partial'"}], "tool_calls": ["json_view", "json_merge", "json_set"], "diffs": {"palio_games_status.json": "--- expected\n+++ actual\n@@ -22,7 +22,7 @@\n           \"score_penalties\": [\n             {\n               \"description\": \"partenza anticipata\",\n-              \"points\": 5,\n+              \"points\": -5,\n               \"village\": \"Villa\"\n             }\n           ],"}}, {"id": "s6_undo", "prompt": "annulla l'ultima modifica ai giochi", "passed": true, "elapsed_ms": 2502, "tokens": 20101, "send_error": null, "tool_failures": [], "tool_calls": ["json_undo"], "diffs": {}}]}}};
+
+const state = { model: null, scenario: null };
+const pendingDiffs = [];  // [{ id, unified }]
+let diffCounter = 0;
+
+function queueDiff(diffs) {
+  if (!diffs || !Object.keys(diffs).length) return "";
+  const id = "diff-" + (++diffCounter);
+  const unified = Object.entries(diffs).map(([path, text]) => {
+    // Rewrite "--- expected" / "+++ actual" so diff2html shows the filename as header.
+    return String(text)
+      .replace(/^--- expected$/m, `--- a/${path}`)
+      .replace(/^\+\+\+ actual$/m, `+++ b/${path}`);
+  }).join("\n");
+  pendingDiffs.push({ id, unified });
+  return `<div class="section"><h4>Diffs</h4><div id="${id}" class="diff-container"></div></div>`;
+}
+
+function flushDiffs() {
+  if (!window.Diff2HtmlUI) return;
+  while (pendingDiffs.length) {
+    const { id, unified } = pendingDiffs.shift();
+    const target = document.getElementById(id);
+    if (!target) continue;
+    const ui = new Diff2HtmlUI(target, unified, {
+      drawFileList: false,
+      matching: "lines",
+      outputFormat: "line-by-line",
+      colorScheme: "dark",
+      renderNothingWhenEmpty: true,
+    });
+    ui.draw();
+  }
+}
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function modelTotals(model) {
+  const reports = RESULTS[model] || {};
+  let passed = 0, total = 0;
+  for (const r of Object.values(reports)) {
+    passed += r.passed ?? 0;
+    total += r.total ?? 0;
+  }
+  return { passed, total };
+}
+
+function renderNav() {
+  const modelsEl = document.getElementById("nav-models");
+  const scenariosEl = document.getElementById("nav-scenarios");
+
+  const models = Object.keys(RESULTS).sort();
+  modelsEl.innerHTML = models.length === 0
+    ? '<div class="nav-item" style="color:var(--muted)">no results yet</div>'
+    : models.map(m => {
+        const t = modelTotals(m);
+        const active = state.model === m && !state.scenario ? "active" : "";
+        return `<a class="nav-item ${active}" onclick="selectModel('${m}')">
+          ${escapeHtml(m)}
+          <span class="sub">${t.passed}/${t.total}</span>
+        </a>`;
+      }).join("");
+
+  const scenarios = Object.keys(SCENARIOS).sort();
+  scenariosEl.innerHTML = scenarios.map(s => {
+    const active = state.scenario === s && !state.model ? "active" : "";
+    return `<a class="nav-item ${active}" onclick="selectScenario('${s}')">${escapeHtml(s)}</a>`;
+  }).join("");
+}
+
+function selectModel(m) {
+  state.model = m;
+  state.scenario = null;
+  state.step = null;
+  renderNav(); renderMain();
+}
+function selectScenario(s) {
+  state.scenario = s;
+  state.model = null;
+  state.step = null;
+  renderNav(); renderMain();
+}
+function selectPair(model, scenario) {
+  state.model = model;
+  state.scenario = scenario;
+  renderNav(); renderMain();
+}
+function clearSelection() {
+  state.model = null; state.scenario = null;
+  renderNav(); renderMain();
+}
+
+function renderMain() {
+  const el = document.getElementById("main");
+  pendingDiffs.length = 0;
+  if (state.model && state.scenario) el.innerHTML = renderPair(state.model, state.scenario);
+  else if (state.model) el.innerHTML = renderModel(state.model);
+  else if (state.scenario) el.innerHTML = renderScenario(state.scenario);
+  else el.innerHTML = renderHome();
+  flushDiffs();
+}
+
+function renderHome() {
+  const models = Object.keys(RESULTS).sort();
+  const scenarios = Object.keys(SCENARIOS).sort();
+  return `
+    <h1>Palio Bot — Eval Results</h1>
+    <div class="subtitle">${models.length} model(s) · ${scenarios.length} scenario(s)</div>
+    <h2 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Models</h2>
+    <div class="scenario-grid">
+      ${models.map(m => {
+        const t = modelTotals(m);
+        const pct = t.total ? Math.round(100 * t.passed / t.total) : 0;
+        const cls = t.passed === t.total ? "pass" : (t.passed === 0 ? "fail" : "warn");
+        return `<div class="card" onclick="selectModel('${m}')">
+          <h3>${escapeHtml(m)}</h3>
+          <div class="meta">
+            <span class="pill ${cls}">${t.passed}/${t.total} · ${pct}%</span>
+            <span style="margin-left:8px">${Object.keys(RESULTS[m]).length} scenario runs</span>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+    <h2 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Scenarios</h2>
+    <div class="scenario-grid">
+      ${scenarios.map(s => {
+        const spec = SCENARIOS[s];
+        return `<div class="card" onclick="selectScenario('${s}')">
+          <h3>${escapeHtml(s)}</h3>
+          <div class="meta">${(spec.steps || []).length} step(s)${spec.reset_between_steps ? " · reset" : ""}</div>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderModel(model) {
+  const reports = RESULTS[model] || {};
+  const scenarios = Object.keys(reports).sort();
+  const crumbs = `<div class="crumbs"><a onclick="clearSelection()">home</a> › ${escapeHtml(model)}</div>`;
+  const t = modelTotals(model);
+  return `
+    ${crumbs}
+    <h1>${escapeHtml(model)}</h1>
+    <div class="stat-row">
+      <div><b>${t.passed}</b>/${t.total} steps passed</div>
+      <div><b>${scenarios.length}</b> scenarios</div>
+    </div>
+    <div class="scenario-grid">
+      ${scenarios.map(s => {
+        const r = reports[s];
+        const cls = r.passed === r.total ? "pass" : (r.passed === 0 ? "fail" : "warn");
+        return `<div class="card" onclick="selectPair('${model}','${s}')">
+          <h3>${escapeHtml(s)}</h3>
+          <div class="meta">
+            <span class="pill ${cls}">${r.passed}/${r.total}</span>
+            <span style="margin-left:8px">${(r.total_elapsed_s ?? 0).toFixed(1)}s · ${(r.total_tokens ?? 0).toLocaleString()} tok</span>
+          </div>
+        </div>`;
+      }).join("") || '<div class="empty">no reports</div>'}
+    </div>
+  `;
+}
+
+function renderScenario(scenarioKey) {
+  const spec = SCENARIOS[scenarioKey];
+  const crumbs = `<div class="crumbs"><a onclick="clearSelection()">home</a> › ${escapeHtml(scenarioKey)}</div>`;
+  const modelsWithRuns = Object.keys(RESULTS).filter(m => RESULTS[m][scenarioKey]).sort();
+  return `
+    ${crumbs}
+    <h1>${escapeHtml(scenarioKey)}</h1>
+    <div class="subtitle">${spec.name || ""} · ${(spec.steps || []).length} steps · reset_between_steps: ${!!spec.reset_between_steps}</div>
+
+    <div class="section">
+      <h4>Steps</h4>
+      ${(spec.steps || []).map(st => `
+        <div class="step">
+          <div class="step-head" onclick="this.parentElement.classList.toggle('open')">
+            <span class="id">${escapeHtml(st.id)}</span>
+            <span class="prompt">${escapeHtml(st.prompt)}</span>
+            ${st.judge ? '<span class="pill muted">judged</span>' : ""}
+            ${st.changes ? '<span class="pill muted">changes</span>' : ""}
+          </div>
+          <div class="step-body">
+            ${st.judge ? renderJudgeSpec(st.judge) : ""}
+            ${st.changes ? `<div class="section"><h4>Expected changes</h4><pre class="text">${escapeHtml(JSON.stringify(st.changes, null, 2))}</pre></div>` : ""}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+
+    <div class="section">
+      <h4>Runs</h4>
+      <div class="scenario-grid">
+        ${modelsWithRuns.map(m => {
+          const r = RESULTS[m][scenarioKey];
+          const cls = r.passed === r.total ? "pass" : (r.passed === 0 ? "fail" : "warn");
+          return `<div class="card" onclick="selectPair('${m}','${scenarioKey}')">
+            <h3>${escapeHtml(m)}</h3>
+            <div class="meta"><span class="pill ${cls}">${r.passed}/${r.total}</span></div>
+          </div>`;
+        }).join("") || '<div class="empty">no runs yet</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function renderPair(model, scenarioKey) {
+  const spec = SCENARIOS[scenarioKey];
+  const report = (RESULTS[model] || {})[scenarioKey];
+  const crumbs = `<div class="crumbs">
+    <a onclick="clearSelection()">home</a> ›
+    <a onclick="selectModel('${model}')">${escapeHtml(model)}</a> ›
+    ${escapeHtml(scenarioKey)}
+  </div>`;
+  if (!report) return `${crumbs}<div class="empty">no report for this pair</div>`;
+
+  const specSteps = Object.fromEntries((spec.steps || []).map(s => [s.id, s]));
+  const cls = report.passed === report.total ? "pass" : (report.passed === 0 ? "fail" : "warn");
+  return `
+    ${crumbs}
+    <h1>${escapeHtml(model)} — ${escapeHtml(scenarioKey)}</h1>
+    <div class="stat-row">
+      <span class="pill ${cls}">${report.passed}/${report.total}</span>
+      <div><b>${(report.total_elapsed_s ?? 0).toFixed(1)}</b>s</div>
+      <div><b>${(report.total_tokens ?? 0).toLocaleString()}</b> tokens</div>
+    </div>
+
+    ${(report.steps || []).map(step => renderStep(step, specSteps[step.id])).join("")}
+  `;
+}
+
+function renderStep(step, spec) {
+  const cls = step.passed ? "pass" : "fail";
+  const tokens = step.tokens ?? 0;
+  const ms = step.elapsed_ms ?? 0;
+  const toolCalls = step.tool_calls || [];
+  const hasFailures = (step.tool_failures || []).length > 0;
+  const hasDiffs = step.diffs && Object.keys(step.diffs).length > 0;
+  return `
+    <div class="step">
+      <div class="step-head" onclick="this.parentElement.classList.toggle('open')">
+        <span class="pill ${cls}">${step.passed ? "PASS" : "FAIL"}</span>
+        <span class="id">${escapeHtml(step.id)}</span>
+        <span class="prompt">${escapeHtml(step.prompt || (spec && spec.prompt) || "")}</span>
+        <span class="sub" style="color:var(--muted);font-size:11px">${ms}ms · ${tokens.toLocaleString()}t</span>
+        ${hasFailures ? '<span class="pill fail">tool-err</span>' : ""}
+      </div>
+      <div class="step-body">
+        ${spec && spec.prompt ? `<div class="section"><h4>Prompt</h4><pre class="text">${escapeHtml(spec.prompt)}</pre></div>` : ""}
+        ${toolCalls.length ? `<div class="section"><h4>Tool calls</h4><div class="tool-calls">${toolCalls.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div></div>` : ""}
+        ${hasFailures ? `<div class="section"><h4>Tool failures</h4><pre class="text">${escapeHtml(JSON.stringify(step.tool_failures, null, 2))}</pre></div>` : ""}
+        ${step.send_error ? `<div class="section"><h4>Send error</h4><pre class="text">${escapeHtml(step.send_error)}</pre></div>` : ""}
+        ${step.final_text ? `<div class="section"><h4>Final text</h4><pre class="text">${escapeHtml(step.final_text)}</pre></div>` : ""}
+        ${hasDiffs ? queueDiff(step.diffs) : ""}
+        ${step.judge ? renderJudgeVerdict(step.judge, spec && spec.judge) : (spec && spec.judge ? renderJudgeSpec(spec.judge) : "")}
+      </div>
+    </div>
+  `;
+}
+
+function renderJudgeSpec(j) {
+  return `<div class="section">
+    <h4>Judge criteria</h4>
+    <div class="judge">
+      <div><b>Expected:</b> ${escapeHtml(j.expected_behavior || "")}</div>
+      ${(j.criteria || []).map(c => `<div class="crit">· ${escapeHtml(c)}</div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function renderJudgeVerdict(verdict, spec) {
+  const passed = verdict.passed;
+  return `<div class="section">
+    <h4>Judge verdict</h4>
+    <div class="judge">
+      <div><span class="pill ${passed ? 'pass' : 'fail'}">${passed ? 'PASS' : 'FAIL'}</span>
+        <span style="color:var(--muted);margin-left:8px">${escapeHtml(verdict.model || "")}</span></div>
+      <div style="margin-top:8px">${escapeHtml(verdict.reasoning || "")}</div>
+      ${(verdict.failed_criteria || []).length ? `
+        <div style="margin-top:8px;color:var(--fail)"><b>Failed criteria:</b>
+          ${verdict.failed_criteria.map(c => `<div class="crit">· ${escapeHtml(c)}</div>`).join("")}
+        </div>` : ""}
+      ${spec ? `<details style="margin-top:8px"><summary style="cursor:pointer;color:var(--muted)">criteria spec</summary>
+        <div style="margin-top:6px">${(spec.criteria || []).map(c => `<div class="crit">· ${escapeHtml(c)}</div>`).join("")}</div>
+      </details>` : ""}
+    </div>
+  </div>`;
+}
+
+renderNav();
+renderMain();
+</script>
+</body>
+</html>

@@ -15,6 +15,7 @@ from typing import Any
 
 from palio_bot.config import Config
 from palio_bot.container import Container
+from palio_bot.eval.judge import run_judge
 from palio_bot.eval.patch import apply_patches
 from palio_bot.eval.recorder import Recorder
 
@@ -195,7 +196,22 @@ async def run_scenario(
                 if actual[fname] != expected[fname]:
                     diffs[fname] = _json_diff(expected[fname], actual[fname])
 
-            passed = not send_error and not diffs
+            # Judge (optional, per-step): LLM grades the final assistant text.
+            judge_result: dict | None = None
+            if step.get("judge"):
+                judge_result = await run_judge(
+                    step_prompt=step["prompt"],
+                    agent_reply=recorder.final_assistant_text,
+                    ground_truth_files=baseline,
+                    judge_config=step["judge"],
+                    api_key=api_key,
+                )
+
+            passed = (
+                not send_error
+                and not diffs
+                and (judge_result is None or judge_result["passed"])
+            )
 
             flag = "✓" if passed else "✗"
             tool_names = [tc["tool"] for tc in recorder.tool_calls]
@@ -205,6 +221,8 @@ async def run_scenario(
                 fail_reason = f"  send_error: {send_error[:120]}"
             elif diffs:
                 fail_reason = f"  diff in: {', '.join(diffs.keys())}"
+            elif judge_result and not judge_result["passed"]:
+                fail_reason = f"  judge: {judge_result['reasoning'][:120]}"
             elif recorder.tool_failures:
                 fail_reason = f"  {len(recorder.tool_failures)} tool failures"
             emit(
@@ -222,6 +240,8 @@ async def run_scenario(
                 "tool_failures": recorder.tool_failures,
                 "tool_calls": [tc["tool"] for tc in recorder.tool_calls],
                 "diffs": diffs,
+                "final_text": recorder.final_assistant_text,
+                "judge": judge_result,
             })
 
         if container is not None and not reset:
