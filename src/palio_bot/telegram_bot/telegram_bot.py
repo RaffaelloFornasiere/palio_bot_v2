@@ -20,14 +20,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class PalioTelegramBot:
-    def __init__(self, token: str, allowed_user_id: Optional[int] = None, config: Optional[Config] =  Config()):
+    def __init__(self, token: str, allowed_user_id: Optional[int] = None, config: Optional[Config] = None):
         self.token = token
         self.allowed_user_id = allowed_user_id
         self.container: Optional[Container] = None
         self.user_sessions: Dict[int, Session] = {}
         self.chat_consumers: Dict[int, Any] = {}  # chat_id -> TelegramConsumer
         self.running_tasks: Dict[int, asyncio.Task] = {}  # chat_id -> Task
-        self.config = config
+        self.config = config if config is not None else Config()
         
     async def initialize(self):
         """Initialize the container and system"""

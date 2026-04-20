@@ -28,3 +28,11 @@ palio_updated.json
 
 logs
 data_old/
+
+# Runtime / derived data
+data/**/*.backup_*.json
+data/**/*_tmp.json
+results/
+logs/
+.pytest_cache/
+**/.DS_Store

@@ -1,5 +1,12 @@
-from game_status_models import *
-import inspect
+from typing import List, Union
+
+from .game_status_models import (
+    GameBonus,
+    GamePenalty,
+    RoundRobinGameStatus,
+    ScoreBasedGameStatus,
+    ScorePenalty,
+)
 
 
 # Helper functions for working with the models

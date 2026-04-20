@@ -6,7 +6,7 @@ Simple FastAPI server to serve palio data files
 import json
 import os
 from typing import List, Optional
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException, Path as PathParam
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -23,9 +23,20 @@ app = FastAPI(title="Palio API", description="API to serve palio data with struc
 api = APIRouter(prefix="/api")
 
 # Add CORS middleware to allow frontend access
+_cors_env = os.environ.get("CORS_ALLOWED_ORIGINS")
+if _cors_env:
+    _allowed_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+else:
+    _allowed_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -125,7 +136,7 @@ async def get_available_years():
         raise HTTPException(status_code=500, detail=f"Error scanning for available years: {str(e)}")
 
 @api.get("/palio/{year}", response_model=PalioData, operation_id="get_palio_data_by_year")
-async def get_palio_data_by_year(year: int):
+async def get_palio_data_by_year(year: int = PathParam(..., ge=1900, le=2100)):
     """
     Returns the palio.json data for a specific year
     """
@@ -145,7 +156,7 @@ async def get_palio_data_by_year(year: int):
         raise HTTPException(status_code=500, detail=f"Error reading palio.json for year {year}: {str(e)}")
 
 @api.get("/leaderboard/{year}", response_model=Leaderboard, operation_id="get_leaderboard_data_by_year")
-async def get_leaderboard_data_by_year(year: int):
+async def get_leaderboard_data_by_year(year: int = PathParam(..., ge=1900, le=2100)):
     """
     Returns the leaderboard.json data for a specific year
     """
@@ -165,7 +176,7 @@ async def get_leaderboard_data_by_year(year: int):
         raise HTTPException(status_code=500, detail=f"Error reading leaderboard.json for year {year}: {str(e)}")
 
 @api.get("/palio_games_status/{year}", response_model=PalioGamesStatus, operation_id="get_palio_games_status_by_year")
-async def get_palio_games_status_by_year(year: int):
+async def get_palio_games_status_by_year(year: int = PathParam(..., ge=1900, le=2100)):
     """
     Returns the palio_games_status.json data for a specific year
     """

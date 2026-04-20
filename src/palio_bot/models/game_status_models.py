@@ -32,7 +32,7 @@ class RoundRobinScore(BaseModel):
 
 class GameRound(BaseModel):
     """A single round in a round-robin game."""
-    scores: List[RoundRobinScore] = Field(default=[], description="Village scores in this round")
+    scores: List[RoundRobinScore] = Field(default_factory=list, description="Village scores in this round")
     score_penalties: List[ScorePenalty] = Field(default_factory=list, description="Score penalties applied in this round")
     
     def __getitem__(self, key):
@@ -70,7 +70,7 @@ class RoundRobinDivision(BaseModel):
     """A division within a game (e.g., Maschile, Femminile)."""
     name: str = Field(..., description="Division name")
     status: str = Field(..., description="Division status (not-started, in-progress, completed)")
-    rounds: Optional[List[GameRound]] =  Field(default_factory=dict, description="Village rounds in this division")
+    rounds: Optional[List[GameRound]] = Field(default_factory=list, description="Village rounds in this division")
 
     # Game bonuses/penalties affect final leaderboard points
     applied_bonuses: List[GameBonus] = Field(default_factory=list, description="Game bonuses applied in this division")

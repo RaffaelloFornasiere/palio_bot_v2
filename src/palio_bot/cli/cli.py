@@ -114,7 +114,7 @@ async def handle_commands(command: str, system, container) -> bool:
             leaderboard_updater = LeaderboardUpdater(
                 config.palio_file_path,
                 config.palio_games_status_path,
-                config.leader_board_file_path
+                config.leaderboard_file_path
             )
             
             leaderboard_updater.update_leaderboard()
