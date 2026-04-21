@@ -223,7 +223,7 @@
       "applied_penalties": []
     },
     "G10": {
-      "status": "not-started",
+      "status": "in-progress",
       "divisions": [
         {
           "name": "Maschile",
@@ -238,6 +238,21 @@
           "rounds": [],
           "applied_bonuses": [],
           "applied_penalties": []
+        }
+      ],
+      "rounds": [
+        {
+          "score_penalties": [],
+          "scores": [
+            {
+              "points": "2",
+              "village": "Sottocastello"
+            },
+            {
+              "points": "1",
+              "village": "Sottomonte"
+            }
+          ]
         }
       ]
     },

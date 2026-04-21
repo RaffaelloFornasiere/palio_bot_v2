@@ -57,6 +57,10 @@ class Config(BaseSettings):
     # Groq (used by audio transcription)
     groq_api_key: Optional[str] = None
 
+    # palio-core (adapter-side client settings)
+    palio_core_url: str = "http://localhost:8000"
+    palio_core_token: Optional[str] = None
+
     @model_validator(mode="after")
     def _validate_provider_keys(self) -> "Config":
         if self.llm_provider == "openrouter" and not self.openrouter_api_key:

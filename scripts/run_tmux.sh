@@ -35,9 +35,9 @@ if [ ! -d website/node_modules ]; then
     (cd website && npm install --legacy-peer-deps)
 fi
 
-# Window 1: API server (backend, port 8000)
-tmux new-session -d -s "$SESSION" -n api -c "$PROJECT_ROOT" \
-    "uv run python -m palio_bot.api.api_server; read -n 1 -p 'api stopped, press any key to close'"
+# Window 1: palio-core (file authority + event bus + React, port 8000)
+tmux new-session -d -s "$SESSION" -n core -c "$PROJECT_ROOT" \
+    "uv run python -m palio_bot.core; read -n 1 -p 'core stopped, press any key to close'"
 
 # Window 2: React dev server (port 3000; proxies /api to 8000 per CRA convention)
 tmux new-window -t "$SESSION":2 -n website -c "$PROJECT_ROOT/website" \

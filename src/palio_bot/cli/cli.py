@@ -40,26 +40,22 @@ def print_welcome():
 def print_status(system):
     """Print system status."""
     session = system.get_active_session()
-    
+
     if session:
         console.print(f"\n[green]✓ Sessione attiva:[/green] {session.id}")
         console.print(f"[green]✓ Messaggi:[/green] {len(session.messages)}")
-        
-        # Check if palio_updated.json exists
-        config = Config()
-        if config.palio_games_status_temp_path.exists():
-            console.print(f"[green]✓ File temporaneo:[/green] {config.palio_games_status_temp_path} presente")
-        else:
-            console.print(f"[yellow]⚠ File temporaneo:[/yellow] {config.palio_games_status_temp_path} non trovato")
+        if system.remote_session_id:
+            console.print(
+                f"[green]✓ Sessione core:[/green] {system.remote_session_id}"
+            )
     else:
         console.print("\n[yellow]⚠ Nessuna sessione attiva[/yellow]")
-    
-    # Check palio.json
-    palio_path = Path("palio.json")
-    if palio_path.exists():
-        console.print(f"[green]✓ File dati:[/green] palio.json presente")
-    else:
-        console.print(f"[red]✗ File dati:[/red] palio.json non trovato")
+
+    try:
+        sessions = system.core_client.list_sessions().get("sessions", [])
+        console.print(f"[dim]Core: {len(sessions)} sessione(i) attive[/dim]")
+    except Exception as e:
+        console.print(f"[red]✗ Core non raggiungibile:[/red] {e}")
 
 
 async def handle_commands(command: str, system, container) -> bool:
@@ -225,7 +221,7 @@ async def main():
     # Create config (loads from env / .env)
     config = Config()
 
-    container = Container(config=config)
+    container = Container(config=config, adapter_label="cli")
     
     try:
         await container.init_container()

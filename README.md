@@ -100,10 +100,10 @@ Features:
 - 🔄 Selezione anno dinamica
 - 📊 Tipi TypeScript auto-generati
 
-### API Server
+### palio-core (API + event bus + React)
 
 ```bash
-python -m palio_bot.api.api_server
+python -m palio_bot.core
 ```
 
 - 🌐 REST API con OpenAPI docs

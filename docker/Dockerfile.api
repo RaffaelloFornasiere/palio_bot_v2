@@ -46,4 +46,4 @@ ENV PALIO_FILE_PATH=/app/data/palio.json
 
 EXPOSE 8000
 
-CMD ["python", "-m", "palio_bot.api.api_server"]
+CMD ["python", "-m", "palio_bot.core"]

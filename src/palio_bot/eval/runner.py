@@ -1,4 +1,4 @@
-"""Scenario runner: execute a scenario against a chosen LLM and diff results."""
+"""Scenario runner: execute a scenario against palio-core + chosen LLM."""
 
 from __future__ import annotations
 
@@ -17,6 +17,8 @@ from typing import Any
 
 from palio_bot.config import Config
 from palio_bot.container import Container
+from palio_bot.core_client.client import CoreClient
+from palio_bot.core_client.subprocess import CoreProcess
 from palio_bot.eval.judge import run_judge
 from palio_bot.eval.patch import apply_patches
 from palio_bot.eval.recorder import Recorder
@@ -33,45 +35,29 @@ def _load_scenario(scenario_dir: Path) -> dict:
     return json.loads(scenario_file.read_text(encoding="utf-8"))
 
 
-def _write_seed(scenario_dir: Path, seed: dict[str, str], data_dir: Path) -> None:
-    """Reset data_dir: wipe all files, then copy seeds in.
+def _stage_seeds(scenario_dir: Path, seed: dict[str, str], seeds_dir: Path) -> None:
+    """Copy scenario seed files into a flat dir that /admin/reset can consume.
 
-    Wiping everything (not just the seed files) makes sure leftover state —
-    session.json, _tmp.json from a prior step — doesn't leak into the next
-    Container and corrupt the conversation history.
+    `seed` maps canonical file name → path relative to scenario_dir.
     """
-    if data_dir.exists():
-        for child in data_dir.iterdir():
-            if child.is_file():
-                child.unlink()
-            elif child.is_dir():
-                shutil.rmtree(child)
-    data_dir.mkdir(parents=True, exist_ok=True)
+    if seeds_dir.exists():
+        shutil.rmtree(seeds_dir)
+    seeds_dir.mkdir(parents=True)
     for data_name, seed_rel in seed.items():
         src = (scenario_dir / seed_rel).resolve()
         if not src.exists():
             raise FileNotFoundError(f"Seed file not found: {src}")
-        dst = data_dir / data_name
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dst)
+        shutil.copy2(src, seeds_dir / data_name)
 
 
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-# Matches strings that are purely a number optionally followed by a letter unit.
-# "30" "30.5" "-5" "30s" → coerce. "2026-04-19T00:00:00Z" "Villa" → leave alone.
 _NUMERIC_STR_RE = re.compile(r"^-?\d+(?:\.\d+)?[a-zA-Z]*$")
 
 
 def _coerce_numeric_strings(obj: Any) -> Any:
-    """Walk a JSON tree and coerce strings like '30' or '30s' to numbers.
-
-    Used on both expected and actual state before diffing so that a model
-    writing `"points": "30s"` when the scenario expected `"points": 30`
-    doesn't count as a diff.
-    """
     if isinstance(obj, dict):
         return {k: _coerce_numeric_strings(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -88,11 +74,6 @@ def _coerce_numeric_strings(obj: Any) -> Any:
 
 
 def _normalize_for_diff(fname: str, data: Any) -> Any:
-    """Drop volatile/format-insensitive fields so diffs reflect real divergence.
-
-    - `last_updated` on palio_games_status.json changes on every write; ignore.
-    - Numeric strings in scores/points are treated as equivalent to their numeric form.
-    """
     data = copy.deepcopy(data)
     if fname == "palio_games_status.json" and isinstance(data, dict):
         data.pop("last_updated", None)
@@ -116,10 +97,7 @@ async def run_scenario(
     api_key: str | None = None,
     on_event: "callable | None" = None,
 ) -> dict:
-    """Run a scenario folder against `model`. Returns the result dict and writes it to out_path.
-
-    `on_event` is called with progress strings — the CLI wires it to `print`.
-    """
+    """Run a scenario against a real palio-core subprocess and `model`."""
     emit = on_event or (lambda _msg: None)
 
     scenario = _load_scenario(scenario_dir)
@@ -138,21 +116,20 @@ async def run_scenario(
     tmp_root = Path(tempfile.mkdtemp(prefix=f"palio-eval-{name}-"))
     data_dir = tmp_root / "data"
     data_dir.mkdir(parents=True)
+    seeds_dir = tmp_root / "seeds"
+    _stage_seeds(scenario_dir, seed, seeds_dir)
 
     step_results: list[dict] = []
     t_scenario_start = time.time()
 
     try:
-        # In chained mode we build one container and keep it for all steps.
-        # In reset mode we rebuild before each step so conversation + session are fresh.
-        container: Container | None = None
-        recorder: Recorder | None = None
+        with CoreProcess(data_dir=data_dir) as core:
+            admin = CoreClient(base_url=core.base_url)
 
-        async def fresh_container() -> tuple[Container, Recorder]:
-            _write_seed(scenario_dir, seed, data_dir)
             cfg = Config(
                 openrouter_api_key=api_key,
                 openrouter_model=model,
+                palio_core_url=core.base_url,
                 palio_file_path=data_dir / "palio.json",
                 palio_games_status_path=data_dir / "palio_games_status.json",
                 palio_games_status_temp_path=data_dir / "palio_games_status_tmp.json",
@@ -160,135 +137,146 @@ async def run_scenario(
                 session_file_path=data_dir / "session.json",
                 llm_provider="openrouter",
             )
-            c = Container(config=cfg, llm_provider="openrouter")
-            rec = Recorder()
-            c.stream().add_consumer(rec)
-            await c.init_container()
-            return c, rec
 
-        async def teardown(c: Container) -> None:
-            try:
-                sys = c.system()
-                if sys.get_active_session():
-                    sys.cancel_session()
-            except Exception:
-                pass
-            try:
-                await c.stream().stop_processing()
-            except Exception:
-                pass
+            container: Container | None = None
+            recorder: Recorder | None = None
 
-        if not reset:
-            container, recorder = await fresh_container()
+            async def fresh_container() -> tuple[Container, Recorder]:
+                admin.admin_reset(seeds_dir=str(seeds_dir))
+                # Wipe the adapter-side session.json so conversation is fresh.
+                if cfg.session_file_path.exists():
+                    cfg.session_file_path.unlink()
+                c = Container(
+                    config=cfg, llm_provider="openrouter", adapter_label="eval"
+                )
+                rec = Recorder()
+                c.stream().add_consumer(rec)
+                await c.init_container()
+                return c, rec
 
-        for idx, step in enumerate(steps, 1):
-            step_prefix = f"[{idx}/{len(steps)}] {step['id']}"
-            prompt_preview = step["prompt"]
-            if len(prompt_preview) > 80:
-                prompt_preview = prompt_preview[:77] + "..."
-            emit(f"  {step_prefix} … {prompt_preview}")
+            async def teardown(c: Container) -> None:
+                try:
+                    sys_ = c.system()
+                    if sys_.get_active_session():
+                        sys_.cancel_session()
+                except Exception:
+                    pass
+                try:
+                    await c.stream().stop_processing()
+                except Exception:
+                    pass
+                try:
+                    c.core_client().close()
+                except Exception:
+                    pass
 
-            if reset:
-                if container is not None:
-                    await teardown(container)
+            if not reset:
                 container, recorder = await fresh_container()
 
-            system = container.system()
+            for idx, step in enumerate(steps, 1):
+                step_prefix = f"[{idx}/{len(steps)}] {step['id']}"
+                prompt_preview = step["prompt"]
+                if len(prompt_preview) > 80:
+                    prompt_preview = prompt_preview[:77] + "..."
+                emit(f"  {step_prefix} … {prompt_preview}")
 
-            # Baseline = files as they are right now (after any previous chained edits).
-            baseline = {fname: _read_json(data_dir / fname) for fname in seed}
+                if reset:
+                    if container is not None:
+                        await teardown(container)
+                    container, recorder = await fresh_container()
 
-            # Build expected from baseline + declared patches.
-            changes = step.get("changes") or {}
-            expected = dict(baseline)
-            for fname, patches in changes.items():
-                if fname not in baseline:
-                    raise ValueError(f"step '{step['id']}' patches unknown file: {fname}")
-                expected[fname] = apply_patches(baseline[fname], patches)
+                system = container.system()
 
-            recorder.reset_step()
+                baseline = {fname: _read_json(data_dir / fname) for fname in seed}
 
-            t0 = time.time()
-            send_error: str | None = None
-            try:
-                await system.send_message(step["prompt"])
-            except Exception as e:
-                send_error = f"{type(e).__name__}: {e}"
+                changes = step.get("changes") or {}
+                expected = dict(baseline)
+                for fname, patches in changes.items():
+                    if fname not in baseline:
+                        raise ValueError(f"step '{step['id']}' patches unknown file: {fname}")
+                    expected[fname] = apply_patches(baseline[fname], patches)
 
-            # Wait for the AgentCompleteEvent (or equivalent) to drain through the stream.
-            try:
-                await asyncio.wait_for(recorder.complete.wait(), timeout=5.0)
-            except asyncio.TimeoutError:
-                pass
+                recorder.reset_step()
 
-            elapsed_ms = int((time.time() - t0) * 1000)
-
-            # Commit temp files -> main so the assertions run against the stable state.
-            if system.get_active_session():
+                t0 = time.time()
+                send_error: str | None = None
                 try:
-                    system.save_session()
+                    await system.send_message(step["prompt"])
                 except Exception as e:
-                    logger.warning(f"save_session failed: {e}")
+                    send_error = f"{type(e).__name__}: {e}"
 
-            actual = {fname: _read_json(data_dir / fname) for fname in seed}
+                try:
+                    await asyncio.wait_for(recorder.complete.wait(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    pass
 
-            diffs: dict[str, str] = {}
-            for fname in seed:
-                exp_norm = _normalize_for_diff(fname, expected[fname])
-                act_norm = _normalize_for_diff(fname, actual[fname])
-                if exp_norm != act_norm:
-                    diffs[fname] = _json_diff(exp_norm, act_norm)
+                elapsed_ms = int((time.time() - t0) * 1000)
 
-            # Judge (optional, per-step): LLM grades the final assistant text.
-            judge_result: dict | None = None
-            if step.get("judge"):
-                judge_result = await run_judge(
-                    step_prompt=step["prompt"],
-                    agent_reply=recorder.final_assistant_text,
-                    ground_truth_files=baseline,
-                    judge_config=step["judge"],
-                    api_key=api_key,
+                # Commit staged edits so canonical reflects the agent's work.
+                if system.get_active_session():
+                    try:
+                        system.save_session()
+                    except Exception as e:
+                        logger.warning(f"save_session failed: {e}")
+
+                actual = {fname: _read_json(data_dir / fname) for fname in seed}
+
+                diffs: dict[str, str] = {}
+                for fname in seed:
+                    exp_norm = _normalize_for_diff(fname, expected[fname])
+                    act_norm = _normalize_for_diff(fname, actual[fname])
+                    if exp_norm != act_norm:
+                        diffs[fname] = _json_diff(exp_norm, act_norm)
+
+                judge_result: dict | None = None
+                if step.get("judge"):
+                    judge_result = await run_judge(
+                        step_prompt=step["prompt"],
+                        agent_reply=recorder.final_assistant_text,
+                        ground_truth_files=baseline,
+                        judge_config=step["judge"],
+                        api_key=api_key,
+                    )
+
+                passed = (
+                    not send_error
+                    and not diffs
+                    and (judge_result is None or judge_result["passed"])
                 )
 
-            passed = (
-                not send_error
-                and not diffs
-                and (judge_result is None or judge_result["passed"])
-            )
+                flag = "✓" if passed else "✗"
+                tool_names = [tc["tool"] for tc in recorder.tool_calls]
+                tool_str = ",".join(tool_names) if tool_names else "no tools"
+                fail_reason = ""
+                if send_error:
+                    fail_reason = f"  send_error: {send_error[:120]}"
+                elif diffs:
+                    fail_reason = f"  diff in: {', '.join(diffs.keys())}"
+                elif judge_result and not judge_result["passed"]:
+                    fail_reason = f"  judge: {judge_result['reasoning'][:120]}"
+                elif recorder.tool_failures:
+                    fail_reason = f"  {len(recorder.tool_failures)} tool failures"
+                emit(
+                    f"     {flag} {elapsed_ms/1000:5.1f}s  "
+                    f"{recorder.total_tokens:>6} tok  [{tool_str}]{fail_reason}"
+                )
 
-            flag = "✓" if passed else "✗"
-            tool_names = [tc["tool"] for tc in recorder.tool_calls]
-            tool_str = ",".join(tool_names) if tool_names else "no tools"
-            fail_reason = ""
-            if send_error:
-                fail_reason = f"  send_error: {send_error[:120]}"
-            elif diffs:
-                fail_reason = f"  diff in: {', '.join(diffs.keys())}"
-            elif judge_result and not judge_result["passed"]:
-                fail_reason = f"  judge: {judge_result['reasoning'][:120]}"
-            elif recorder.tool_failures:
-                fail_reason = f"  {len(recorder.tool_failures)} tool failures"
-            emit(
-                f"     {flag} {elapsed_ms/1000:5.1f}s  "
-                f"{recorder.total_tokens:>6} tok  [{tool_str}]{fail_reason}"
-            )
+                step_results.append({
+                    "id": step["id"],
+                    "prompt": step["prompt"],
+                    "passed": passed,
+                    "elapsed_ms": elapsed_ms,
+                    "tokens": recorder.total_tokens,
+                    "send_error": send_error,
+                    "tool_failures": recorder.tool_failures,
+                    "tool_calls": [tc["tool"] for tc in recorder.tool_calls],
+                    "diffs": diffs,
+                    "final_text": recorder.final_assistant_text,
+                    "judge": judge_result,
+                })
 
-            step_results.append({
-                "id": step["id"],
-                "prompt": step["prompt"],
-                "passed": passed,
-                "elapsed_ms": elapsed_ms,
-                "tokens": recorder.total_tokens,
-                "send_error": send_error,
-                "tool_failures": recorder.tool_failures,
-                "tool_calls": [tc["tool"] for tc in recorder.tool_calls],
-                "diffs": diffs,
-                "final_text": recorder.final_assistant_text,
-                "judge": judge_result,
-            })
-
-        if container is not None and not reset:
-            await teardown(container)
+            if container is not None and not reset:
+                await teardown(container)
 
     finally:
         shutil.rmtree(tmp_root, ignore_errors=True)
@@ -315,7 +303,6 @@ async def run_scenario(
 
 
 def print_summary(report: dict) -> None:
-    """Final one-line stat. Per-step lines are already printed live."""
     print(
         f"\n{report['model']}   "
         f"{report['passed']}/{report['total']} steps passed   "

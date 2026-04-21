@@ -7,6 +7,14 @@ from typing import Any, Dict, Optional
 from jsonpath_ng.ext import parse as parse_ext
 
 from palio_bot.agent.models import Tool, ToolResult
+from palio_bot.file_store import (
+    DirectFileStore,
+    FileStore,
+    FileStoreLockConflict,
+    FileStoreNotFound,
+    FileStoreReadOnly,
+    FileStoreValidationError,
+)
 from palio_bot.tools.file_registry import FileRegistry
 
 logger = logging.getLogger(__name__)
@@ -113,72 +121,79 @@ def _is_ancestor(viewed: str, target: str) -> bool:
 class MultiJSONEditorTool:
     """Tool for editing multiple JSON files using JSONPath expressions."""
 
-    def __init__(self, file_registry: FileRegistry):
+    def __init__(
+        self,
+        file_registry: FileRegistry,
+        file_store: Optional[FileStore] = None,
+    ):
         self.registry = file_registry
+        self.store: FileStore = file_store or DirectFileStore(file_registry)
         self._last_content: Dict[str, str] = {}  # undo buffer per file
         self._viewed_paths: Dict[str, set[str]] = {}  # view-before-edit guardrail
 
     # ---------- file IO helpers ----------
 
     def _load_json(self, file_name: str) -> tuple[dict, Optional[str]]:
+        config = self.registry.get_config(file_name)
+        if not config:
+            return {}, (
+                f"File '{file_name}' non registrato. "
+                f"File disponibili: {', '.join(self.registry.list_files())}"
+            )
+
         try:
-            config = self.registry.get_config(file_name)
-            if not config:
-                return {}, (
-                    f"File '{file_name}' non registrato. "
-                    f"File disponibili: {', '.join(self.registry.list_files())}"
-                )
-
-            file_path = self.registry.get_active_path(file_name)
-            if not file_path or not file_path.exists():
-                return {}, f"File {file_name} ({file_path}) non trovato."
-
-            with open(file_path, "r", encoding="utf-8") as f:
-                return json.loads(f.read()), None
+            return self.store.load(file_name), None
+        except FileStoreNotFound:
+            return {}, f"File {file_name} non trovato."
         except json.JSONDecodeError as e:
             return {}, f"File JSON non valido: {str(e)}"
         except Exception as e:
             return {}, f"Errore nel leggere il file: {str(e)}"
 
     def _save_json(self, file_name: str, data: dict) -> Optional[str]:
+        config = self.registry.get_config(file_name)
+        if not config:
+            return f"File '{file_name}' non registrato"
+
+        if self.registry.check_file_locked(file_name, data):
+            return f"File '{file_name}' è bloccato e non può essere modificato"
+
+        if not config.allow_edit:
+            return f"File '{file_name}' è in sola lettura"
+
+        # Backup current content for undo BEFORE writing. Stash as JSON string
+        # so undo() can restore via the store regardless of backend.
         try:
-            config = self.registry.get_config(file_name)
-            if not config:
-                return f"File '{file_name}' non registrato"
+            prev = self.store.load(file_name)
+            self._last_content[file_name] = json.dumps(prev, ensure_ascii=False)
+        except FileStoreNotFound:
+            # First write — nothing to undo to.
+            pass
+        except Exception:
+            # Best-effort backup; don't block the write if it fails.
+            pass
 
-            if self.registry.check_file_locked(file_name, data):
-                return f"File '{file_name}' è bloccato e non può essere modificato"
-
-            if not config.allow_edit:
-                return f"File '{file_name}' è in sola lettura"
-
-            is_valid, error_msg = self.registry.validate_content(file_name, data)
-            if not is_valid:
-                return error_msg
-
-            file_path = self.registry.get_active_path(file_name)
-            if not file_path:
-                return f"Impossibile determinare il percorso per '{file_name}'"
-
-            # Backup current content for undo
-            if file_path.exists():
-                with open(file_path, "r", encoding="utf-8") as f:
-                    self._last_content[file_name] = f.read()
-
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-
-            self.registry.mark_modified(file_name)
-            # Intentionally DO NOT clear _viewed_paths — the agent is doing
-            # sequential edits within a subtree it already saw, and wiping
-            # the set after every write forces it to re-view before each
-            # follow-up edit (thrashes token usage for no safety gain).
-
-            logger.info(f"File '{file_name}' salvato con successo")
-            return None
-
+        try:
+            self.store.save(file_name, data)
+        except FileStoreValidationError as exc:
+            return exc.message
+        except FileStoreReadOnly:
+            return f"File '{file_name}' è in sola lettura"
+        except FileStoreLockConflict as exc:
+            return (
+                f"Il file '{file_name}' è in uso dalla sessione "
+                f"{exc.holder_session_id}. Riprova più tardi."
+            )
         except Exception as e:
             return f"Errore nel salvare il file: {str(e)}"
+
+        # Intentionally DO NOT clear _viewed_paths — the agent is doing
+        # sequential edits within a subtree it already saw, and wiping
+        # the set after every write forces it to re-view before each
+        # follow-up edit (thrashes token usage for no safety gain).
+
+        logger.info(f"File '{file_name}' salvato con successo")
+        return None
 
     # ---------- view-before-edit guardrail ----------
 
@@ -560,21 +575,22 @@ class MultiJSONEditorTool:
                     error=f"Nessuna operazione da annullare per '{file_name}'.",
                 )
 
-            file_path = self.registry.get_active_path(file_name)
-            if not file_path:
+            prev = json.loads(self._last_content[file_name])
+            try:
+                self.store.save(file_name, prev)
+            except FileStoreValidationError as exc:
+                return ToolResult(success=False, error=exc.message)
+            except FileStoreReadOnly:
                 return ToolResult(
-                    success=False,
-                    error=f"Impossibile determinare il percorso per '{file_name}'",
+                    success=False, error=f"File '{file_name}' è in sola lettura"
                 )
-
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(self._last_content[file_name])
+            except Exception as e:
+                return ToolResult(
+                    success=False, error=f"Errore nell'annullamento: {str(e)}"
+                )
 
             del self._last_content[file_name]
             self._viewed_paths.pop(file_name, None)
-            # Without this, save_session/commit skips the file and the undo
-            # effect never reaches the main JSON on disk.
-            self.registry.mark_modified(file_name)
 
             return ToolResult(
                 success=True,
@@ -585,9 +601,17 @@ class MultiJSONEditorTool:
             return ToolResult(success=False, error=f"Errore nell'annullamento: {str(e)}")
 
 
-def create_multi_json_editor_tools(file_registry: FileRegistry) -> Dict[str, Tool]:
-    """Create all JSON editor tools for multiple files."""
-    editor = MultiJSONEditorTool(file_registry)
+def create_multi_json_editor_tools(
+    file_registry: FileRegistry,
+    file_store: Optional[FileStore] = None,
+) -> Dict[str, Tool]:
+    """Create all JSON editor tools for multiple files.
+
+    `file_store` defaults to `DirectFileStore(file_registry)` for
+    backward-compatible local use; adapters should pass a
+    `RemoteFileStore` bound to palio-core.
+    """
+    editor = MultiJSONEditorTool(file_registry, file_store)
 
     editable_files = file_registry.get_editable_files()
     file_list = ", ".join(f'"{f}"' for f in editable_files)

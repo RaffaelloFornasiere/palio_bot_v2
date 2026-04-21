@@ -31,7 +31,7 @@ class PalioTelegramBot:
         
     async def initialize(self):
         """Initialize the container and system"""
-        self.container = Container()
+        self.container = Container(config=self.config, adapter_label="telegram")
         await self.container.init_container()
         logger.info("Container initialized with event system")
         
@@ -221,18 +221,16 @@ class PalioTelegramBot:
             
         try:
             import json
-            from pathlib import Path
-            
-            # Read games status file
-            file = Path(self.config.palio_games_status_temp_path)
-            if not file.exists():
-                file = Path(self.config.palio_games_status_path)
-                if not file.exists():
-                    await update.message.reply_text("❌ File palio_games_status_temp.json e palio_games_status.json non trovati.")
-                    return
-                
-            with open(file, 'r', encoding='utf-8') as f:
-                games_data = json.load(f)
+
+            # Read games status via core — shows canonical (post-commit) state.
+            client = self.container.core_client()
+            try:
+                games_data = client.get_file("palio_games_status")
+            except Exception as e:
+                await update.message.reply_text(
+                    f"❌ Impossibile leggere palio_games_status da core: {e}"
+                )
+                return
                 
             # Format as pretty JSON
             json_text = json.dumps(games_data, indent=2, ensure_ascii=False)
