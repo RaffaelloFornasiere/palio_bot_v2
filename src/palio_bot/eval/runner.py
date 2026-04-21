@@ -21,7 +21,7 @@ from palio_bot.core_client.client import CoreClient
 from palio_bot.core_client.subprocess import CoreProcess
 from palio_bot.eval.judge import run_judge
 from palio_bot.eval.patch import apply_patches
-from palio_bot.eval.recorder import Recorder
+from palio_bot.eval.recorder import EvalRecorder
 
 logger = logging.getLogger(__name__)
 
@@ -139,9 +139,9 @@ async def run_scenario(
             )
 
             container: Container | None = None
-            recorder: Recorder | None = None
+            recorder: EvalRecorder | None = None
 
-            async def fresh_container() -> tuple[Container, Recorder]:
+            async def fresh_container() -> tuple[Container, EvalRecorder]:
                 admin.admin_reset(seeds_dir=str(seeds_dir))
                 # Wipe the adapter-side session.json so conversation is fresh.
                 if cfg.session_file_path.exists():
@@ -149,7 +149,7 @@ async def run_scenario(
                 c = Container(
                     config=cfg, llm_provider="openrouter", adapter_label="eval"
                 )
-                rec = Recorder()
+                rec = EvalRecorder()
                 c.stream().add_consumer(rec)
                 await c.init_container()
                 return c, rec

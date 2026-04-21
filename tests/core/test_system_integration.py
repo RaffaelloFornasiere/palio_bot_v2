@@ -1,80 +1,54 @@
-"""Phase 4 integration test: System ↔ core via RemoteFileStore.
+"""System ↔ core end-to-end via CoreProcess + StreamClient.
 
 Uses a scripted LLM that views leaderboard, sets a field, returns text.
 Verifies System creates a remote session, the tool's edits land in the
-session's staged content, and `save_session` commits to canonical.
+session's staged content, `save_session` commits to canonical, and all
+events flow through the unified WS bus.
 """
 
 import json
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
 from palio_bot.agent.agent import Agent
-from palio_bot.agent.models import (
-    Message,
-    TextContent,
-    ToolUseContent,
-)
+from palio_bot.agent.models import Message, ToolUseContent
 from palio_bot.config import Config
-from palio_bot.core.app import create_app
 from palio_bot.core_client.client import CoreClient
 from palio_bot.core_client.file_store_remote import RemoteFileStore
-from palio_bot.stream.stream import Stream
+from palio_bot.core_client.stream_client import StreamClient
+from palio_bot.core_client.subprocess import CoreProcess
 from palio_bot.system import System
+from palio_bot.tools.file_registry import FileConfig, FileRegistry
 from palio_bot.tools.multi_json_editor_tool import create_multi_json_editor_tools
 
-from tests.core.conftest import LEADERBOARD_SEED
+from tests.core.conftest import (
+    GAMES_STATUS_SEED,
+    LEADERBOARD_SEED,
+    PALIO_SEED,
+)
+
+
+def _seed_data_dir(data_dir: Path) -> None:
+    data_dir.mkdir(parents=True, exist_ok=True)
+    (data_dir / "palio.json").write_text(json.dumps(PALIO_SEED))
+    (data_dir / "leaderboard.json").write_text(json.dumps(LEADERBOARD_SEED))
+    (data_dir / "palio_games_status.json").write_text(json.dumps(GAMES_STATUS_SEED))
 
 
 @pytest.fixture
-def system_bundle(core_config, scripted_llm_client, tmp_path):
-    """Hand-wired System pointed at an in-process core via TestClient."""
-    app = create_app(core_config, enable_leaderboard_hook=False)
-    tc = TestClient(app)
+async def system_bundle(tmp_path: Path, scripted_llm_client):
+    data_dir = tmp_path / "data"
+    _seed_data_dir(data_dir)
 
-    core_client = CoreClient(base_url="http://testserver", http_client=tc)
-    remote_store = RemoteFileStore(core_client)
-
-    from palio_bot.tools.file_registry import FileConfig, FileRegistry
-
-    registry = FileRegistry()
-    registry.register(
-        "palio",
-        FileConfig(
-            path=core_config.palio_file_path,
-            allow_edit=False,
-            use_safety_copy=False,
-        ),
-    )
-    registry.register(
-        "palio_games_status",
-        FileConfig(
-            path=core_config.palio_games_status_path,
-            allow_edit=True,
-            use_safety_copy=False,
-        ),
-    )
-    registry.register(
-        "leaderboard",
-        FileConfig(
-            path=core_config.leaderboard_file_path,
-            allow_edit=True,
-            use_safety_copy=False,
-        ),
-    )
-
-    tools_dict = create_multi_json_editor_tools(registry, file_store=remote_store)
-
-    # Scripted LLM: view leaderboard → set villa points → final text.
-    updated = {
+    updated_leaderboard = {
         **LEADERBOARD_SEED,
         "palio_leaderboard": {
             "villa": {"points": 200, "position": 1},
             "salt": {"points": 0, "position": 2},
         },
     }
+
     llm = scripted_llm_client(
         [
             Message(
@@ -95,7 +69,7 @@ def system_bundle(core_config, scripted_llm_client, tmp_path):
                         tool_parameters={
                             "file_name": "leaderboard",
                             "path": "$.palio_leaderboard",
-                            "value": updated["palio_leaderboard"],
+                            "value": updated_leaderboard["palio_leaderboard"],
                         },
                         tool_use_id="t2",
                     )
@@ -105,64 +79,76 @@ def system_bundle(core_config, scripted_llm_client, tmp_path):
         ]
     )
 
-    agent = Agent(llm_client=llm, tools=tools_dict)
-    stream = Stream()
+    with CoreProcess(data_dir=data_dir) as core:
+        core_client = CoreClient(base_url=core.base_url)
+        remote_store = RemoteFileStore(core_client)
 
-    sys_config = Config(
-        palio_core_url="http://testserver",
-        session_file_path=tmp_path / "session.json",
-        openrouter_api_key="dummy",  # only needed for provider validation
-    )
+        registry = FileRegistry()
+        registry.register(
+            "palio",
+            FileConfig(path=data_dir / "palio.json", allow_edit=False),
+        )
+        registry.register(
+            "palio_games_status",
+            FileConfig(path=data_dir / "palio_games_status.json", allow_edit=True),
+        )
+        registry.register(
+            "leaderboard",
+            FileConfig(path=data_dir / "leaderboard.json", allow_edit=True),
+        )
 
-    system = System(
-        agent=agent,
-        stream=stream,
-        file_registry=registry,
-        core_client=core_client,
-        remote_file_store=remote_store,
-        label="test",
-        config=sys_config,
-    )
+        tools_dict = create_multi_json_editor_tools(registry, file_store=remote_store)
+        agent = Agent(llm_client=llm, tools=tools_dict)
 
-    yield system, core_client, remote_store
-    tc.close()
+        stream = StreamClient(core.base_url)
+        await stream.start_processing()
+
+        sys_config = Config(
+            palio_core_url=core.base_url,
+            session_file_path=tmp_path / "session.json",
+            openrouter_api_key="dummy",
+        )
+
+        system = System(
+            agent=agent,
+            stream=stream,
+            file_registry=registry,
+            core_client=core_client,
+            remote_file_store=remote_store,
+            label="test",
+            config=sys_config,
+        )
+
+        try:
+            yield system, core_client, data_dir
+        finally:
+            await stream.stop_processing()
+            core_client.close()
 
 
-async def test_system_commits_through_core(system_bundle, core_data_dir: Path):
-    system, client, _ = system_bundle
-
-    # Initially no remote session
+async def test_system_commits_through_core(system_bundle):
+    system, _, data_dir = system_bundle
     assert system.remote_session_id is None
 
     await system.send_message("bump villa to 200")
-
-    # Remote session created
     assert system.remote_session_id is not None
 
-    # Pre-commit: canonical unchanged
-    pre = json.loads((core_data_dir / "leaderboard.json").read_text())
+    pre = json.loads((data_dir / "leaderboard.json").read_text())
     assert pre["palio_leaderboard"]["villa"]["points"] == 0
 
-    # save_session commits staged → canonical
     system.save_session()
-
-    post = json.loads((core_data_dir / "leaderboard.json").read_text())
+    post = json.loads((data_dir / "leaderboard.json").read_text())
     assert post["palio_leaderboard"]["villa"]["points"] == 200
-
-    # After save_session, a fresh remote session was started.
-    fresh_session_id = system.remote_session_id
-    assert fresh_session_id is not None
+    assert system.remote_session_id is not None
 
 
-async def test_close_session_with_discard_leaves_canonical(
-    system_bundle, core_data_dir: Path
-):
-    system, _, _ = system_bundle
+async def test_close_session_with_discard_leaves_canonical(system_bundle):
+    system, _, data_dir = system_bundle
 
     await system.send_message("bump villa to 200")
     system.close_session(save_changes=False)
 
-    on_disk = json.loads((core_data_dir / "leaderboard.json").read_text())
+    on_disk = json.loads((data_dir / "leaderboard.json").read_text())
     assert on_disk["palio_leaderboard"]["villa"]["points"] == 0
     assert system.active_session is None
     assert system.remote_session_id is None

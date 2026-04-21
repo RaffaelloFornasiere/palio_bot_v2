@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Set, Tuple
 
-from palio_bot.core.event_bus import EventBus
+from palio_bot.core.stream import Stream
 from palio_bot.core.file_store_local import (
     LocalFileStore,
     ReadOnlyFile,
@@ -19,6 +19,13 @@ from palio_bot.core.file_store_local import (
 )
 from palio_bot.core.lock_manager import LockConflict, LockManager
 from palio_bot.core.session_store import Session, SessionStore, UnknownSession
+from palio_bot.stream.events import (
+    FileChangedEvent,
+    LockAcquiredEvent,
+    SessionCommittedEvent,
+    SessionDiscardedEvent,
+    SessionStartedEvent,
+)
 from palio_bot.tools.file_registry import FileRegistry
 
 logger = logging.getLogger(__name__)
@@ -54,14 +61,14 @@ class SessionService:
         file_store: LocalFileStore,
         session_store: SessionStore,
         lock_manager: LockManager,
-        event_bus: EventBus,
+        stream: Stream,
         on_commit: Optional[Callable[[List[str]], None]] = None,
     ) -> None:
         self.registry = registry
         self.file_store = file_store
         self.session_store = session_store
         self.lock_manager = lock_manager
-        self.event_bus = event_bus
+        self.stream = stream
         self.on_commit = on_commit
         # Files that have been PUT (not just seeded) by each session. Only
         # dirty files are written on commit and trigger file_changed events.
@@ -72,8 +79,8 @@ class SessionService:
     def create_session(self, label: str) -> Session:
         session = self.session_store.create(label)
         self._dirty[session.id] = set()
-        self.event_bus.broadcast(
-            {"type": "session_started", "session_id": session.id, "label": label}
+        self.stream.broadcast(
+            SessionStartedEvent(session_id=session.id, label=label)
         )
         logger.info("core: session %s started (label=%s)", session.id, label)
         return session
@@ -110,12 +117,8 @@ class SessionService:
             staged = content
 
         version = compute_version(staged)
-        self.event_bus.broadcast(
-            {
-                "type": "lock_acquired",
-                "session_id": session_id,
-                "file": file_name,
-            }
+        self.stream.broadcast(
+            LockAcquiredEvent(session_id=session_id, file=file_name)
         )
         return AcquireResult(content=staged, version=version)
 
@@ -151,22 +154,20 @@ class SessionService:
         released = self.lock_manager.release_all(session_id)
 
         for file_name in versions:
-            self.event_bus.broadcast(
-                {
-                    "type": "file_changed",
-                    "file": file_name,
-                    "session_id": session_id,
-                    "version": versions[file_name],
-                }
+            self.stream.broadcast(
+                FileChangedEvent(
+                    session_id=session_id,
+                    file=file_name,
+                    version=versions[file_name],
+                )
             )
 
-        self.event_bus.broadcast(
-            {
-                "type": "session_committed",
-                "session_id": session_id,
-                "files": list(versions.keys()),
-                "locks_released": released,
-            }
+        self.stream.broadcast(
+            SessionCommittedEvent(
+                session_id=session_id,
+                files=list(versions.keys()),
+                locks_released=released,
+            )
         )
 
         self._dirty.pop(session_id, None)
@@ -191,12 +192,8 @@ class SessionService:
         released = self.lock_manager.release_all(session_id)
         self._dirty.pop(session_id, None)
         self.session_store.delete(session_id)
-        self.event_bus.broadcast(
-            {
-                "type": "session_discarded",
-                "session_id": session_id,
-                "locks_released": released,
-            }
+        self.stream.broadcast(
+            SessionDiscardedEvent(session_id=session_id, locks_released=released)
         )
         logger.info("core: session %s discarded (released=%s)", session_id, released)
 

@@ -1,6 +1,6 @@
 """Telegram Consumer for sending events to Telegram chat."""
 
-from typing import Dict, Any
+from typing import Dict, Any, Set
 from telegram import Bot
 from telegram.error import TelegramError
 import logging
@@ -20,16 +20,33 @@ logger = logging.getLogger(__name__)
 
 class TelegramConsumer:
     """Consumer that sends events to Telegram chat with progressive updates."""
-    
+
     def __init__(self, bot: Bot, chat_id: int):
         self.bot = bot
         self.chat_id = chat_id
         self.message_stack: Dict[str, int] = {}  # session_id -> message_id
         self.current_text: Dict[str, str] = {}  # session_id -> accumulated text
-        
+        # Session IDs owned by this chat. Populated on the first UserMessageEvent
+        # we render (the one that came from our own chat flow); subsequent
+        # events for other sessions — including those from other chats on the
+        # unified bus — are ignored.
+        self._known_sessions: Set[str] = set()
+
+    def claim_session(self, session_id: str) -> None:
+        """Register a session as belonging to this chat.
+
+        Called by the bot wrapper when it kicks off a send_message flow, so
+        the very first UserMessageEvent is not dropped by the filter.
+        """
+        self._known_sessions.add(session_id)
+
     def filter(self, event: Event) -> bool:
-        """Process all events."""
-        return True
+        """Only handle events for sessions owned by this chat."""
+        if isinstance(event, UserMessageEvent):
+            # First time we see the session; claim it.
+            self._known_sessions.add(event.session_id)
+            return True
+        return event.session_id in self._known_sessions
         
     async def consume(self, event: Event) -> None:
         """Send or update Telegram messages based on events."""
@@ -154,7 +171,8 @@ class TelegramConsumer:
         del self.message_stack[event.session_id]
         if event.session_id in self.current_text:
             del self.current_text[event.session_id]
-    
+        self._known_sessions.discard(event.session_id)
+
     async def _handle_agent_cancelled(self, event: AgentCancelledEvent) -> None:
         """Handle cancellation - show cancellation message and clean up."""
         if event.session_id not in self.message_stack:
@@ -169,12 +187,13 @@ class TelegramConsumer:
             
         # Update with final message
         await self._update_message(event.session_id, final_text)
-        
+
         # Clean up
         del self.message_stack[event.session_id]
         if event.session_id in self.current_text:
             del self.current_text[event.session_id]
-    
+        self._known_sessions.discard(event.session_id)
+
     async def _handle_error(self, event: ErrorEvent) -> None:
         """Handle error event - send new message without deleting previous one."""
         safe_error = self._escape_html(event.error)
@@ -189,6 +208,7 @@ class TelegramConsumer:
             del self.message_stack[event.session_id]
         if event.session_id in self.current_text:
             del self.current_text[event.session_id]
+        self._known_sessions.discard(event.session_id)
     
     async def _update_message(self, session_id: str, text: str) -> None:
         """Update existing message with new text."""

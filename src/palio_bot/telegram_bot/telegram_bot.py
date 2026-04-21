@@ -515,8 +515,17 @@ def main():
     # Create bot instance
     bot = PalioTelegramBot(token, allowed_user_id)
     
-    # Create application
-    application = Application.builder().token(token).build()
+    # Create application. Bump connect_timeout beyond PTB's default so the
+    # first SYN (often dropped on flaky Wi-Fi / local firewalls) can retry
+    # within a single HTTP request window.
+    application = (
+        Application.builder()
+        .token(token)
+        .connect_timeout(20.0)
+        .read_timeout(20.0)
+        .pool_timeout(20.0)
+        .build()
+    )
     
     # Add handlers
     application.add_handler(CommandHandler("start", bot.start))

@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from palio_bot.core.config import CoreConfig
-from palio_bot.core.event_bus import EventBus
+from palio_bot.core.stream import Stream
 from palio_bot.core.file_store_local import LocalFileStore
 from palio_bot.core.lock_manager import LockManager
 from palio_bot.core.registry_factory import build_registry
@@ -26,6 +26,9 @@ from palio_bot.leaderboard_updater import LeaderboardUpdater
 # Project root for locating the React build.
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _REACT_BUILD_PATH = _PROJECT_ROOT / "website" / "build"
+
+# Static assets shipped with palio-core (not the React build).
+_CORE_STATIC_PATH = Path(__file__).resolve().parent / "static"
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +65,7 @@ def create_app(
     file_store = LocalFileStore(registry)
     session_store = SessionStore()
     lock_manager = LockManager()
-    event_bus = EventBus()
+    stream = Stream()
 
     on_commit: Optional[Callable[[List[str]], None]] = (
         _leaderboard_hook(config) if enable_leaderboard_hook else None
@@ -73,7 +76,7 @@ def create_app(
         file_store=file_store,
         session_store=session_store,
         lock_manager=lock_manager,
-        event_bus=event_bus,
+        stream=stream,
         on_commit=on_commit,
     )
 
@@ -82,7 +85,7 @@ def create_app(
     app.state.file_store = file_store
     app.state.session_store = session_store
     app.state.lock_manager = lock_manager
-    app.state.event_bus = event_bus
+    app.state.stream = stream
     app.state.session_service = session_service
 
     app.add_middleware(
@@ -98,9 +101,25 @@ def create_app(
     app.include_router(admin.router)
     app.include_router(events_ws.router)
 
+    _mount_events_viewer(app)
     _mount_react_app(app)
 
     return app
+
+
+def _mount_events_viewer(app: FastAPI) -> None:
+    """Thin standalone page that tails the unified WS bus.
+
+    Registered before the React catch-all so it wins path resolution; reads
+    its WS URL from `window.location`, so it works wherever core is served.
+    """
+    viewer_path = _CORE_STATIC_PATH / "events_viewer.html"
+    if not viewer_path.exists():
+        return
+
+    @app.get("/events-viewer", include_in_schema=False)
+    async def serve_events_viewer():
+        return FileResponse(str(viewer_path))
 
 
 def _mount_react_app(app: FastAPI) -> None:

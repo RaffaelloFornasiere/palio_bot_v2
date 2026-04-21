@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Palio Events</title>
+  <!-- Zero-dep JSON tree viewer (web component). -->
+  <script src="https://cdn.jsdelivr.net/npm/@andypf/json-viewer@2.1.3/dist/iife/index.min.js"></script>
+  <style>
+    :root {
+      --bg: #0e1013;
+      --panel: #161a20;
+      --panel-2: #1b2028;
+      --line: #242a33;
+      --fg: #d7dce2;
+      --muted: #7a8592;
+      --accent: #6aa6ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--fg);
+      font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    header { position: sticky; top: 0; z-index: 2; display: flex; gap: 12px; align-items: center;
+      padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--line); }
+    header h1 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .3px; }
+    header h1 span { color: var(--muted); font-weight: 400; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #555; display: inline-block; }
+    .dot.on { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+    .dot.off { background: #f87171; }
+    input, button, select { background: #20252d; color: var(--fg); border: 1px solid var(--line);
+      border-radius: 4px; padding: 4px 8px; font: inherit; }
+    input:focus, select:focus { outline: 1px solid var(--accent); }
+    button { cursor: pointer; }
+    button:hover { background: #2a313c; }
+    label { color: var(--muted); font-size: 12px; }
+    label input { vertical-align: middle; }
+    .spacer { flex: 1; }
+    .count { color: var(--muted); }
+    main { padding: 8px 14px 40px; }
+
+    .row { border-bottom: 1px solid var(--line); }
+    .row.hidden { display: none; }
+    .row-head { display: grid; grid-template-columns: 90px 170px 120px 1fr 22px;
+      gap: 10px; padding: 7px 8px; align-items: center; cursor: pointer;
+      user-select: none; }
+    .row-head:hover { background: #141820; }
+    .row.open .row-head { background: #141820; }
+    .caret { color: var(--muted); transition: transform .1s; text-align: center; }
+    .row.open .caret { transform: rotate(90deg); }
+    .time { color: var(--muted); }
+    .type { font-weight: 600; padding: 1px 6px; border-radius: 3px; width: fit-content;
+      background: #2a313c; font-size: 12px; }
+    .type.agent { background: #1e3a8a33; color: #93c5fd; }
+    .type.tool  { background: #78350f33; color: #fbbf24; }
+    .type.core  { background: #14532d33; color: #86efac; }
+    .type.err   { background: #7f1d1d44; color: #fca5a5; }
+    .session { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+    .summary { color: #c2cad3; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .summary .mono { color: #94a3b8; }
+    .summary .ok { color: #86efac; }
+    .summary .fail { color: #fca5a5; }
+
+    .row-body { display: none; padding: 10px 14px 14px 120px; background: var(--panel-2);
+      border-top: 1px solid var(--line); }
+    .row.open .row-body { display: block; }
+    andypf-json-viewer { --background-color: var(--panel-2); --color: var(--fg);
+      --font-family: inherit; --font-size: 12px; }
+
+    .empty { padding: 40px; text-align: center; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <span id="status" class="dot off" title="disconnected"></span>
+    <h1>palio events <span id="url"></span></h1>
+    <span class="count"><span id="count">0</span> events</span>
+    <div class="spacer"></div>
+    <input id="filter" placeholder="filter (type, session, summary)" size="28" />
+    <select id="limit">
+      <option value="500">keep 500</option>
+      <option value="2000" selected>keep 2000</option>
+      <option value="0">no limit</option>
+    </select>
+    <label><input type="checkbox" id="autoscroll" checked /> autoscroll</label>
+    <button id="expand-all" title="expand all">⊕</button>
+    <button id="collapse-all" title="collapse all">⊖</button>
+    <button id="clear">clear</button>
+  </header>
+  <main>
+    <div id="log"></div>
+    <div id="empty" class="empty">waiting for events…</div>
+  </main>
+
+<script>
+(() => {
+  const AGENT = new Set(["UserMessageEvent","AgentUpdateEvent","AgentCompleteEvent","AgentCancelledEvent"]);
+  const TOOL  = new Set(["ToolUseEvent","ToolResultEvent"]);
+  const CORE  = new Set(["file_changed","lock_acquired","lock_released","session_started","session_committed","session_discarded"]);
+
+  const $log = document.getElementById("log");
+  const $empty = document.getElementById("empty");
+  const $status = document.getElementById("status");
+  const $url = document.getElementById("url");
+  const $count = document.getElementById("count");
+  const $filter = document.getElementById("filter");
+  const $limit = document.getElementById("limit");
+  const $autoscroll = document.getElementById("autoscroll");
+
+  document.getElementById("clear").onclick = () => {
+    $log.innerHTML = ""; $count.textContent = "0"; total = 0; $empty.style.display = "block";
+  };
+  document.getElementById("expand-all").onclick = () => {
+    for (const r of $log.children) r.classList.add("open");
+  };
+  document.getElementById("collapse-all").onclick = () => {
+    for (const r of $log.children) r.classList.remove("open");
+  };
+
+  const wsUrl = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/events";
+  $url.textContent = "· " + wsUrl;
+
+  let ws, backoff = 500, total = 0;
+
+  function classFor(type) {
+    if (AGENT.has(type)) return "agent";
+    if (TOOL.has(type))  return "tool";
+    if (CORE.has(type))  return "core";
+    if (type === "ErrorEvent") return "err";
+    return "";
+  }
+
+  function truncate(s, n = 120) {
+    if (s == null) return "";
+    s = String(s).replace(/\s+/g, " ").trim();
+    return s.length > n ? s.slice(0, n - 1) + "…" : s;
+  }
+
+  function compactParams(p) {
+    if (p == null) return "";
+    if (typeof p !== "object") return truncate(String(p), 80);
+    const keys = Object.keys(p);
+    const parts = keys.slice(0, 3).map(k => {
+      const v = p[k];
+      let s;
+      if (v == null) s = "null";
+      else if (typeof v === "object") s = Array.isArray(v) ? `[${v.length}]` : "{…}";
+      else s = truncate(String(v), 40);
+      return `${k}=${s}`;
+    });
+    if (keys.length > 3) parts.push("…");
+    return parts.join(" ");
+  }
+
+  function summarize(ev) {
+    const t = ev.type;
+    if (t === "UserMessageEvent") return truncate(ev.content);
+    if (t === "AgentUpdateEvent") {
+      const parts = (ev.message && ev.message.content) || [];
+      const text = parts.filter(c => c.type === "text").map(c => c.text).join(" ");
+      if (text) return truncate(text);
+      const tool = parts.find(c => c.type === "tool_use");
+      if (tool) return `<span class="mono">→ tool_use ${tool.tool_name}</span>`;
+      const res = parts.find(c => c.type === "tool_result");
+      if (res) return `<span class="mono">→ tool_result</span>`;
+      return `<span class="mono">message (${parts.length} parts)</span>`;
+    }
+    if (t === "ToolUseEvent") {
+      return `<span class="mono">${ev.tool_name}(</span>${truncate(compactParams(ev.parameters), 140)}<span class="mono">)</span>`;
+    }
+    if (t === "ToolResultEvent") {
+      const ok = ev.result && ev.result.success;
+      const tag = ok ? '<span class="ok">✓</span>' : '<span class="fail">✗</span>';
+      const detail = ok ? truncate(JSON.stringify(ev.result.data), 120)
+                        : truncate(ev.result && ev.result.error, 120);
+      return `${tag} <span class="mono">${ev.tool_name}</span> ${detail || ""}`;
+    }
+    if (t === "AgentCompleteEvent") {
+      const u = ev.total_token_usage;
+      return u ? `<span class="mono">tokens ${u.input_tokens}→${u.output_tokens} (${u.total_tokens})</span>`
+               : '<span class="mono">complete</span>';
+    }
+    if (t === "AgentCancelledEvent") return `cancelled: ${truncate(ev.reason)}`;
+    if (t === "ErrorEvent") return `<span class="fail">${truncate(ev.error)}</span>`;
+    if (t === "file_changed") return `<span class="mono">${ev.file}</span> → ${truncate(ev.version, 12)}`;
+    if (t === "lock_acquired" || t === "lock_released") return `<span class="mono">${ev.file}</span>`;
+    if (t === "session_started") return `label=${ev.label}`;
+    if (t === "session_committed") return `files=[${(ev.files||[]).join(", ")}]`;
+    if (t === "session_discarded") return `locks=[${(ev.locks_released||[]).join(", ")}]`;
+    return "";
+  }
+
+  function matches(row, q) {
+    if (!q) return true;
+    return row.dataset.search.includes(q);
+  }
+
+  function applyFilter() {
+    const q = $filter.value.trim().toLowerCase();
+    for (const r of $log.children) r.classList.toggle("hidden", !matches(r, q));
+  }
+  $filter.addEventListener("input", applyFilter);
+
+  function trim() {
+    const cap = parseInt($limit.value, 10);
+    if (!cap) return;
+    while ($log.children.length > cap) $log.removeChild($log.firstChild);
+  }
+
+  function appendEvent(ev) {
+    $empty.style.display = "none";
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const head = document.createElement("div");
+    head.className = "row-head";
+    const t = ev.creation_time ? (ev.creation_time.split("T")[1] || "").slice(0, 12) : "";
+    const sid = (ev.session_id || "").slice(0, 8);
+    head.innerHTML = `
+      <div class="time">${t}</div>
+      <div><span class="type ${classFor(ev.type)}">${ev.type}</span></div>
+      <div class="session">${sid}</div>
+      <div class="summary">${summarize(ev)}</div>
+      <div class="caret">▸</div>`;
+    head.onclick = () => {
+      row.classList.toggle("open");
+      if (row.classList.contains("open") && !row._bodyMounted) {
+        mountBody(row, ev);
+        row._bodyMounted = true;
+      }
+    };
+
+    const body = document.createElement("div");
+    body.className = "row-body";
+    row.appendChild(head);
+    row.appendChild(body);
+
+    row.dataset.search = (
+      ev.type + " " + (ev.session_id || "") + " " + (head.querySelector(".summary").textContent || "")
+    ).toLowerCase();
+    if (!matches(row, $filter.value.trim().toLowerCase())) row.classList.add("hidden");
+
+    $log.appendChild(row);
+    trim();
+    total++;
+    $count.textContent = String(total);
+    if ($autoscroll.checked) window.scrollTo(0, document.body.scrollHeight);
+  }
+
+  function mountBody(row, ev) {
+    const body = row.querySelector(".row-body");
+    const viewer = document.createElement("andypf-json-viewer");
+    viewer.setAttribute("indent", "2");
+    viewer.setAttribute("expanded", "1");
+    viewer.setAttribute("theme", "monokai");
+    viewer.setAttribute("show-data-types", "false");
+    viewer.setAttribute("show-toolbar", "false");
+    viewer.setAttribute("show-size", "false");
+    viewer.setAttribute("show-copy", "true");
+    viewer.data = ev;
+    body.appendChild(viewer);
+  }
+
+  function connect() {
+    $status.className = "dot off"; $status.title = "connecting…";
+    ws = new WebSocket(wsUrl);
+    ws.onopen = () => { $status.className = "dot on"; $status.title = "connected"; backoff = 500; };
+    ws.onclose = () => {
+      $status.className = "dot off"; $status.title = "disconnected — retrying";
+      setTimeout(connect, backoff);
+      backoff = Math.min(backoff * 2, 5000);
+    };
+    ws.onerror = () => { try { ws.close(); } catch {} };
+    ws.onmessage = (msg) => {
+      try {
+        const frame = JSON.parse(msg.data);
+        if (frame && frame.kind === "event" && frame.event) appendEvent(frame.event);
+      } catch { /* ignore */ }
+    };
+  }
+  connect();
+})();
+</script>
+</body>
+</html>

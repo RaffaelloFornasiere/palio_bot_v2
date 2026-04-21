@@ -33,8 +33,8 @@ from palio_bot.stream.events import (
     ToolUseEvent,
     UserMessageEvent,
 )
+from palio_bot.core_client.stream_client import StreamClient
 from palio_bot.stream.interfaces import Producer
-from palio_bot.stream.stream import Stream
 from palio_bot.tools.file_registry import FileRegistry
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ class System(Producer):
         self,
         *,
         agent: Agent,
-        stream: Stream,
+        stream: StreamClient,
         file_registry: FileRegistry,
         core_client: CoreClient,
         remote_file_store: RemoteFileStore,

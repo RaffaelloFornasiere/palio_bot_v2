@@ -179,8 +179,10 @@ def test_file_changed_event_fires_on_commit(core_client):
         file_changed = ws.receive_json()
         session_committed = ws.receive_json()
 
-    assert file_changed["type"] == "file_changed"
-    assert file_changed["file"] == "leaderboard"
-    assert file_changed["session_id"] == sid
-    assert session_committed["type"] == "session_committed"
-    assert session_committed["session_id"] == sid
+    assert file_changed["kind"] == "event"
+    assert file_changed["event"]["type"] == "file_changed"
+    assert file_changed["event"]["file"] == "leaderboard"
+    assert file_changed["event"]["session_id"] == sid
+    assert session_committed["kind"] == "event"
+    assert session_committed["event"]["type"] == "session_committed"
+    assert session_committed["event"]["session_id"] == sid

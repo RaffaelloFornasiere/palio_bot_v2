@@ -17,7 +17,7 @@ from palio_bot.stream.events import (
 )
 
 
-class Recorder:
+class EvalRecorder:
     """Records tool calls, errors, and token usage for the current step.
 
     Each scenario step resets the recorder via `reset_step()`, runs the

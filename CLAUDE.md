@@ -66,12 +66,22 @@ Staging lives inside core per session; canonical files only change on commit.
 
 ## Events
 
-`UserMessageEvent`, `AgentUpdateEvent`, `ToolUseEvent`, `ToolResultEvent`,
-`AgentCompleteEvent`, `ErrorEvent`, `CancellationEvent` flow through the
-adapter-local `Stream`. Consumers: `cli/cli_consumer.py`,
-`telegram_bot/telegram_consumer.py`. Core also publishes structured events
-(`file_changed`, `lock_acquired/released`, `session_started/committed/discarded`)
-on `WS /events` for cross-adapter observation.
+Single unified WS bus. Core owns the broker (`core/stream.py`); adapters
+connect via `core_client/stream_client.py` (`StreamClient`), which exposes
+the same `add_consumer/put_event/start_processing` surface as before but
+round-trips every event through `WS /events`. Producers publish — their
+own events come back through the socket and are dispatched to local
+consumers (pure loopback, no short-circuit). Reconnect is exponential
+backoff capped at a 30 s budget; on exhaustion the adapter hard-fails.
+
+Event types (Pydantic discriminated union in `stream/events.py`):
+- Agent-side: `UserMessageEvent`, `AgentUpdateEvent`, `ToolUseEvent`,
+  `ToolResultEvent`, `AgentCompleteEvent`, `AgentCancelledEvent`, `ErrorEvent`
+- Core-side: `FileChangedEvent`, `LockAcquiredEvent`, `LockReleasedEvent`,
+  `SessionStartedEvent`, `SessionCommittedEvent`, `SessionDiscardedEvent`
+
+Consumers: `cli/cli_consumer.py`, `telegram_bot/telegram_consumer.py`,
+`eval/recorder.py::EvalRecorder`.
 
 ## Eval harness (`src/palio_bot/eval/`)
 
@@ -79,7 +89,7 @@ on `WS /events` for cross-adapter observation.
   `admin_reset(seeds_dir)` between steps, drives `System.send_message()`,
   diffs canonical files against expected, optionally calls the LLM judge.
 - `judge.py` — OpenRouter call that rates `passed_criteria` / `failed_criteria`.
-- `recorder.py` — subscribes to the adapter stream per step.
+- `recorder.py` — `EvalRecorder` consumer attached to the unified bus per step.
 - `patch.py` — applies JSONPath patches to compute expected state.
 - Scenarios live in `tests/scenarios/<name>/` with `scenario.json` + `seeds/`.
 
@@ -96,10 +106,10 @@ src/palio_bot/
 ├── core/                          # palio-core service
 │   ├── app.py, __main__.py, config.py
 │   ├── session_service.py, session_store.py, lock_manager.py
-│   ├── file_store_local.py, event_bus.py, registry_factory.py
+│   ├── file_store_local.py, stream.py, registry_factory.py
 │   └── routes/  (files, sessions, admin, events_ws)
-├── core_client/                   # HTTP + subprocess helpers
-│   ├── client.py, file_store_remote.py, subprocess.py
+├── core_client/                   # HTTP + WS + subprocess helpers
+│   ├── client.py, file_store_remote.py, stream_client.py, subprocess.py
 ├── agent/
 │   ├── agent.py, models.py, system_prompt.py
 ├── llm_clients/
@@ -107,7 +117,7 @@ src/palio_bot/
 ├── tools/
 │   ├── file_registry.py, multi_json_editor_tool.py
 ├── stream/
-│   ├── stream.py, events.py, interfaces.py
+│   ├── events.py, interfaces.py
 ├── models/                        # Pydantic validators for registered files
 │   ├── palio_models.py, game_status_models.py, leaderboard_models.py
 ├── cli/

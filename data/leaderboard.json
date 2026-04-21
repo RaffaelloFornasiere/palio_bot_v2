@@ -7,24 +7,24 @@
     "Villa"
   ],
   "palio_leaderboard": {
-    "Salt": {
-      "points": 25,
+    "Sottomonte": {
+      "points": 31,
       "position": 1
     },
-    "Sottomonte": {
-      "points": 21,
+    "Salt": {
+      "points": 30,
       "position": 2
     },
     "Sottocastello": {
-      "points": 18,
+      "points": 19,
       "position": 3
     },
     "Villa": {
-      "points": 12,
+      "points": 19,
       "position": 4
     },
     "Sornico": {
-      "points": 7,
+      "points": 10,
       "position": 5
     }
   },
@@ -139,7 +139,7 @@
               "position": 5
             }
           },
-          "updated_at": "2026-04-20T23:59:49.003564"
+          "updated_at": "2026-04-21T12:00:50.968397"
         }
       ],
       "overall_leaderboard": {
@@ -165,7 +165,63 @@
         }
       },
       "completed": true,
-      "updated_at": "2026-04-20T23:59:49.003590"
+      "updated_at": "2026-04-21T12:00:50.968407"
+    },
+    "G03": {
+      "game_id": "G03",
+      "game_name": "Anguria",
+      "divisions": [
+        {
+          "name": "Main",
+          "leaderboard": {
+            "Sottomonte": {
+              "points": 10,
+              "position": 1
+            },
+            "Villa": {
+              "points": 7,
+              "position": 2
+            },
+            "Salt": {
+              "points": 5,
+              "position": 3
+            },
+            "Sornico": {
+              "points": 3,
+              "position": 4
+            },
+            "Sottocastello": {
+              "points": 1,
+              "position": 5
+            }
+          },
+          "updated_at": "2026-04-21T12:00:50.968287"
+        }
+      ],
+      "overall_leaderboard": {
+        "Sottomonte": {
+          "points": 10,
+          "position": 1
+        },
+        "Villa": {
+          "points": 7,
+          "position": 2
+        },
+        "Salt": {
+          "points": 5,
+          "position": 3
+        },
+        "Sornico": {
+          "points": 3,
+          "position": 4
+        },
+        "Sottocastello": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2026-04-21T12:00:50.968298"
     }
   }
 }

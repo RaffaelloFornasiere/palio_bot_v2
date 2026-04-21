@@ -16,6 +16,7 @@ from palio_bot.cli.cli_consumer import CLIConsumer
 from palio_bot.config import Config
 from palio_bot.core_client.client import CoreClient
 from palio_bot.core_client.file_store_remote import RemoteFileStore
+from palio_bot.core_client.stream_client import StreamClient
 from palio_bot.llm_clients.base_client import BaseLLMClient
 from palio_bot.llm_clients.chat_client import ChatClient
 from palio_bot.llm_clients.ollama_client import OllamaClient
@@ -23,7 +24,6 @@ from palio_bot.models.game_status_models import PalioGamesStatus
 from palio_bot.models.leaderboard_models import Leaderboard
 from palio_bot.models.palio_models import PalioData
 from palio_bot.services.audio_transcription import AudioTranscriptionService
-from palio_bot.stream.stream import Stream
 from palio_bot.telegram_bot.telegram_consumer import TelegramConsumer
 from palio_bot.tools.file_registry import FileConfig, FileRegistry
 from palio_bot.tools.multi_json_editor_tool import create_multi_json_editor_tools
@@ -57,7 +57,7 @@ class Container:
         self._core_client: Optional[CoreClient] = None
         self._remote_file_store: Optional[RemoteFileStore] = None
         self._tools: Optional[Dict[str, Tool]] = None
-        self._stream: Optional[Stream] = None
+        self._stream: Optional[StreamClient] = None
         self._agent: Optional[Agent] = None
         self._system: Optional[System] = None
         self._cli_consumer: Optional[CLIConsumer] = None
@@ -164,10 +164,21 @@ class Container:
             logger.info(f"Created tools: {list(self._tools.keys())}")
         return self._tools
 
-    def stream(self) -> Stream:
+    def stream(self) -> StreamClient:
         if self._stream is None:
-            self._stream = Stream()
+            self._stream = StreamClient(
+                core_url=self.config.palio_core_url,
+                token=self.config.palio_core_token,
+                on_fatal=self._on_stream_fatal,
+            )
         return self._stream
+
+    def _on_stream_fatal(self, exc: BaseException) -> None:
+        """Called by StreamClient when the reconnect budget is exhausted."""
+        logger.fatal(
+            "StreamClient lost connection to palio-core (%s); adapter must exit",
+            exc,
+        )
 
     def agent(self) -> Agent:
         if self._agent is None:
