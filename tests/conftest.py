@@ -7,6 +7,18 @@ from typing import List, Optional
 import pytest
 from pydantic import BaseModel
 
+
+@pytest.fixture(autouse=True)
+def _disable_firebase_auth(monkeypatch):
+    """Prevent tests from picking up website/firebase-config.json at the repo
+    root or a PALIO_CORE_TOKEN in .env, which would silently enable auth
+    and break CoreConfig-based tests.
+    """
+    monkeypatch.setenv("FIREBASE_CONFIG_PATH", "/nonexistent-firebase.json")
+    # Empty string, not unset — env wins over .env, so this clears any
+    # PALIO_CORE_TOKEN the repo's .env sets. "" → falsy → auth disabled.
+    monkeypatch.setenv("PALIO_CORE_TOKEN", "")
+
 from palio_bot.agent.models import Message, TextContent, Tool
 from palio_bot.llm_clients.base_client import BaseLLMClient
 from palio_bot.tools.file_registry import FileConfig, FileRegistry

@@ -65,15 +65,14 @@ def test_remote_load_returns_independent_copy(core_rpc: CoreClient):
     assert b["palio_leaderboard"]["villa"]["points"] == 0
 
 
-def test_lock_conflict_raises_file_store_error(core_rpc: CoreClient):
+def test_parallel_loads_both_succeed(core_rpc: CoreClient):
+    """Without locks, two sessions can each stage the same file."""
     s1 = core_rpc.create_session("cli")
     s2 = core_rpc.create_session("telegram:42")
 
-    RemoteFileStore(core_rpc, s1).load("leaderboard")
-
-    with pytest.raises(FileStoreLockConflict) as exc:
-        RemoteFileStore(core_rpc, s2).load("leaderboard")
-    assert exc.value.holder_session_id == s1
+    a = RemoteFileStore(core_rpc, s1).load("leaderboard")
+    b = RemoteFileStore(core_rpc, s2).load("leaderboard")
+    assert a == b
 
 
 def test_validation_error_raises_file_store_error(core_rpc: CoreClient):
@@ -85,15 +84,13 @@ def test_validation_error_raises_file_store_error(core_rpc: CoreClient):
         store.save("leaderboard", {"clearly": "invalid"})
 
 
-def test_discard_releases_lock(core_rpc: CoreClient):
-    s1 = core_rpc.create_session("cli")
-    s2 = core_rpc.create_session("telegram:42")
-
-    RemoteFileStore(core_rpc, s1).load("leaderboard")
-    core_rpc.discard(s1)
-
-    # s2 can now acquire
-    RemoteFileStore(core_rpc, s2).load("leaderboard")
+def test_discard_clears_session(core_rpc: CoreClient):
+    sid = core_rpc.create_session("cli")
+    RemoteFileStore(core_rpc, sid).load("leaderboard")
+    core_rpc.discard(sid)
+    # subsequent ops on a discarded session fail
+    with pytest.raises(Exception):
+        RemoteFileStore(core_rpc, sid).load("leaderboard")
 
 
 def test_admin_reset_wipes_sessions(core_rpc: CoreClient):

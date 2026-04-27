@@ -29,6 +29,8 @@ from palio_bot.stream.events import (
     AgentCompleteEvent,
     AgentUpdateEvent,
     ErrorEvent,
+    Event,
+    SessionDiscardedEvent,
     ToolResultEvent,
     ToolUseEvent,
     UserMessageEvent,
@@ -81,6 +83,11 @@ class System(Producer):
         self.config = config or Config()
         self.session_file_path = self.config.session_file_path
 
+        # Session ids we've voluntarily ended (commit/discard). We echo back
+        # our own SessionDiscardedEvent via the bus; use this set to ignore
+        # self-initiated events so we only react to EXTERNAL kills.
+        self._self_ended_sessions: set[str] = set()
+
         logger.info(
             "System initialized (label=%s, files=%d)",
             label,
@@ -89,6 +96,11 @@ class System(Producer):
 
         # Load existing conversation from disk (no remote session yet; created lazily).
         self._load_session()
+
+        # Subscribe to core-side lifecycle events so we can reset the
+        # remote session when another party (web editor, other chat)
+        # commits a file we had staged — see `_handle_external_event`.
+        self.stream.add_consumer(self)
 
     # ---------- public API ----------
 
@@ -205,7 +217,9 @@ class System(Producer):
             logger.warning("save_session called but no active remote session")
             return
         logger.info(f"Committing remote session {self.remote_session_id}")
-        self.core_client.commit(self.remote_session_id)
+        ending_id = self.remote_session_id
+        self._self_ended_sessions.add(ending_id)
+        self.core_client.commit(ending_id)
 
         # Commit ends the core-side session. Start a fresh one so subsequent
         # edits in this conversation have somewhere to stage.
@@ -226,6 +240,7 @@ class System(Producer):
         )
 
         if self.remote_session_id is not None:
+            self._self_ended_sessions.add(self.remote_session_id)
             try:
                 if save_changes:
                     self.core_client.commit(self.remote_session_id)
@@ -265,6 +280,51 @@ class System(Producer):
         logger.info(
             "Created session (local=%s, remote=%s)", local_id, self.remote_session_id
         )
+
+    # ---------- event consumer ----------
+
+    async def consume(self, event: Event) -> None:
+        """React to core-side lifecycle events.
+
+        We only care about `session_discarded` targeting our own remote
+        session when the discard was NOT self-initiated — i.e. core killed
+        us because another session committed. In that case we drop the
+        remote session, notify the user, and let the next message create a
+        fresh one.
+        """
+        if not isinstance(event, SessionDiscardedEvent):
+            return
+
+        sid = event.session_id
+        if sid in self._self_ended_sessions:
+            self._self_ended_sessions.discard(sid)
+            return
+
+        if self.remote_session_id != sid:
+            return
+
+        logger.warning(
+            "system: remote session %s was discarded externally (file committed "
+            "by another session); resetting",
+            sid,
+        )
+        self.remote_session_id = None
+        self.remote_file_store.rebind("")
+
+        try:
+            await self.produce(
+                ErrorEvent(
+                    session_id=self.active_session.id if self.active_session else "",
+                    error=(
+                        "Il file è stato modificato da un'altra sessione "
+                        "(editor web o altra chat). Le modifiche in corso "
+                        "sono state scartate. Rimanda il messaggio per "
+                        "ripartire con i dati aggiornati."
+                    ),
+                )
+            )
+        except Exception:
+            logger.exception("failed to emit external-kill error event")
 
     def _save_session(self) -> None:
         if self.active_session is None:

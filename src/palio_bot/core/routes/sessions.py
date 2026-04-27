@@ -2,19 +2,19 @@
 
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
+from palio_bot.core.auth import require_auth
 from palio_bot.core.file_store_local import ReadOnlyFile, UnknownFile
-from palio_bot.core.lock_manager import LockConflict
 from palio_bot.core.session_service import (
-    NotLockHolder,
     SessionService,
     ValidationFailed,
+    VersionConflict,
 )
 from palio_bot.core.session_store import UnknownSession
 
-router = APIRouter(prefix="/api/sessions")
+router = APIRouter(prefix="/api/sessions", dependencies=[Depends(require_auth)])
 
 
 def _service(request: Request) -> SessionService:
@@ -54,15 +54,6 @@ async def acquire(session_id: str, file_name: str, request: Request):
         raise HTTPException(status_code=404, detail=f"unknown session {session_id}")
     except UnknownFile:
         raise HTTPException(status_code=404, detail=f"unknown file {file_name}")
-    except LockConflict as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "error": "lock_conflict",
-                "file": exc.file_name,
-                "holder_session_id": exc.holder_session_id,
-            },
-        )
     return {"content": result.content, "version": result.version}
 
 
@@ -79,15 +70,6 @@ async def put_file(
         raise HTTPException(status_code=404, detail=f"unknown file {file_name}")
     except ReadOnlyFile:
         raise HTTPException(status_code=403, detail=f"{file_name} is read-only")
-    except NotLockHolder as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "error": "lock_not_held",
-                "file": exc.file_name,
-                "holder_session_id": exc.holder,
-            },
-        )
     except ValidationFailed as exc:
         raise HTTPException(status_code=422, detail=exc.message)
     return {"version": version}
@@ -100,6 +82,16 @@ async def commit(session_id: str, request: Request):
         versions = svc.commit(session_id)
     except UnknownSession:
         raise HTTPException(status_code=404, detail=f"unknown session {session_id}")
+    except VersionConflict as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "version_conflict",
+                "file": exc.file_name,
+                "base_version": exc.base_version,
+                "current_version": exc.current_version,
+            },
+        )
     return {"files": versions}
 
 

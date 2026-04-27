@@ -9,27 +9,29 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-_VILLAGE_FIELD_KEYS = {"scores", "palio_leaderboard", "game_leaderboards"}
+# Dict fields whose immediate keys are village names.
+_VILLAGE_DICT_KEYS = {
+    "scores",
+    "palio_leaderboard",
+    "overall_leaderboard",
+    "leaderboard",
+}
 
 
 def _collect_village_refs(obj: Any, refs: Set[str]) -> None:
     """Walk a JSON tree and collect every string that appears as a village name.
 
     Picks up:
-      - dict keys under `scores` / `palio_leaderboard` / any inner dict of
-        `game_leaderboards`
+      - dict keys under fields declared as `Dict[village, ...]`:
+        `scores`, `palio_leaderboard`, `overall_leaderboard`,
+        `leaderboard` (inside `DivisionLeaderboard`).
       - string values of any `village` field (score_penalties, round scores,
-        applied_bonuses/penalties)
+        applied_bonuses/penalties).
     """
     if isinstance(obj, dict):
         for k, v in obj.items():
-            if k in _VILLAGE_FIELD_KEYS and isinstance(v, dict):
-                if k == "game_leaderboards":
-                    for inner in v.values():
-                        if isinstance(inner, dict):
-                            refs.update(inner.keys())
-                else:
-                    refs.update(v.keys())
+            if k in _VILLAGE_DICT_KEYS and isinstance(v, dict):
+                refs.update(kk for kk in v.keys() if isinstance(kk, str))
             if k == "village" and isinstance(v, str):
                 refs.add(v)
             _collect_village_refs(v, refs)

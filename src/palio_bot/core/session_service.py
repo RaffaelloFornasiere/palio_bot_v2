@@ -1,14 +1,28 @@
-"""Session service — composes locks, sessions, file I/O, and events.
+"""Session service — sessions, staged writes, optimistic concurrency.
 
 This is the business layer routes call into. Routes deal only with HTTP
 concerns (path params, status codes); all state transitions happen here.
+
+Concurrency model (no locks):
+  * `acquire` returns a snapshot + version. Multiple sessions may hold
+    staged copies of the same file simultaneously.
+  * `put` validates + stages. No lock check.
+  * `commit` compares the version the session was based on against the
+    canonical version. If they diverged (someone else committed meanwhile)
+    the commit is rejected with `VersionConflict`.
+  * After a successful commit, every OTHER session that has any of the
+    just-committed files in its dirty set is auto-discarded. A
+    `SessionDiscardedEvent` is broadcast for each — the web editor and
+    agent adapter react by resetting their UI state. This is the
+    "reactive" side of the model: whoever sees the change first stays,
+    the stale sessions fall off.
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from typing import Callable, Dict, List, Optional, Set
 
 from palio_bot.core.stream import Stream
 from palio_bot.core.file_store_local import (
@@ -17,11 +31,9 @@ from palio_bot.core.file_store_local import (
     UnknownFile,
     compute_version,
 )
-from palio_bot.core.lock_manager import LockConflict, LockManager
 from palio_bot.core.session_store import Session, SessionStore, UnknownSession
 from palio_bot.stream.events import (
     FileChangedEvent,
-    LockAcquiredEvent,
     SessionCommittedEvent,
     SessionDiscardedEvent,
     SessionStartedEvent,
@@ -37,13 +49,14 @@ class ValidationFailed(Exception):
         super().__init__(message)
 
 
-class NotLockHolder(Exception):
-    def __init__(self, file_name: str, session_id: str, holder: Optional[str]) -> None:
+class VersionConflict(Exception):
+    def __init__(self, file_name: str, base_version: str, current_version: str) -> None:
         self.file_name = file_name
-        self.session_id = session_id
-        self.holder = holder
+        self.base_version = base_version
+        self.current_version = current_version
         super().__init__(
-            f"session {session_id} does not hold {file_name} (held by {holder})"
+            f"{file_name}: version {base_version[:12]} is stale "
+            f"(current is {current_version[:12]})"
         )
 
 
@@ -60,25 +73,27 @@ class SessionService:
         registry: FileRegistry,
         file_store: LocalFileStore,
         session_store: SessionStore,
-        lock_manager: LockManager,
         stream: Stream,
         on_commit: Optional[Callable[[List[str]], None]] = None,
     ) -> None:
         self.registry = registry
         self.file_store = file_store
         self.session_store = session_store
-        self.lock_manager = lock_manager
         self.stream = stream
         self.on_commit = on_commit
-        # Files that have been PUT (not just seeded) by each session. Only
-        # dirty files are written on commit and trigger file_changed events.
+        # Files PUT by each session (vs. just seeded). Only dirty files are
+        # written on commit and participate in conflict detection.
         self._dirty: Dict[str, Set[str]] = {}
+        # Per-session, per-file: the canonical version the session saw at
+        # acquire-time. Used for optimistic-concurrency checks on commit.
+        self._base_versions: Dict[str, Dict[str, str]] = {}
 
     # ---------- session lifecycle ----------
 
     def create_session(self, label: str) -> Session:
         session = self.session_store.create(label)
         self._dirty[session.id] = set()
+        self._base_versions[session.id] = {}
         self.stream.broadcast(
             SessionStartedEvent(session_id=session.id, label=label)
         )
@@ -93,7 +108,6 @@ class SessionService:
                     "id": s.id,
                     "label": s.label,
                     "created_at": s.created_at.isoformat(),
-                    "files_held": self.lock_manager.held_by(s.id),
                     "files_dirty": sorted(self._dirty.get(s.id, set())),
                 }
             )
@@ -106,31 +120,36 @@ class SessionService:
         if self.registry.get_config(file_name) is None:
             raise UnknownFile(file_name)
 
-        # Lock first — raises LockConflict if held by another session.
-        self.lock_manager.acquire(file_name, session_id)
-
-        # Seed staged content from canonical if not already present.
         staged = self.session_store.get_staged(session_id, file_name)
         if staged is None:
             content = self.file_store.read(file_name)
             self.session_store.stage(session_id, file_name, content)
             staged = content
+            # Capture the canonical version so we can detect conflicts at
+            # commit time. Only set on the first acquire — subsequent
+            # re-acquires within the same session keep the original base.
+            base_version = compute_version(content)
+            self._base_versions.setdefault(session_id, {})[file_name] = base_version
 
         version = compute_version(staged)
-        self.stream.broadcast(
-            LockAcquiredEvent(session_id=session_id, file=file_name)
-        )
         return AcquireResult(content=staged, version=version)
 
     def put(self, session_id: str, file_name: str, content: dict) -> str:
         self._require_session(session_id)
-        self._require_holder(session_id, file_name)
 
         config = self.registry.get_config(file_name)
         if config is None:
             raise UnknownFile(file_name)
         if not config.allow_edit:
             raise ReadOnlyFile(file_name)
+
+        # Require a prior acquire so we have a base_version to compare
+        # against at commit. Also seeds the staged dict.
+        if self.session_store.get_staged(session_id, file_name) is None:
+            canonical = self.file_store.read(file_name)
+            self._base_versions.setdefault(session_id, {})[file_name] = (
+                compute_version(canonical)
+            )
 
         ok, err = self.registry.validate_content(file_name, content)
         if not ok:
@@ -141,8 +160,20 @@ class SessionService:
         return compute_version(content)
 
     def commit(self, session_id: str) -> Dict[str, str]:
+        self._require_session(session_id)
         session = self.session_store.get(session_id)
         dirty = sorted(self._dirty.get(session_id, set()))
+
+        # Optimistic concurrency: every dirty file's canonical version must
+        # still match what the session saw at acquire-time. Otherwise some
+        # other session committed in the meantime and this commit is stale.
+        base_versions = self._base_versions.get(session_id, {})
+        for file_name in dirty:
+            base = base_versions.get(file_name)
+            canonical = self.file_store.read(file_name)
+            current = compute_version(canonical)
+            if base is not None and base != current:
+                raise VersionConflict(file_name, base, current)
 
         versions: Dict[str, str] = {}
         for file_name in dirty:
@@ -150,8 +181,6 @@ class SessionService:
             if staged is None:
                 continue
             versions[file_name] = self.file_store.write_atomic(file_name, staged)
-
-        released = self.lock_manager.release_all(session_id)
 
         for file_name in versions:
             self.stream.broadcast(
@@ -166,12 +195,22 @@ class SessionService:
             SessionCommittedEvent(
                 session_id=session_id,
                 files=list(versions.keys()),
-                locks_released=released,
+                locks_released=[],
             )
         )
 
         self._dirty.pop(session_id, None)
+        self._base_versions.pop(session_id, None)
         self.session_store.delete(session_id)
+
+        # Reactive discard: any OTHER live session that had one of these
+        # files dirty is now based on stale canonical content. Drop it and
+        # let its client (agent adapter or web editor) notice via the WS
+        # event and reset.
+        if versions:
+            self._discard_conflicting_sessions(
+                excluded=session_id, changed_files=set(versions.keys())
+            )
 
         if self.on_commit is not None and versions:
             try:
@@ -189,13 +228,13 @@ class SessionService:
 
     def discard(self, session_id: str) -> None:
         self._require_session(session_id)
-        released = self.lock_manager.release_all(session_id)
         self._dirty.pop(session_id, None)
+        self._base_versions.pop(session_id, None)
         self.session_store.delete(session_id)
         self.stream.broadcast(
-            SessionDiscardedEvent(session_id=session_id, locks_released=released)
+            SessionDiscardedEvent(session_id=session_id, locks_released=[])
         )
-        logger.info("core: session %s discarded (released=%s)", session_id, released)
+        logger.info("core: session %s discarded", session_id)
 
     # ---------- helpers ----------
 
@@ -203,7 +242,24 @@ class SessionService:
         if not self.session_store.exists(session_id):
             raise UnknownSession(session_id)
 
-    def _require_holder(self, session_id: str, file_name: str) -> None:
-        holder = self.lock_manager.holder(file_name)
-        if holder != session_id:
-            raise NotLockHolder(file_name, session_id, holder)
+    def _discard_conflicting_sessions(
+        self, *, excluded: str, changed_files: Set[str]
+    ) -> None:
+        victims: List[str] = []
+        for s in list(self.session_store.list()):
+            if s.id == excluded:
+                continue
+            dirty = self._dirty.get(s.id, set())
+            if dirty & changed_files:
+                victims.append(s.id)
+
+        for sid in victims:
+            logger.info(
+                "core: auto-discarding session %s (conflicts with commit)", sid
+            )
+            self._dirty.pop(sid, None)
+            self._base_versions.pop(sid, None)
+            self.session_store.delete(sid)
+            self.stream.broadcast(
+                SessionDiscardedEvent(session_id=sid, locks_released=[])
+            )

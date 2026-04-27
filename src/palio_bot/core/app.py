@@ -16,9 +16,8 @@ from fastapi.staticfiles import StaticFiles
 from palio_bot.core.config import CoreConfig
 from palio_bot.core.stream import Stream
 from palio_bot.core.file_store_local import LocalFileStore
-from palio_bot.core.lock_manager import LockManager
 from palio_bot.core.registry_factory import build_registry
-from palio_bot.core.routes import admin, events_ws, files, sessions
+from palio_bot.core.routes import admin, editor, events_ws, files, sessions
 from palio_bot.core.session_service import SessionService
 from palio_bot.core.session_store import SessionStore
 from palio_bot.leaderboard_updater import LeaderboardUpdater
@@ -64,7 +63,6 @@ def create_app(
     registry = build_registry(config)
     file_store = LocalFileStore(registry)
     session_store = SessionStore()
-    lock_manager = LockManager()
     stream = Stream()
 
     on_commit: Optional[Callable[[List[str]], None]] = (
@@ -75,7 +73,6 @@ def create_app(
         registry=registry,
         file_store=file_store,
         session_store=session_store,
-        lock_manager=lock_manager,
         stream=stream,
         on_commit=on_commit,
     )
@@ -84,7 +81,6 @@ def create_app(
     app.state.registry = registry
     app.state.file_store = file_store
     app.state.session_store = session_store
-    app.state.lock_manager = lock_manager
     app.state.stream = stream
     app.state.session_service = session_service
 
@@ -99,6 +95,7 @@ def create_app(
     app.include_router(files.router)
     app.include_router(sessions.router)
     app.include_router(admin.router)
+    app.include_router(editor.router)
     app.include_router(events_ws.router)
 
     _mount_events_viewer(app)

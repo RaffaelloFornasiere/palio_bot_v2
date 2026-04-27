@@ -7,6 +7,11 @@ import LeaderboardPage from './features/leaderboard/pages/ClassificaPage';
 import GamesPage from './features/games/pages/GiochiPage';
 import GiocoDettagliPage from './features/games/pages/GiocoDettagliPage';
 import CalendarPage from './features/calendar/pages/CalendarioPage';
+import LoginPage from './features/editor/pages/LoginPage';
+import EditorHomePage from './features/editor/pages/EditorHomePage';
+import EditLeaderboardPage from './features/editor/pages/EditLeaderboardPage';
+import EditGameStatusPage from './features/editor/pages/EditGameStatusPage';
+import RequireAuth from './features/editor/components/RequireAuth';
 import './App.css';
 
 // Component to handle backward compatibility redirects
@@ -28,6 +33,14 @@ function App() {
       <Router>
         <YearProvider>
           <Routes>
+            {/* Editor (authenticated, separate layout) */}
+            <Route path="/edit/login" element={<LoginPage />} />
+            <Route path="/edit" element={<RequireAuth />}>
+              <Route index element={<EditorHomePage />} />
+              <Route path="leaderboard" element={<EditLeaderboardPage />} />
+              <Route path="games" element={<EditGameStatusPage />} />
+            </Route>
+
             <Route path="/" element={<Layout />}>
               <Route index element={<Navigate to="/classifica" replace />} />
               

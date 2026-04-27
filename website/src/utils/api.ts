@@ -6,11 +6,11 @@
  * In production, uses relative paths (same origin)
  */
 export const getApiBaseUrl = (): string => {
-  if (process.env.NODE_ENV === 'production') {
-    // In production, use REACT_APP_SERVER_URL or empty string (relative path)
-    return process.env.REACT_APP_SERVER_URL || '';
-  }
-  // In development, use REACT_APP_SERVER_URL or default to localhost:8000
-  return process.env.REACT_APP_SERVER_URL || 'http://localhost:8000';
+  // Default to relative paths in both dev and prod. The CRA dev server has
+  // `proxy: http://localhost:8000` in package.json, so /api/* is forwarded
+  // to core while the browser stays same-origin — this is what lets the
+  // app work behind a Cloudflare tunnel without CORS gymnastics.
+  // Set REACT_APP_SERVER_URL only if you need to point at a different host.
+  return process.env.REACT_APP_SERVER_URL || '';
 };
 

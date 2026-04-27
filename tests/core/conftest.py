@@ -52,12 +52,16 @@ def core_data_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def core_config(core_data_dir: Path) -> CoreConfig:
+def core_config(core_data_dir: Path, tmp_path: Path) -> CoreConfig:
     return CoreConfig(
         palio_file_path=core_data_dir / "palio.json",
         palio_games_status_path=core_data_dir / "palio_games_status.json",
         leaderboard_file_path=core_data_dir / "leaderboard.json",
         data_dir=core_data_dir,
+        # Keep auth disabled for tests: point at a path that doesn't exist
+        # so the production default (website/firebase-config.json) doesn't
+        # leak into the test env when pytest runs from the project root.
+        firebase_config_path=tmp_path / "no_firebase.json",
     )
 
 

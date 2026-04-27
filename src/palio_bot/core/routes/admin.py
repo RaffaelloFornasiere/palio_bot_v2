@@ -9,11 +9,13 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
+from palio_bot.core.auth import require_auth
+
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/admin")
+router = APIRouter(prefix="/admin", dependencies=[Depends(require_auth)])
 
 _MANAGED_FILE_ATTRS = (
     "palio_file_path",

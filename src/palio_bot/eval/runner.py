@@ -122,8 +122,14 @@ async def run_scenario(
     step_results: list[dict] = []
     t_scenario_start = time.time()
 
+    # Pin the eval core's port via env for predictability (so the events
+    # viewer URL stays the same across runs); otherwise a free port is picked.
+    pinned_port = os.getenv("EVAL_CORE_PORT")
+    port = int(pinned_port) if pinned_port else None
+
     try:
-        with CoreProcess(data_dir=data_dir) as core:
+        with CoreProcess(data_dir=data_dir, port=port) as core:
+            emit(f"  core ▸ {core.base_url}  events viewer: {core.base_url}/events-viewer")
             admin = CoreClient(base_url=core.base_url)
 
             cfg = Config(
