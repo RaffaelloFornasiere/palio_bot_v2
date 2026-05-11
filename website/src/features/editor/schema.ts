@@ -15,6 +15,7 @@ const villagePointsDict: Hint = {
   keyHint: 'village',
   value: leaderboardEntryHint,
   defaultValue: () => ({ points: 0, position: 0 }),
+  presentation: 'table',
 };
 
 export const leaderboardSchema: Hint = {
@@ -22,7 +23,7 @@ export const leaderboardSchema: Hint = {
   fields: [
     {
       name: 'villages',
-      label: 'Contrade',
+      label: 'Borghi',
       hint: {
         kind: 'array',
         item: { kind: 'string' },
@@ -42,10 +43,10 @@ export const leaderboardSchema: Hint = {
       collapsible: true,
       hint: {
         kind: 'dict',
+        valueLabel: (v: any) => v?.game_name || '(senza nome)',
         value: {
           kind: 'object',
           fields: [
-            { name: 'game_id', label: 'ID gioco', hint: { kind: 'string' } },
             { name: 'game_name', label: 'Nome gioco', hint: { kind: 'string' } },
             {
               name: 'completed',
@@ -95,7 +96,6 @@ export const leaderboardSchema: Hint = {
           ],
         },
         defaultValue: () => ({
-          game_id: '',
           game_name: '',
           divisions: [],
           overall_leaderboard: {},
@@ -112,7 +112,7 @@ export const leaderboardSchema: Hint = {
 const scorePenaltyHint: Hint = {
   kind: 'object',
   fields: [
-    { name: 'village', label: 'Contrada', hint: { kind: 'village' } },
+    { name: 'village', label: 'Borgo', hint: { kind: 'village' } },
     { name: 'description', label: 'Descrizione', hint: { kind: 'string' } },
     { name: 'points', label: 'Punti', hint: { kind: 'number' } },
   ],
@@ -121,7 +121,7 @@ const scorePenaltyHint: Hint = {
 const gameBonusHint: Hint = {
   kind: 'object',
   fields: [
-    { name: 'village', label: 'Contrada', hint: { kind: 'village' } },
+    { name: 'village', label: 'Borgo', hint: { kind: 'village' } },
     { name: 'description', label: 'Descrizione', hint: { kind: 'string' } },
     { name: 'points', label: 'Punti', hint: { kind: 'integer' } },
   ],
@@ -132,7 +132,7 @@ const gamePenaltyHint: Hint = gameBonusHint;
 const roundRobinScoreHint: Hint = {
   kind: 'object',
   fields: [
-    { name: 'village', label: 'Contrada', hint: { kind: 'village' } },
+    { name: 'village', label: 'Borgo', hint: { kind: 'village' } },
     { name: 'points', label: 'Punti', hint: { kind: 'numberOrString' } },
   ],
 };
@@ -145,7 +145,7 @@ const gameRoundHint: Hint = {
       label: 'Punteggi',
       hint: {
         kind: 'array',
-        itemLabel: (_, v) => v?.village || 'contrada',
+        itemLabel: (_, v) => v?.village || 'borgo',
         defaultItem: () => ({ village: '', points: 0 }),
         item: roundRobinScoreHint,
       },
@@ -167,7 +167,7 @@ const gameRoundHint: Hint = {
 // Union-aware single-game hint: fields exist depending on the game variant.
 // Both variants share status + applied_bonuses + applied_penalties. The rest
 // are marked optional so the form only renders what's present in the data.
-const singleGameStatusHint: Hint = {
+export const singleGameStatusHint: Hint = {
   kind: 'object',
   fields: [
     { name: 'status', label: 'Stato', hint: { kind: 'enum', options: STATUS_OPTIONS } },
@@ -246,14 +246,13 @@ const singleGameStatusHint: Hint = {
               { name: 'name', label: 'Nome', hint: { kind: 'string' } },
               { name: 'status', label: 'Stato', hint: { kind: 'enum', options: STATUS_OPTIONS } },
               {
-                name: 'scores', label: 'Punteggi', optional: true, collapsible: true,
+                name: 'scores', label: 'Punteggi',
                 hint: {
                   kind: 'dict',
                   keyHint: 'village',
                   value: { kind: 'numberOrString' },
                   defaultValue: () => 0,
                 },
-                defaultValue: () => ({}),
               },
               {
                 name: 'rounds', label: 'Round', optional: true, collapsible: true,

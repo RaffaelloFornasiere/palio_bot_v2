@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import {
   Box, TextField, Switch, FormControlLabel, IconButton, Button,
   Accordion, AccordionSummary, AccordionDetails, Typography, Stack, MenuItem, Chip,
+  ToggleButton, ToggleButtonGroup,
+  Table, TableHead, TableBody, TableRow, TableCell,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
@@ -30,6 +32,13 @@ export type Hint =
       defaultValue: () => any;
       // presented keys (e.g., all villages) so we can offer add-missing
       suggestedKeys?: string[];
+      // 'table' renders one row per entry, columns = value's object fields.
+      // Requires value.kind === 'object' with scalar field hints.
+      presentation?: 'table';
+      // Optional: derive the entry's user-facing label from its value
+      // instead of showing the raw key. Used when the key is an internal
+      // identifier the user shouldn't see (e.g. game_id).
+      valueLabel?: (value: any) => string;
     }
   | {
       kind: 'object';
@@ -132,7 +141,32 @@ const FieldNode: React.FC<NodeProps> = ({ value, onChange, hint, ctx, label }) =
           fullWidth
         />
       );
-    case 'nullable':
+    case 'nullable': {
+      if (hint.inner.kind === 'boolean') {
+        const current = value == null ? 'null' : value ? 'true' : 'false';
+        return (
+          <Box>
+            {label && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                {label}
+              </Typography>
+            )}
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={current}
+              onChange={(_, nv) => {
+                if (nv == null) return;
+                onChange(nv === 'null' ? null : nv === 'true');
+              }}
+            >
+              <ToggleButton value="null">Vuoto</ToggleButton>
+              <ToggleButton value="true">Sì</ToggleButton>
+              <ToggleButton value="false">No</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+        );
+      }
       return (
         <Box>
           <FormControlLabel
@@ -149,6 +183,7 @@ const FieldNode: React.FC<NodeProps> = ({ value, onChange, hint, ctx, label }) =
           )}
         </Box>
       );
+    }
     case 'array':
       return <ArrayNode value={value ?? []} onChange={onChange} hint={hint} ctx={ctx} label={label} />;
     case 'dict':
@@ -208,76 +243,158 @@ const ArrayNode: React.FC<NodeProps & { hint: Extract<Hint, { kind: 'array' }> }
 const DictNode: React.FC<NodeProps & { hint: Extract<Hint, { kind: 'dict' }> }> = ({
   value, onChange, hint, ctx, label,
 }) => {
-  const entries = Object.entries(value || {});
+  const data: Record<string, any> = value || {};
+  const dataKeys = Object.keys(data);
   const [newKey, setNewKey] = useState('');
-  const existing = new Set(entries.map(([k]) => k));
+
+  // Village-keyed dicts always show one row per known village (in master
+  // order), so users don't have to add villages one by one. Extra keys
+  // present in the data but not in the master list are appended.
+  const isVillageDict = hint.keyHint === 'village' && ctx.villages.length > 0;
+  const villageSet = new Set(ctx.villages);
+  const orderedKeys = isVillageDict
+    ? [...ctx.villages, ...dataKeys.filter((k) => !villageSet.has(k))]
+    : dataKeys;
+  const isMasterVillage = (k: string) => isVillageDict && villageSet.has(k);
+
+  const existing = new Set(dataKeys);
   const suggestions = (hint.keyHint === 'village' ? ctx.villages : hint.suggestedKeys ?? [])
     .filter((k) => !existing.has(k));
 
   const addKey = (key: string) => {
     if (!key || existing.has(key)) return;
-    onChange({ ...(value || {}), [key]: hint.defaultValue() });
+    onChange({ ...data, [key]: hint.defaultValue() });
     setNewKey('');
   };
 
+  const removeKey = (k: string) => {
+    const next = { ...data }; delete next[k]; onChange(next);
+  };
+
+  const valueFor = (k: string) =>
+    k in data ? data[k] : hint.defaultValue();
+
+  // For village dicts the picker is redundant — all villages are pre-shown.
+  const adder = isVillageDict ? null : (
+    <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+      {hint.keyHint === 'village' ? (
+        <TextField
+          select
+          size="small"
+          label="Nuovo borgo"
+          value=""
+          onChange={(e) => addKey(e.target.value)}
+          sx={{ minWidth: 180 }}
+          disabled={suggestions.length === 0}
+        >
+          {suggestions.map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+        </TextField>
+      ) : (
+        <>
+          <TextField
+            size="small"
+            label="Nuova chiave"
+            value={newKey}
+            onChange={(e) => setNewKey(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKey(newKey); } }}
+          />
+          <Button size="small" startIcon={<AddIcon />} onClick={() => addKey(newKey)} disabled={!newKey}>
+            Aggiungi
+          </Button>
+        </>
+      )}
+    </Box>
+  );
+
+  const count = isVillageDict ? orderedKeys.length : dataKeys.length;
+
+  if (hint.presentation === 'table' && hint.value.kind === 'object') {
+    const fields = hint.value.fields;
+    const keyLabel = hint.keyHint === 'village' ? 'Borgo' : 'Chiave';
+    return (
+      <Box>
+        {label && <Typography variant="subtitle2" sx={{ mb: 1 }}>{label} ({count})</Typography>}
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ pl: 0 }}>{keyLabel}</TableCell>
+              {fields.map((f) => (
+                <TableCell key={f.name}>{f.label ?? f.name}</TableCell>
+              ))}
+              <TableCell sx={{ width: 40, pr: 0 }} />
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {orderedKeys.map((k) => {
+              const row = (valueFor(k) ?? {}) as Record<string, any>;
+              return (
+                <TableRow key={k}>
+                  <TableCell sx={{ pl: 0 }}>
+                    <Chip label={k} size="small" color={hint.keyHint === 'village' ? 'primary' : 'default'} />
+                  </TableCell>
+                  {fields.map((f) => (
+                    <TableCell key={f.name}>
+                      <FieldNode
+                        value={row[f.name]}
+                        onChange={(nv) => onChange({ ...data, [k]: { ...row, [f.name]: nv } })}
+                        hint={f.hint}
+                        ctx={ctx}
+                      />
+                    </TableCell>
+                  ))}
+                  <TableCell sx={{ pr: 0 }}>
+                    {!isMasterVillage(k) && (
+                      <IconButton size="small" onClick={() => removeKey(k)} aria-label="rimuovi">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+        {adder}
+      </Box>
+    );
+  }
+
   return (
     <Box>
-      {label && <Typography variant="subtitle2" sx={{ mb: 1 }}>{label} ({entries.length})</Typography>}
+      {label && <Typography variant="subtitle2" sx={{ mb: 1 }}>{label} ({count})</Typography>}
       <Stack spacing={1}>
-        {entries.map(([k, v]) => (
-          <Box key={k} sx={{ p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Chip label={k} size="small" color={hint.keyHint === 'village' ? 'primary' : 'default'} />
-              <Box sx={{ flex: 1 }} />
-              <IconButton
-                size="small"
-                onClick={() => {
-                  const next = { ...(value || {}) }; delete next[k]; onChange(next);
-                }}
-                aria-label="rimuovi"
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
+        {orderedKeys.map((k) => {
+          const v = valueFor(k);
+          return (
+            <Box key={k} sx={{ p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Chip
+                  label={hint.valueLabel ? hint.valueLabel(v) : k}
+                  size="small"
+                  color={hint.keyHint === 'village' ? 'primary' : 'default'}
+                />
+                <Box sx={{ flex: 1 }} />
+                {!isMasterVillage(k) && (
+                  <IconButton
+                    size="small"
+                    onClick={() => removeKey(k)}
+                    aria-label="rimuovi"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Box>
+              <FieldNode
+                value={v}
+                onChange={(nv) => onChange({ ...data, [k]: nv })}
+                hint={hint.value}
+                ctx={ctx}
+              />
             </Box>
-            <FieldNode
-              value={v}
-              onChange={(nv) => onChange({ ...(value || {}), [k]: nv })}
-              hint={hint.value}
-              ctx={ctx}
-            />
-          </Box>
-        ))}
+          );
+        })}
       </Stack>
-      <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        {hint.keyHint === 'village' ? (
-          <>
-            <TextField
-              select
-              size="small"
-              label="Nuova contrada"
-              value=""
-              onChange={(e) => addKey(e.target.value)}
-              sx={{ minWidth: 180 }}
-              disabled={suggestions.length === 0}
-            >
-              {suggestions.map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
-            </TextField>
-          </>
-        ) : (
-          <>
-            <TextField
-              size="small"
-              label="Nuova chiave"
-              value={newKey}
-              onChange={(e) => setNewKey(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKey(newKey); } }}
-            />
-            <Button size="small" startIcon={<AddIcon />} onClick={() => addKey(newKey)} disabled={!newKey}>
-              Aggiungi
-            </Button>
-          </>
-        )}
-      </Box>
+      {adder}
     </Box>
   );
 };

@@ -17,17 +17,12 @@ import {
   getLeaderboardDataForYear,
   getPalioDataForYear
 } from '../../../utils/yearApi';
-import { 
-  PalioGamesStatus, 
-  PalioData, 
-  Leaderboard, 
-  ScoreBasedGameStatus, 
+import {
+  PalioGamesStatus,
+  PalioData,
+  Leaderboard,
+  ScoreBasedGameStatus,
   RoundRobinGameStatus,
-  ScoreBasedDivision,
-  RoundRobinDivision,
-  GamePenalty,
-  GameBonus,
-  ScorePenalty
 } from '../../../generated';
 import { useYear } from '../../../contexts/YearContext';
 import YearSelector from '../../../components/YearSelector';
@@ -35,8 +30,6 @@ import { getStatusText, formatDate, getStatusColor } from '../utils';
 import { getVillageBackgroundColor } from '../../../utils/colorUtils';
 
 type GameData = ScoreBasedGameStatus | RoundRobinGameStatus;
-type GameDivision = ScoreBasedDivision | RoundRobinDivision;
-type GameScore = { [key: string]: number | string };
 
 const GiochiPage: React.FC = () => {
   const [gamesData, setGamesData] = useState<PalioGamesStatus | null>(null);
@@ -224,10 +217,6 @@ const GiochiPage: React.FC = () => {
                       </Typography>
                     )}
                   </Box>
-
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    <strong>ID Gioco:</strong> {gameId}
-                  </Typography>
 
                   <Box sx={{ mt: 2 }}>
                     <Button 

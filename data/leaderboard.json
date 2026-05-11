@@ -24,7 +24,7 @@
       "position": 4
     },
     "Sornico": {
-      "points": 10,
+      "points": 11,
       "position": 5
     }
   },
@@ -139,7 +139,7 @@
               "position": 5
             }
           },
-          "updated_at": "2026-04-21T12:00:50.968397"
+          "updated_at": "2026-05-11T16:49:34.212158"
         }
       ],
       "overall_leaderboard": {
@@ -165,7 +165,7 @@
         }
       },
       "completed": true,
-      "updated_at": "2026-04-21T12:00:50.968407"
+      "updated_at": "2026-05-11T16:49:34.212163"
     },
     "G03": {
       "game_id": "G03",
@@ -187,7 +187,7 @@
               "position": 3
             },
             "Sornico": {
-              "points": 3,
+              "points": 4,
               "position": 4
             },
             "Sottocastello": {
@@ -195,7 +195,7 @@
               "position": 5
             }
           },
-          "updated_at": "2026-04-21T12:00:50.968287"
+          "updated_at": "2026-05-11T16:49:34.212109"
         }
       ],
       "overall_leaderboard": {
@@ -212,7 +212,7 @@
           "position": 3
         },
         "Sornico": {
-          "points": 3,
+          "points": 4,
           "position": 4
         },
         "Sottocastello": {
@@ -221,7 +221,7 @@
         }
       },
       "completed": true,
-      "updated_at": "2026-04-21T12:00:50.968298"
+      "updated_at": "2026-05-11T16:49:34.212121"
     }
   }
 }

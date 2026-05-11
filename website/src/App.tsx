@@ -11,6 +11,8 @@ import LoginPage from './features/editor/pages/LoginPage';
 import EditorHomePage from './features/editor/pages/EditorHomePage';
 import EditLeaderboardPage from './features/editor/pages/EditLeaderboardPage';
 import EditGameStatusPage from './features/editor/pages/EditGameStatusPage';
+import GameStatusListView from './features/editor/pages/GameStatusListView';
+import GameStatusDetailView from './features/editor/pages/GameStatusDetailView';
 import RequireAuth from './features/editor/components/RequireAuth';
 import './App.css';
 
@@ -38,7 +40,10 @@ function App() {
             <Route path="/edit" element={<RequireAuth />}>
               <Route index element={<EditorHomePage />} />
               <Route path="leaderboard" element={<EditLeaderboardPage />} />
-              <Route path="games" element={<EditGameStatusPage />} />
+              <Route path="games" element={<EditGameStatusPage />}>
+                <Route index element={<GameStatusListView />} />
+                <Route path=":gameId" element={<GameStatusDetailView />} />
+              </Route>
             </Route>
 
             <Route path="/" element={<Layout />}>

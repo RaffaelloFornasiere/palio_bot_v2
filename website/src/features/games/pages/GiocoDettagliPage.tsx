@@ -33,8 +33,6 @@ import {
   LeaderboardEntry,
   ScoreBasedGameStatus,
   RoundRobinGameStatus,
-  ScoreBasedDivision,
-  RoundRobinDivision,
   GameRound,
   GamePenalty,
   GameBonus,
@@ -47,7 +45,6 @@ import { getVillageBackgroundColor } from '../../../utils/colorUtils';
 
 
 type GameData = ScoreBasedGameStatus | RoundRobinGameStatus;
-type GameDivision = ScoreBasedDivision | RoundRobinDivision;
 type GameScore = { [key: string]: number | string };
 
 const GiocoDettagliPage: React.FC = () => {
@@ -126,10 +123,6 @@ const GiocoDettagliPage: React.FC = () => {
     }
     // Handle object format
     return Object.entries(scores);
-  };
-
-  const getSortedLeaderboard = (leaderboard: { [key: string]: number | number }): [string, number][] => {
-    return Object.entries(leaderboard).sort(([, a], [, b]) => (b as number) - (a as number));
   };
 
   // Helper functions to extract game data
@@ -280,9 +273,6 @@ const GiocoDettagliPage: React.FC = () => {
               label={getStatusText(gameData.status)}
               color={getStatusColor(gameData.status) as any}
             />
-            <Typography variant="body2" color="text.secondary">
-              ID: {gameId}
-            </Typography>
           </Box>
 
           {gamesData && (

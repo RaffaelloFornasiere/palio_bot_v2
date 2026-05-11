@@ -114,4 +114,18 @@ export const editorApi = {
   async readFile<T = any>(fileName: string): Promise<T> {
     return request<T>(`/api/files/${fileName}`);
   },
+
+  async previewLeaderboard() {
+    return request<{
+      proposed: any;
+      changed_games: Array<{ id: string; name: string }>;
+    }>('/api/leaderboard/preview', { method: 'POST' });
+  },
+
+  async applyLeaderboard(proposed: any) {
+    return request<{ status: string; version: string }>(
+      '/api/leaderboard/apply',
+      { method: 'POST', body: JSON.stringify({ proposed }) },
+    );
+  },
 };

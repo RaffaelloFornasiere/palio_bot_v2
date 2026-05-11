@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AppBar, Toolbar, IconButton, Typography, Box, Container, Alert, CircularProgress, Button, Stack,
@@ -6,15 +6,28 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveBar from './SaveBar';
+import RecomputeLeaderboardDialog, { ChangedGame } from './RecomputeLeaderboardDialog';
+import { editorApi } from '../api/client';
 import { UseEditorSession } from '../hooks/useEditorSession';
 
 interface Props<T> {
   title: string;
   session: UseEditorSession<T>;
   children: (content: T) => React.ReactNode;
+  // Override the top-bar back button. When provided, the default
+  // (confirm + discard + navigate to /edit) is bypassed entirely —
+  // useful for in-editor navigation (e.g. detail → list) that should
+  // preserve the open session.
+  onBack?: () => void | Promise<void>;
+  // When set, after a successful commit the user is prompted to also
+  // recompute the leaderboard. Use for files whose changes affect the
+  // leaderboard (palio_games_status, palio).
+  promptRecomputeLeaderboard?: boolean;
 }
 
-export function EditorShell<T>({ title, session, children }: Props<T>) {
+export function EditorShell<T>({
+  title, session, children, onBack, promptRecomputeLeaderboard,
+}: Props<T>) {
   const navigate = useNavigate();
   const {
     loading, content, error, externallyChanged, dirty, saving, committing,
@@ -22,18 +35,51 @@ export function EditorShell<T>({ title, session, children }: Props<T>) {
   } = session;
 
   const handleBack = async () => {
+    if (onBack) {
+      await onBack();
+      return;
+    }
     if (dirty && !window.confirm('Modifiche non salvate. Uscire comunque?')) return;
     await discard();
     navigate('/edit', { replace: true });
   };
 
+  const [recompute, setRecompute] = useState<{
+    proposed: any;
+    changedGames: ChangedGame[];
+  } | null>(null);
+
   const handleCommit = async () => {
     try {
       await saveAndCommit();
-      navigate('/edit', { replace: true });
+      if (!promptRecomputeLeaderboard) {
+        navigate('/edit', { replace: true });
+        return;
+      }
+      // Auto-preview: only bother the user if something actually changed.
+      let preview;
+      try {
+        preview = await editorApi.previewLeaderboard();
+      } catch {
+        navigate('/edit', { replace: true });
+        return;
+      }
+      if (!preview.changed_games?.length) {
+        navigate('/edit', { replace: true });
+        return;
+      }
+      setRecompute({
+        proposed: preview.proposed,
+        changedGames: preview.changed_games,
+      });
     } catch {
       // error / externallyChanged already in session state
     }
+  };
+
+  const handleRecomputeClose = () => {
+    setRecompute(null);
+    navigate('/edit', { replace: true });
   };
 
   const handleDiscard = async () => {
@@ -96,6 +142,13 @@ export function EditorShell<T>({ title, session, children }: Props<T>) {
           onDiscard={handleDiscard}
         />
       )}
+
+      <RecomputeLeaderboardDialog
+        open={recompute != null}
+        onClose={handleRecomputeClose}
+        proposed={recompute?.proposed}
+        changedGames={recompute?.changedGames ?? []}
+      />
     </Box>
   );
 }

@@ -3,8 +3,6 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signOut,
   onAuthStateChanged,
   User,
@@ -44,8 +42,6 @@ export async function initFirebase(): Promise<EditorBootConfig> {
         appId: cfg.firebase.appId ?? undefined,
       });
       authInstance = getAuth(appInstance);
-      // Finish redirect flow if we just came back from the Google page.
-      try { await getRedirectResult(authInstance); } catch { /* ignore */ }
     }
     return cfg;
   })();
@@ -65,10 +61,11 @@ export async function signInWithGoogle(): Promise<User> {
     const res = await signInWithPopup(auth, provider);
     return res.user;
   } catch (e: any) {
-    // Popup blocked on some mobile browsers — fall back to redirect.
-    if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/operation-not-supported-in-this-environment') {
-      await signInWithRedirect(auth, provider);
-      return new Promise(() => {}); // redirect takes over
+    if (e?.code === 'auth/popup-blocked') {
+      throw new Error('Il browser ha bloccato il popup. Abilita i popup per questo sito e riprova.');
+    }
+    if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') {
+      throw new Error('Login annullato.');
     }
     throw e;
   }
