@@ -64,6 +64,79 @@ interface NodeProps {
   label?: string;
 }
 
+// Controlled numeric input that survives transitional strings ('', '-', '1.', '0.').
+// Holds a string draft while the user is typing; only commits a parsed number
+// to onChange when the draft is parseable. On blur the draft is reconciled
+// with the parent value.
+const NumberLeaf: React.FC<{
+  value: number | null | undefined;
+  onChange: (v: number) => void;
+  label?: string;
+  isInteger: boolean;
+}> = ({ value, onChange, label, isInteger }) => {
+  const [draft, setDraft] = useState<string | null>(null);
+  const display = draft !== null ? draft : (value == null ? '' : String(value));
+  const parse = (s: string) => (isInteger ? parseInt(s, 10) : parseFloat(s));
+  return (
+    <TextField
+      size="small"
+      type="text"
+      label={label}
+      value={display}
+      inputProps={{ inputMode: isInteger ? 'numeric' : 'decimal' }}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setDraft(raw);
+        if (raw === '' || raw === '-' || raw === '.' || raw === '-.') return;
+        const n = parse(raw);
+        if (Number.isFinite(n)) onChange(n);
+      }}
+      onBlur={() => {
+        if (draft === null) return;
+        const n = parse(draft);
+        onChange(Number.isFinite(n) ? n : 0);
+        setDraft(null);
+      }}
+      fullWidth
+    />
+  );
+};
+
+// Like NumberLeaf, but commits a string when the draft isn't a finite number
+// (used for fields that historically may have been stored as strings).
+const NumberOrStringLeaf: React.FC<{
+  value: any;
+  onChange: (v: any) => void;
+  label?: string;
+}> = ({ value, onChange, label }) => {
+  const [draft, setDraft] = useState<string | null>(null);
+  const display = draft !== null ? draft : (value == null ? '' : String(value));
+  return (
+    <TextField
+      size="small"
+      type="text"
+      label={label}
+      value={display}
+      inputProps={{ inputMode: 'decimal' }}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setDraft(raw);
+        if (raw === '' || raw === '-' || raw === '.' || raw === '-.') return;
+        const n = Number(raw);
+        if (Number.isFinite(n)) onChange(n);
+      }}
+      onBlur={() => {
+        if (draft === null) return;
+        if (draft.trim() === '') { onChange(0); setDraft(null); return; }
+        const n = Number(draft);
+        onChange(Number.isFinite(n) ? n : draft);
+        setDraft(null);
+      }}
+      fullWidth
+    />
+  );
+};
+
 const FieldNode: React.FC<NodeProps> = ({ value, onChange, hint, ctx, label }) => {
   switch (hint.kind) {
     case 'string':
@@ -81,35 +154,16 @@ const FieldNode: React.FC<NodeProps> = ({ value, onChange, hint, ctx, label }) =
     case 'number':
     case 'integer':
       return (
-        <TextField
-          size="small"
-          type="number"
+        <NumberLeaf
+          value={value}
+          onChange={onChange}
           label={label}
-          value={value ?? 0}
-          inputProps={{ inputMode: hint.kind === 'integer' ? 'numeric' : 'decimal', step: hint.kind === 'integer' ? 1 : 'any' }}
-          onChange={(e) => {
-            const raw = e.target.value;
-            if (raw === '' || raw === '-') { onChange(raw === '' ? 0 : raw); return; }
-            const n = hint.kind === 'integer' ? parseInt(raw, 10) : parseFloat(raw);
-            onChange(Number.isNaN(n) ? value : n);
-          }}
-          fullWidth
+          isInteger={hint.kind === 'integer'}
         />
       );
     case 'numberOrString':
       return (
-        <TextField
-          size="small"
-          label={label}
-          value={value ?? ''}
-          onChange={(e) => {
-            const raw = e.target.value;
-            if (raw === '') { onChange(0); return; }
-            const n = Number(raw);
-            onChange(Number.isFinite(n) && raw.trim() !== '' ? n : raw);
-          }}
-          fullWidth
-        />
+        <NumberOrStringLeaf value={value} onChange={onChange} label={label} />
       );
     case 'boolean':
       return (

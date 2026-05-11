@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Table, TableHead, TableBody, TableRow, TableCell, Chip,
-  IconButton, Typography,
+  IconButton, Typography, Button, Menu, MenuItem, Stack,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useGameStatusContext } from './EditGameStatusPage';
 
@@ -20,8 +21,9 @@ const STATUS_COLORS: Record<string, 'default' | 'warning' | 'success'> = {
 };
 
 const GameStatusListView: React.FC = () => {
-  const { content, games } = useGameStatusContext();
+  const { content, setContent, games } = useGameStatusContext();
   const navigate = useNavigate();
+  const [addAnchor, setAddAnchor] = useState<null | HTMLElement>(null);
 
   const scores = content.game_scores ?? {};
   const nameById = new Map(games.map((g) => [g.id, g.name]));
@@ -31,11 +33,51 @@ const GameStatusListView: React.FC = () => {
   const extras = Object.keys(scores).filter((id) => !nameById.has(id)).sort();
   const orderedIds = [...known, ...extras];
 
+  // Games defined in palio.json but not yet tracked in game_scores.
+  const missing = games.filter((g) => !(g.id in scores));
+
+  const addGame = (id: string) => {
+    setContent((prev) => ({
+      ...prev,
+      game_scores: {
+        ...(prev.game_scores ?? {}),
+        [id]: {
+          status: 'not-started',
+          applied_bonuses: [],
+          applied_penalties: [],
+        },
+      },
+    }));
+    setAddAnchor(null);
+    navigate(id);
+  };
+
   return (
     <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Clicca un gioco per modificarlo. Le modifiche si salvano insieme.
-      </Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          Clicca un gioco per modificarlo. Le modifiche si salvano insieme.
+        </Typography>
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={(e) => setAddAnchor(e.currentTarget)}
+          disabled={missing.length === 0}
+        >
+          Aggiungi
+        </Button>
+        <Menu
+          anchorEl={addAnchor}
+          open={addAnchor != null}
+          onClose={() => setAddAnchor(null)}
+        >
+          {missing.map((g) => (
+            <MenuItem key={g.id} onClick={() => addGame(g.id)}>
+              {g.name}
+            </MenuItem>
+          ))}
+        </Menu>
+      </Stack>
       <Table size="small">
         <TableHead>
           <TableRow>
