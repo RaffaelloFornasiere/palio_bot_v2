@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 from typing import Any, Dict, Optional
 
 from jsonpath_ng.ext import parse as parse_ext
@@ -100,6 +101,34 @@ def _deep_merge(target: Any, source: Any) -> Any:
                 target[key] = value
         return target
     return source
+
+
+# Matches a trailing path segment: either `.name` or `[…]` (index/key/filter).
+_TRAILING_SEGMENT = re.compile(r"(?:\.[^.\[\]]+|\[[^\]]+\])$")
+
+
+def _deepest_existing_ancestor(path: str, data: Any) -> Optional[str]:
+    """Walk up `path` one segment at a time and return the deepest ancestor
+    that resolves against `data`. Returns None if even the root isn't usable.
+    """
+    current = path
+    while current and current != ROOT_PATH:
+        m = _TRAILING_SEGMENT.search(current)
+        if not m:
+            break
+        current = current[: m.start()] or ROOT_PATH
+        try:
+            if parse_ext(current).find(data):
+                return current
+        except Exception:
+            continue
+    # Fallback: root if it resolves (it should, for any dict/list data).
+    try:
+        if parse_ext(ROOT_PATH).find(data):
+            return ROOT_PATH
+    except Exception:
+        pass
+    return None
 
 
 def _is_ancestor(viewed: str, target: str) -> bool:
@@ -247,9 +276,18 @@ class MultiJSONEditorTool:
             matches = jsonpath_expr.find(data)
 
             if not matches:
+                # Path doesn't exist. Don't silently mark it as viewed —
+                # point the agent at the deepest existing ancestor so a
+                # follow-up view(ancestor) gives them real context and
+                # satisfies the guardrail for the eventual create.
+                suggested = _deepest_existing_ancestor(path, data) or ROOT_PATH
                 return ToolResult(
                     success=False,
-                    error=f"Nessun elemento trovato in '{file_name}' per il path: {path}",
+                    error=(
+                        f"Nessun elemento trovato in '{file_name}' per il path: {path}. "
+                        f"Visualizza prima il path esistente più vicino "
+                        f"('{suggested}') per vedere il contesto, poi crea la chiave."
+                    ),
                 )
 
             # Mark every matched full_path as viewed so descendants can be edited

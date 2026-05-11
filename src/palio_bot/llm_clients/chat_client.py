@@ -238,7 +238,23 @@ class ChatClient(BaseLLMClient):
     
     def _convert_response_to_message(self, response: Dict[str, Any]) -> Message:
         """Convert OpenAI response to our Message format."""
-        choice = response["choices"][0]
+        # Providers (OpenRouter etc.) sometimes return 200 with an error
+        # envelope instead of `choices`. Surface a useful error instead of
+        # crashing with a bare `KeyError: 'choices'`.
+        choices = response.get("choices")
+        if not choices:
+            err = response.get("error")
+            if isinstance(err, dict):
+                msg = err.get("message") or json.dumps(err, ensure_ascii=False)
+                code = err.get("code")
+                detail = f"{self.provider_label} error" + (f" [{code}]" if code else "") + f": {msg}"
+            else:
+                detail = (
+                    f"{self.provider_label} returned no choices: "
+                    f"{json.dumps(response, ensure_ascii=False)[:500]}"
+                )
+            raise RuntimeError(detail)
+        choice = choices[0]
         message = choice["message"]
         
         content_list = []

@@ -19,6 +19,13 @@ class Game(BaseModel):
     measure_unit: str
     lower_is_better: bool
     dates: List[EventDate]
+    # Semantics of `divisions` for this game (when the status carries any):
+    #   false (default) → divisions are independent contests; the game's
+    #     overall points are the SUM of each village's per-division ranking
+    #     points (e.g. 1° Maschile + 3° Femminile = 10 + 5 = 15).
+    #   true → divisions are stages of one combined contest; raw scores are
+    #     summed across divisions, then re-ranked for the game.
+    combine_divisions: bool = False
 
 
 class NonGameEvent(BaseModel):

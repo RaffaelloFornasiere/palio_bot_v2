@@ -82,8 +82,22 @@ class LeaderboardUpdater:
             old_games = {}
 
         for game_id, game_data in games_status.get('game_scores', {}).items():
-            if game_data.get('status') != 'completed':
-                continue
+            # A game contributes to the leaderboard if either:
+            #   - it has no divisions and its top-level status == 'completed', OR
+            #   - it has divisions and at least one of them is 'completed'.
+            # The second case lets the leaderboard update incrementally as
+            # individual divisions finish, without requiring the user to
+            # also flip the top-level status.
+            divisions = game_data.get('divisions') or []
+            if divisions:
+                if not any(
+                    isinstance(d, dict) and d.get('status') == 'completed'
+                    for d in divisions
+                ):
+                    continue
+            else:
+                if game_data.get('status') != 'completed':
+                    continue
             game_def = self._find_game_definition(palio_data, game_id)
             if not game_def:
                 logger.warning(f"Game definition not found for {game_id}")
@@ -183,32 +197,52 @@ class LeaderboardUpdater:
         overall_leaderboard = {}
         
         if 'divisions' in game_data:
-            # Process each division separately
-            overall_raw_scores = {}
-            
+            combine_divisions = bool(game_def.get('combine_divisions', False))
+            # Build per-division leaderboards in either case.
+            overall_raw_scores: Dict[str, Any] = {}
+            summed_division_points: Dict[str, int] = {}
+
             for division in game_data['divisions']:
-                if division.get('status') == 'completed':
-                    division_leaderboard = self._create_division_leaderboard(game_def, division)
-                    if division_leaderboard:
-                        divisions.append(division_leaderboard)
-                        
-                        # Add division RAW SCORES (not ranking points) to overall
-                        division_raw_scores = self._calculate_division_raw_scores(game_def, division)
-                        for village, score in division_raw_scores.items():
-                            overall_raw_scores[village] = overall_raw_scores.get(village, 0) + score
-            
-            # Re-rank based on combined raw scores and apply RANKING_POINTS
-            if overall_raw_scores:
-                ranking_points = self._apply_ranking_points(game_def, overall_raw_scores)
-                # Apply game-level bonuses and penalties
-                final_points = self._apply_bonuses_and_penalties(game_data, ranking_points)
-                # Convert to LeaderboardEntry format
-                sorted_villages = sorted(final_points.items(), key=lambda x: x[1], reverse=True)
-                for position, (village, points) in enumerate(sorted_villages, 1):
-                    overall_leaderboard[village] = {
-                        'points': points,
-                        'position': position
-                    }
+                if division.get('status') != 'completed':
+                    continue
+                division_leaderboard = self._create_division_leaderboard(game_def, division)
+                if not division_leaderboard:
+                    continue
+                divisions.append(division_leaderboard)
+
+                if combine_divisions:
+                    # Stages of one contest → accumulate raw scores for a
+                    # single final re-rank across divisions.
+                    division_raw_scores = self._calculate_division_raw_scores(game_def, division)
+                    for village, score in division_raw_scores.items():
+                        overall_raw_scores[village] = overall_raw_scores.get(village, 0) + score
+                else:
+                    # Independent contests → each village's contribution to
+                    # the game is the SUM of its per-division ranking points.
+                    for village, entry in division_leaderboard['leaderboard'].items():
+                        summed_division_points[village] = (
+                            summed_division_points.get(village, 0) + entry['points']
+                        )
+
+            if combine_divisions:
+                if overall_raw_scores:
+                    ranking_points = self._apply_ranking_points(game_def, overall_raw_scores)
+                    final_points = self._apply_bonuses_and_penalties(game_data, ranking_points)
+                    sorted_villages = sorted(final_points.items(), key=lambda x: x[1], reverse=True)
+                    for position, (village, points) in enumerate(sorted_villages, 1):
+                        overall_leaderboard[village] = {
+                            'points': points,
+                            'position': position
+                        }
+            else:
+                if summed_division_points:
+                    final_points = self._apply_bonuses_and_penalties(game_data, summed_division_points)
+                    sorted_villages = sorted(final_points.items(), key=lambda x: x[1], reverse=True)
+                    for position, (village, points) in enumerate(sorted_villages, 1):
+                        overall_leaderboard[village] = {
+                            'points': points,
+                            'position': position
+                        }
         else:
             # Traditional game without divisions - create a single "Main" division
             main_division = self._create_division_leaderboard(game_def, game_data, division_name="Main")
