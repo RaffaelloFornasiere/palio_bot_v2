@@ -17,10 +17,9 @@ from palio_bot.core.config import CoreConfig
 from palio_bot.core.stream import Stream
 from palio_bot.core.file_store_local import LocalFileStore
 from palio_bot.core.registry_factory import build_registry
-from palio_bot.core.routes import admin, editor, events_ws, files, sessions
+from palio_bot.core.routes import admin, editor, events_ws, files, leaderboard, sessions
 from palio_bot.core.session_service import SessionService
 from palio_bot.core.session_store import SessionStore
-from palio_bot.leaderboard_updater import LeaderboardUpdater
 
 # Project root for locating the React build.
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -32,30 +31,8 @@ _CORE_STATIC_PATH = Path(__file__).resolve().parent / "static"
 logger = logging.getLogger(__name__)
 
 
-def _leaderboard_hook(config: CoreConfig) -> Callable[[List[str]], None]:
-    updater = LeaderboardUpdater(
-        palio_file_path=config.palio_file_path,
-        palio_games_status_path=config.palio_games_status_path,
-        leaderboard_file_path=config.leaderboard_file_path,
-    )
-
-    triggers = {"palio", "palio_games_status"}
-
-    def hook(committed_files: List[str]) -> None:
-        if not triggers.intersection(committed_files):
-            return
-        try:
-            updater.update_leaderboard()
-        except Exception:
-            logger.exception("core: leaderboard recompute failed")
-
-    return hook
-
-
 def create_app(
     config: Optional[CoreConfig] = None,
-    *,
-    enable_leaderboard_hook: bool = True,
 ) -> FastAPI:
     config = config or CoreConfig()
     app = FastAPI(title="palio-core", version="0.1.0")
@@ -65,9 +42,7 @@ def create_app(
     session_store = SessionStore()
     stream = Stream()
 
-    on_commit: Optional[Callable[[List[str]], None]] = (
-        _leaderboard_hook(config) if enable_leaderboard_hook else None
-    )
+    on_commit: Optional[Callable[[List[str]], None]] = None
 
     session_service = SessionService(
         registry=registry,
@@ -97,6 +72,7 @@ def create_app(
     app.include_router(admin.router)
     app.include_router(editor.router)
     app.include_router(events_ws.router)
+    app.include_router(leaderboard.router)
 
     _mount_events_viewer(app)
     _mount_react_app(app)

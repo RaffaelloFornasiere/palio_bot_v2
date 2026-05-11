@@ -11,6 +11,22 @@ from .models.leaderboard_models import Leaderboard, GameLeaderboard, DivisionLea
 logger = logging.getLogger(__name__)
 
 
+def _strip_timestamps(game_lb: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Return a copy of a game_leaderboard entry with `updated_at` removed
+    (top-level and per-division). Used to compare semantic content while
+    ignoring auto-bumped timestamps."""
+    if not isinstance(game_lb, dict):
+        return game_lb
+    out = {k: v for k, v in game_lb.items() if k != 'updated_at'}
+    divs = out.get('divisions')
+    if isinstance(divs, list):
+        out['divisions'] = [
+            {dk: dv for dk, dv in d.items() if dk != 'updated_at'} if isinstance(d, dict) else d
+            for d in divs
+        ]
+    return out
+
+
 class LeaderboardUpdater:
     """Updates the leaderboard.json based on completed games."""
     
@@ -28,89 +44,93 @@ class LeaderboardUpdater:
             5: 1
         }
     
-    def update_leaderboard(self, specific_game_id: str = None) -> None:
-        """Update the leaderboard with completed games.
-        
-        Args:
-            specific_game_id: If provided, only update this specific game.
-                            If None, update all completed games.
+    def compute(self) -> tuple[Dict[str, Any], List[str]]:
+        """Compute the proposed leaderboard from current inputs without writing.
+
+        Returns:
+            (proposed_leaderboard, changed_game_ids) where `changed_game_ids`
+            is the list of game_ids whose semantic content (everything except
+            `updated_at`) differs from the entry currently on disk. For games
+            whose content is unchanged, the existing timestamps are preserved
+            in the proposed output so on-disk leaderboard doesn't churn on
+            re-runs.
         """
-        if specific_game_id:
-            logger.info(f"Starting leaderboard update for specific game: {specific_game_id}")
+        with open(self.palio_file_path, 'r', encoding='utf-8') as f:
+            palio_data = json.load(f)
+
+        with open(self.palio_games_status_path, 'r', encoding='utf-8') as f:
+            games_status = json.load(f)
+
+        # Normalize the old leaderboard through Pydantic so its shape matches
+        # what `model_dump()` produces — otherwise default-valued optional
+        # fields create cosmetic-only diffs.
+        if self.leaderboard_file_path.exists():
+            with open(self.leaderboard_file_path, 'r', encoding='utf-8') as f:
+                raw_old = json.load(f)
+            try:
+                old_norm = Leaderboard.model_validate(raw_old).model_dump()
+            except Exception:
+                old_norm = raw_old
+            leaderboard = {
+                'villages': old_norm.get('villages', []),
+                'palio_leaderboard': {},
+                'game_leaderboards': dict(old_norm.get('game_leaderboards', {})),
+            }
+            old_games = old_norm.get('game_leaderboards', {})
         else:
-            logger.info("Starting leaderboard update for all games")
-        
-        try:
-            # Load game definitions
-            with open(self.palio_file_path, 'r', encoding='utf-8') as f:
-                palio_data = json.load(f)
-            
-            # Load game status
-            with open(self.palio_games_status_path, 'r', encoding='utf-8') as f:
-                games_status = json.load(f)
-            
-            # Load current leaderboard or create new structure
-            if self.leaderboard_file_path.exists():
-                with open(self.leaderboard_file_path, 'r', encoding='utf-8') as f:
-                    old_leaderboard = json.load(f)
-                    # Preserve existing structure
-                    leaderboard = {
-                        'villages': old_leaderboard.get('villages', []),
-                        'palio_leaderboard': {},
-                        'game_leaderboards': old_leaderboard.get('game_leaderboards', {})
-                    }
+            leaderboard = {'villages': [], 'palio_leaderboard': {}, 'game_leaderboards': {}}
+            old_games = {}
+
+        for game_id, game_data in games_status.get('game_scores', {}).items():
+            if game_data.get('status') != 'completed':
+                continue
+            game_def = self._find_game_definition(palio_data, game_id)
+            if not game_def:
+                logger.warning(f"Game definition not found for {game_id}")
+                continue
+            game_leaderboard = self._create_game_leaderboard(game_id, game_def, game_data)
+            if game_leaderboard:
+                leaderboard['game_leaderboards'][game_id] = game_leaderboard
+
+        self._recalculate_palio_leaderboard(leaderboard)
+
+        leaderboard_obj = Leaderboard.model_validate(leaderboard)
+        leaderboard = leaderboard_obj.model_dump()
+
+        new_games = leaderboard.get('game_leaderboards', {})
+        changed_ids: List[str] = []
+        for k in sorted(set(old_games) | set(new_games)):
+            old = old_games.get(k)
+            new = new_games.get(k)
+            if _strip_timestamps(old) == _strip_timestamps(new):
+                # No semantic change: copy the old timestamps back into the
+                # proposed so apply() doesn't bump them for nothing.
+                if isinstance(old, dict) and isinstance(new, dict):
+                    new['updated_at'] = old.get('updated_at')
+                    old_divs = old.get('divisions') or []
+                    new_divs = new.get('divisions') or []
+                    if len(old_divs) == len(new_divs):
+                        for nd, od in zip(new_divs, old_divs):
+                            if isinstance(nd, dict) and isinstance(od, dict):
+                                nd['updated_at'] = od.get('updated_at')
             else:
-                leaderboard = {
-                    'villages': [],
-                    'palio_leaderboard': {},
-                    'game_leaderboards': {}
-                }
-            
-            # Process completed games (all or specific)
-            games_to_process = games_status.get('game_scores', {})
-            if specific_game_id:
-                # Only process the specific game if it exists and is completed
-                if specific_game_id in games_to_process:
-                    game_data = games_to_process[specific_game_id]
-                    if game_data.get('status') == 'completed':
-                        games_to_process = {specific_game_id: game_data}
-                    else:
-                        logger.warning(f"Game {specific_game_id} is not completed, skipping update")
-                        return
-                else:
-                    logger.warning(f"Game {specific_game_id} not found, skipping update")
-                    return
-            
-            for game_id, game_data in games_to_process.items():
-                if game_data.get('status') == 'completed':
-                    logger.info(f"Processing completed game: {game_id}")
-                    
-                    # Find game definition
-                    game_def = self._find_game_definition(palio_data, game_id)
-                    if not game_def:
-                        logger.warning(f"Game definition not found for {game_id}")
-                        continue
-                    
-                    # Create GameLeaderboard for this game
-                    game_leaderboard = self._create_game_leaderboard(game_id, game_def, game_data)
-                    if game_leaderboard:
-                        leaderboard['game_leaderboards'][game_id] = game_leaderboard
-            
-            # Always recalculate total points and positions
-            # (even for single game updates, we need to recalculate the overall standings)
-            self._recalculate_palio_leaderboard(leaderboard)
-            
-            # Convert to Pydantic model for validation
-            leaderboard_obj = Leaderboard.model_validate(leaderboard)
-            # Convert back to dict for JSON serialization
-            leaderboard = leaderboard_obj.model_dump()
-            
-            # Save updated leaderboard
-            with open(self.leaderboard_file_path, 'w', encoding='utf-8') as f:
-                json.dump(leaderboard, f, ensure_ascii=False, indent=2, default=str)
-            
+                changed_ids.append(k)
+        return leaderboard, changed_ids
+
+    def write_leaderboard(self, leaderboard: Dict[str, Any]) -> None:
+        """Persist a previously-computed leaderboard to disk."""
+        with open(self.leaderboard_file_path, 'w', encoding='utf-8') as f:
+            json.dump(leaderboard, f, ensure_ascii=False, indent=2, default=str)
+        logger.info("Leaderboard written to disk")
+
+    def update_leaderboard(self, specific_game_id: str = None) -> None:
+        """Compute and write in one shot. Kept for explicit triggers (CLI)."""
+        if specific_game_id:
+            logger.warning("specific_game_id is no longer honored; recomputing all")
+        try:
+            new_leaderboard, _ = self.compute()
+            self.write_leaderboard(new_leaderboard)
             logger.info("Leaderboard update completed successfully")
-            
         except Exception as e:
             logger.error(f"Error updating leaderboard: {e}")
             raise

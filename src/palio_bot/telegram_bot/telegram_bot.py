@@ -3,10 +3,18 @@
 Telegram bot per la gestione del Palio con event system
 """
 import asyncio
+import json
 import logging
 from typing import Dict, Optional, Any
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
 
 from palio_bot.config import Config
 from palio_bot.container import Container
@@ -273,39 +281,98 @@ class PalioTelegramBot:
             logger.error(f"Error in games_status: {e}", exc_info=True)
             await update.message.reply_text(f"❌ Errore: {str(e)}")
             
+    def _make_leaderboard_updater(self):
+        from palio_bot.leaderboard_updater import LeaderboardUpdater
+        return LeaderboardUpdater(
+            self.config.palio_file_path,
+            self.config.palio_games_status_path,
+            self.config.leaderboard_file_path,
+        )
+
+    def _game_names(self) -> Dict[str, str]:
+        try:
+            with open(self.config.palio_file_path, "r", encoding="utf-8") as f:
+                palio = json.load(f)
+        except Exception:
+            return {}
+        return {g.get("id"): g.get("name", g.get("id", "")) for g in palio.get("games", []) if g.get("id")}
+
     async def leaderboard(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle /leaderboard command"""
+        """Handle /leaderboard — preview + confirm flow."""
         if not self.validate(update):
             return
-            
-        # Send processing message
-        processing_message = await update.message.reply_text("📊 Aggiornamento classifica in corso...")
-        
+
+        processing_message = await update.message.reply_text("📊 Calcolo classifica in corso…")
+
         try:
-            from palio_bot.leaderboard_updater import LeaderboardUpdater
-            from palio_bot.config import Config
-            
-            config = Config()
-            leaderboard_updater = LeaderboardUpdater(
-                config.palio_file_path,
-                config.palio_games_status_path,
-                config.leaderboard_file_path
-            )
-            
-            leaderboard_updater.update_leaderboard()
-            
-            await processing_message.edit_text(
-                "✅ Classifica aggiornata con successo!\n"
-                "📈 Tutti i giochi completati sono stati processati."
-            )
-            
+            updater = self._make_leaderboard_updater()
+            proposed, changed_ids = await asyncio.to_thread(updater.compute)
         except Exception as e:
-            logger.error(f"Error updating leaderboard: {e}", exc_info=True)
+            logger.error(f"Error computing leaderboard: {e}", exc_info=True)
             await processing_message.edit_text(
-                f"❌ Errore nell'aggiornamento della classifica:\n`{str(e)}`",
-                parse_mode='Markdown'
+                f"❌ Errore nel calcolo:\n`{str(e)}`",
+                parse_mode='Markdown',
             )
-            
+            return
+
+        if not changed_ids:
+            await processing_message.edit_text(
+                "ℹ️ Nessun gioco cambierebbe. Niente da aggiornare."
+            )
+            return
+
+        # Stash the proposed leaderboard so the apply callback can write it
+        # without recomputing (avoids a race if game_status changes meanwhile).
+        context.user_data["pending_leaderboard"] = proposed
+
+        names = self._game_names()
+        lines = "\n".join(f"• {names.get(gid, gid)}" for gid in changed_ids)
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("✅ Applica", callback_data="lb:apply"),
+            InlineKeyboardButton("❌ Annulla", callback_data="lb:cancel"),
+        ]])
+        await processing_message.edit_text(
+            f"Verranno aggiornati i seguenti giochi:\n\n{lines}\n\nConfermi?",
+            reply_markup=keyboard,
+        )
+
+    async def leaderboard_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle Conferma/Annulla buttons from /leaderboard."""
+        query = update.callback_query
+        if query is None:
+            return
+        await query.answer()
+
+        action = query.data
+        if action == "lb:cancel":
+            context.user_data.pop("pending_leaderboard", None)
+            await query.edit_message_text("Aggiornamento annullato.")
+            return
+
+        if action != "lb:apply":
+            return
+
+        proposed = context.user_data.pop("pending_leaderboard", None)
+        if proposed is None:
+            await query.edit_message_text(
+                "⚠️ Nessuna preview in attesa — riavvia con /leaderboard."
+            )
+            return
+
+        try:
+            updater = self._make_leaderboard_updater()
+            await asyncio.to_thread(updater.write_leaderboard, proposed)
+        except Exception as e:
+            logger.error(f"Error applying leaderboard: {e}", exc_info=True)
+            await query.edit_message_text(
+                f"❌ Errore nell'applicazione:\n`{str(e)}`",
+                parse_mode='Markdown',
+            )
+            return
+
+        await query.edit_message_text("✅ Classifica aggiornata.")
+
+
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle regular text messages with event streaming"""
 
@@ -532,6 +599,7 @@ def main():
     application.add_handler(CommandHandler("status", bot.status))
     application.add_handler(CommandHandler("games_status", bot.games_status))
     application.add_handler(CommandHandler("leaderboard", bot.leaderboard))
+    application.add_handler(CallbackQueryHandler(bot.leaderboard_callback, pattern=r"^lb:"))
     application.add_handler(CommandHandler("save", bot.save))
     application.add_handler(CommandHandler("cancel", bot.cancel))
     application.add_handler(CommandHandler("close", bot.close))
