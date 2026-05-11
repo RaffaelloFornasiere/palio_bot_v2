@@ -158,5 +158,7 @@ scripts/                           # restore.sh, restore_games_status.py
 - CORS for core is restricted to localhost dev ports; override via
   `CORS_ALLOWED_ORIGINS=...` (comma-separated).
 - Year-scoped API routes (`/api/palio/{year}`, etc.) are bounded `1900..2100`.
-- `PALIO_CORE_URL` (default `http://localhost:8000`) points adapters at core.
-- `PALIO_CORE_PORT` sets core's listen port; defaults to `8000`.
+- `PALIO_CORE_URL` (default `http://localhost:8000`) is the single source of
+  truth for both adapter target and core listen port. Override with
+  `PALIO_CORE_URL=...` or `python -m palio_bot.core --port N` (the flag
+  rewrites the URL in-process).

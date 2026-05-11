@@ -8,6 +8,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlsplit
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -34,8 +35,15 @@ class CoreConfig(BaseSettings):
     leaderboard_file_path: Path = Path("data/leaderboard.json")
     data_dir: Path = Path("data")
 
-    port: int = Field(default=8000, alias="PALIO_CORE_PORT")
+    core_url: str = Field(default="http://localhost:8000", alias="PALIO_CORE_URL")
     bearer_token: Optional[str] = Field(default=None, alias="PALIO_CORE_TOKEN")
+
+    @property
+    def port(self) -> int:
+        parsed = urlsplit(self.core_url)
+        if parsed.port is not None:
+            return parsed.port
+        return 443 if parsed.scheme == "https" else 80
 
     # Firebase Google sign-in for the manual editor.
     #
@@ -95,6 +103,8 @@ class CoreConfig(BaseSettings):
         return [
             "http://localhost:3000",
             "http://127.0.0.1:3000",
+            "http://localhost:3010",
+            "http://127.0.0.1:3010",
             "http://localhost:5173",
             "http://127.0.0.1:5173",
         ]

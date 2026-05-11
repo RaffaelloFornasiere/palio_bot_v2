@@ -47,7 +47,7 @@ class CoreProcess:
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
         env = os.environ.copy()
-        env["PALIO_CORE_PORT"] = str(self.port)
+        env["PALIO_CORE_URL"] = self.base_url
         env["PALIO_FILE_PATH"] = str(self.data_dir / "palio.json")
         env["PALIO_GAMES_STATUS_PATH"] = str(self.data_dir / "palio_games_status.json")
         env["LEADERBOARD_FILE_PATH"] = str(self.data_dir / "leaderboard.json")
