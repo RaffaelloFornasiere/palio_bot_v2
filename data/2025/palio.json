@@ -22,7 +22,6 @@
       "description": "Il gioco consiste nel tagliare un tronco con una sega. Due concorrenti impugnano la sega, mentre un terzo borghesano tiene fermo il tronco. Si disputano due manches: una per gli uomini e una per le donne. Il tempo massimo per il taglio è fissato dalla C.P. e, se non ultimato, verranno misurati i cm tagliati.",
       "measure_unit": "time",
       "lower_is_better": true,
-      "combine_divisions": false,
       "dates": [
         {
           "start_datetime": "2025-08-01T21:00:00",
@@ -259,7 +258,6 @@
       "description": "Due tornei separati (maschile e femminile) di briscola. Ogni singola vittoria vale 3 punti. Le squadre sono composte da due maschi (un over e un under 40, con almeno 10 anni di differenza) e due donne (una over e una under 40, con almeno 10 anni di differenza). La vittoria di ogni singola partita si ha al superamento dei 61 punti; una squadra per aggiudicarsi i 3 punti deve vincere 4 rajs. Se un raggio dovesse finire in parità verrà rigiocato.",
       "measure_unit": "points",
       "lower_is_better": false,
-      "combine_divisions": false,
       "dates": [
         {
           "start_datetime": "2025-08-11T20:00:00",
@@ -308,7 +306,6 @@
       "description": "Lo scopo del gioco è trasportare la maggior quantità di acqua possibile su un vassoio pieno di bicchieri di plastica. Ogni borgo ha due manches di 4 minuti (3 donne nella prima, 3 uomini nella seconda). I concorrenti devono indossare abiti specifici. Gli altri borghi possono rallentare le operazioni lanciando secchiate d'acqua. La squadra con più acqua trasportata vince.",
       "measure_unit": "water_quantity_cm",
       "lower_is_better": false,
-      "combine_divisions": false,
       "dates": [
         {
           "start_datetime": "2025-08-15T10:00:00",

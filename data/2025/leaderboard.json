@@ -1,0 +1,711 @@
+{
+  "villages": [
+    "Sornico",
+    "Sottocastello",
+    "Salt",
+    "Sottomonte",
+    "Villa"
+  ],
+  "palio_leaderboard": {
+    "Salt": {
+      "points": 127,
+      "position": 1
+    },
+    "Sottocastello": {
+      "points": 126,
+      "position": 2
+    },
+    "Villa": {
+      "points": 113,
+      "position": 3
+    },
+    "Sornico": {
+      "points": 104,
+      "position": 4
+    },
+    "Sottomonte": {
+      "points": 94,
+      "position": 5
+    }
+  },
+  "game_leaderboards": {
+    "G01": {
+      "game_id": "G01",
+      "game_name": "Taglio del Tronco",
+      "divisions": [
+        {
+          "name": "Maschile",
+          "leaderboard": {
+            "Sottocastello": {
+              "points": 10,
+              "position": 1
+            },
+            "Salt": {
+              "points": 5,
+              "position": 3
+            },
+            "Sottomonte": {
+              "points": 7,
+              "position": 2
+            },
+            "Sornico": {
+              "points": 3,
+              "position": 4
+            },
+            "Villa": {
+              "points": 1,
+              "position": 5
+            }
+          },
+          "updated_at": "2025-08-01T23:49:22.047832"
+        },
+        {
+          "name": "Femminile",
+          "leaderboard": {
+            "Salt": {
+              "points": 20,
+              "position": 1
+            },
+            "Sottomonte": {
+              "points": 7,
+              "position": 2
+            },
+            "Sottocastello": {
+              "points": 5,
+              "position": 3
+            },
+            "Sornico": {
+              "points": 3,
+              "position": 4
+            },
+            "Villa": {
+              "points": 1,
+              "position": 5
+            }
+          },
+          "updated_at": "2025-08-01T23:49:22.047959"
+        }
+      ],
+      "overall_leaderboard": {
+        "Salt": {
+          "points": 25,
+          "position": 1
+        },
+        "Sottocastello": {
+          "points": 15,
+          "position": 2
+        },
+        "Sottomonte": {
+          "points": 14,
+          "position": 3
+        },
+        "Sornico": {
+          "points": 6,
+          "position": 4
+        },
+        "Villa": {
+          "points": 2,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-07-30T12:00:00Z"
+    },
+    "G04": {
+      "game_id": "G04",
+      "game_name": "Lo Scatolone",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Villa": {
+          "points": 10,
+          "position": 1
+        },
+        "Sottomonte": {
+          "points": 7,
+          "position": 2
+        },
+        "Salt": {
+          "points": 5,
+          "position": 3
+        },
+        "Sottocastello": {
+          "points": 3,
+          "position": 4
+        },
+        "Sornico": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-07-30T12:00:00Z"
+    },
+    "G03": {
+      "game_id": "G03",
+      "game_name": "Anguria",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Sornico": {
+          "points": 10,
+          "position": 1
+        },
+        "Sottocastello": {
+          "points": 7,
+          "position": 2
+        },
+        "Salt": {
+          "points": 5,
+          "position": 3
+        },
+        "Sottomonte": {
+          "points": 3,
+          "position": 4
+        },
+        "Villa": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-07-30T12:00:00Z"
+    },
+    "G06": {
+      "game_id": "G06",
+      "game_name": "Staffetta",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Salt": {
+          "points": 10,
+          "position": 1
+        },
+        "Sottocastello": {
+          "points": 14,
+          "position": 2
+        },
+        "Villa": {
+          "points": 5,
+          "position": 3
+        },
+        "Sornico": {
+          "points": 3,
+          "position": 4
+        },
+        "Sottomonte": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-02T00:00:00Z",
+      "applied_bonuses": [
+        {
+          "village": "Sottocastello",
+          "description": "Jolly",
+          "points": 7
+        }
+      ]
+    },
+    "G07": {
+      "game_id": "G07",
+      "game_name": "Bicicletta",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Villa": {
+          "points": 10,
+          "position": 1
+        },
+        "Salt": {
+          "points": 7,
+          "position": 2
+        },
+        "Sornico": {
+          "points": 5,
+          "position": 3
+        },
+        "Sottomonte": {
+          "points": 3,
+          "position": 4
+        },
+        "Sottocastello": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-02T00:00:00Z"
+    },
+    "G08": {
+      "game_id": "G08",
+      "game_name": "Freccette",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Villa": {
+          "points": 20,
+          "position": 1
+        },
+        "Salt": {
+          "points": 7,
+          "position": 2
+        },
+        "Sornico": {
+          "points": 5,
+          "position": 3
+        },
+        "Sottocastello": {
+          "points": 3,
+          "position": 4
+        },
+        "Sottomonte": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-02T00:00:00Z",
+      "applied_bonuses": [
+        {
+          "village": "Villa",
+          "description": "Jolly",
+          "points": 10
+        }
+      ]
+    },
+    "G09": {
+      "game_id": "G09",
+      "game_name": "Calcio a Cinque",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Sottocastello": {
+          "points": 10,
+          "position": 1
+        },
+        "Villa": {
+          "points": 7,
+          "position": 2
+        },
+        "Salt": {
+          "points": 5,
+          "position": 3
+        },
+        "Sottomonte": {
+          "points": 3,
+          "position": 4
+        },
+        "Sornico": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-08T22:00:00Z"
+    },
+    "G10": {
+      "game_id": "G10",
+      "game_name": "Pallavolo",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Salt": {
+          "points": 10,
+          "position": 1
+        },
+        "Sottomonte": {
+          "points": 14,
+          "position": 2
+        },
+        "Sornico": {
+          "points": 5,
+          "position": 3
+        },
+        "Villa": {
+          "points": 3,
+          "position": 4
+        },
+        "Sottocastello": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-08T22:00:00Z",
+      "applied_bonuses": [
+        {
+          "village": "Sottomonte",
+          "description": "Jolly",
+          "points": 7
+        }
+      ]
+    },
+    "G02": {
+      "game_id": "G02",
+      "game_name": "Corsa coi Sacchi",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Sornico": {
+          "points": 10,
+          "position": 1
+        },
+        "Sottocastello": {
+          "points": 7,
+          "position": 2
+        },
+        "Villa": {
+          "points": 5,
+          "position": 3
+        },
+        "Salt": {
+          "points": 3,
+          "position": 4
+        },
+        "Sottomonte": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-08T12:00:00Z"
+    },
+    "G05": {
+      "game_id": "G05",
+      "game_name": "Strade Mate",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Villa": {
+          "points": 10,
+          "position": 1
+        },
+        "Salt": {
+          "points": 7,
+          "position": 2
+        },
+        "Sottocastello": {
+          "points": 5,
+          "position": 3
+        },
+        "Sornico": {
+          "points": 3,
+          "position": 4
+        },
+        "Sottomonte": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-08T00:00:00Z"
+    },
+    "G11": {
+      "game_id": "G11",
+      "game_name": "Bocce",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Sottocastello": {
+          "points": 10,
+          "position": 1
+        },
+        "Sornico": {
+          "points": 7,
+          "position": 2
+        },
+        "Salt": {
+          "points": 5,
+          "position": 3
+        },
+        "Sottomonte": {
+          "points": 3,
+          "position": 4
+        },
+        "Villa": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-10T16:00:00Z"
+    },
+    "G12": {
+      "game_id": "G12",
+      "game_name": "Morra",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Sornico": {
+          "points": 20,
+          "position": 1
+        },
+        "Salt": {
+          "points": 7,
+          "position": 2
+        },
+        "Sottomonte": {
+          "points": 5,
+          "position": 3
+        },
+        "Sottocastello": {
+          "points": 3,
+          "position": 4
+        },
+        "Villa": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-08T22:00:00Z",
+      "applied_bonuses": [
+        {
+          "village": "Sornico",
+          "description": "Jolly",
+          "points": 10
+        }
+      ]
+    },
+    "G13": {
+      "game_id": "G13",
+      "game_name": "Briscola",
+      "divisions": [
+        {
+          "name": "Maschile",
+          "leaderboard": {
+            "Sornico": {
+              "points": 10,
+              "position": 1
+            },
+            "Salt": {
+              "points": 7,
+              "position": 2
+            },
+            "Villa": {
+              "points": 5,
+              "position": 3
+            },
+            "Sottocastello": {
+              "points": 3,
+              "position": 4
+            },
+            "Sottomonte": {
+              "points": 1,
+              "position": 5
+            }
+          },
+          "updated_at": "2025-08-01T23:49:22.047832"
+        },
+        {
+          "name": "Femminile",
+          "leaderboard": {
+            "Sottomonte": {
+              "points": 10,
+              "position": 1
+            },
+            "Sornico": {
+              "points": 7,
+              "position": 2
+            },
+            "Sottocastello": {
+              "points": 5,
+              "position": 3
+            },
+            "Salt": {
+              "points": 3,
+              "position": 4
+            },
+            "Villa": {
+              "points": 1,
+              "position": 5
+            }
+          },
+          "updated_at": "2025-08-01T23:49:22.047959"
+        }
+      ],
+      "overall_leaderboard": {
+        "Sornico": {
+          "points": 17,
+          "position": 1
+        },
+        "Sottomonte": {
+          "points": 11,
+          "position": 2
+        },
+        "Salt": {
+          "points": 10,
+          "position": 2
+        },
+        "Sottocastello": {
+          "points": 8,
+          "position": 4
+        },
+        "Villa": {
+          "points": 6,
+          "position": 3
+        }
+      }
+    },
+    "G14": {
+      "game_id": "G14",
+      "game_name": "Intesa Vincente",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Sottocastello": {
+          "points": 10,
+          "position": 1
+        },
+        "Villa": {
+          "points": 7,
+          "position": 2
+        },
+        "Salt": {
+          "points": 5,
+          "position": 3
+        },
+        "Sornico": {
+          "points": 3,
+          "position": 4
+        },
+        "Sottomonte": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-12T22:00:00Z"
+    },
+    "G15": {
+      "game_id": "G15",
+      "game_name": "Bale Pignote Jr",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Villa": {
+          "points": 10,
+          "position": 1
+        },
+        "Sottocastello": {
+          "points": 7,
+          "position": 2
+        },
+        "Salt": {
+          "points": 5,
+          "position": 3
+        },
+        "Sornico": {
+          "points": 3,
+          "position": 4
+        },
+        "Sottomonte": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-14T16:00:00Z"
+    },
+    "G16": {
+      "game_id": "G16",
+      "game_name": "I Camerieri",
+      "divisions": [
+        {
+          "name": "Maschile",
+          "leaderboard": {
+            "Sottomonte": {
+              "points": 10,
+              "position": 1
+            },
+            "Villa": {
+              "points": 7,
+              "position": 2
+            },
+            "Sottocastello": {
+              "points": 5,
+              "position": 3
+            },
+            "Sornico": {
+              "points": 3,
+              "position": 4
+            },
+            "Salt": {
+              "points": 1,
+              "position": 5
+            }
+          },
+          "updated_at": "2025-08-15T13:00:00Z"
+        },
+        {
+          "name": "Femminile",
+          "leaderboard": {
+            "Sottomonte": {
+              "points": 10,
+              "position": 1
+            },
+            "Sottocastello": {
+              "points": 7,
+              "position": 2
+            },
+            "Villa": {
+              "points": 5,
+              "position": 3
+            },
+            "Salt": {
+              "points": 3,
+              "position": 4
+            },
+            "Sornico": {
+              "points": 1,
+              "position": 5
+            }
+          },
+          "updated_at": "2025-08-15T13:00:00Z"
+        }
+      ],
+      "overall_leaderboard": {
+        "Sottomonte": {
+          "points": 20,
+          "position": 1
+        },
+        "Villa": {
+          "points": 12,
+          "position": 2
+        },
+        "Sottocastello": {
+          "points": 12,
+          "position": 3
+        },
+        "Salt": {
+          "points": 4,
+          "position": 4
+        },
+        "Sornico": {
+          "points": 4,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-15T13:00:00Z"
+    },
+    "G17": {
+      "game_id": "G17",
+      "game_name": "Bale Pignote Sr",
+      "divisions": [],
+      "overall_leaderboard": {
+        "Sottocastello": {
+          "points": 10,
+          "position": 1
+        },
+        "Salt": {
+          "points": 7,
+          "position": 2
+        },
+        "Sottomonte": {
+          "points": 5,
+          "position": 3
+        },
+        "Villa": {
+          "points": 3,
+          "position": 4
+        },
+        "Sornico": {
+          "points": 1,
+          "position": 5
+        }
+      },
+      "completed": true,
+      "updated_at": "2025-08-15T20:00:00Z"
+    }
+  }
+}
