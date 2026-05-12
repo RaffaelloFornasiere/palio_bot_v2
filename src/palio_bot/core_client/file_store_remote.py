@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 
 from palio_bot.core_client.client import CoreClient, CoreClientError
 from palio_bot.file_store import (
@@ -46,13 +46,37 @@ class RemoteFileStore:
         self._ensure_acquired(file_name)
         return copy.deepcopy(self._cache[file_name])
 
-    def save(self, file_name: str, data: dict) -> None:
+    def save(
+        self, file_name: str, data: dict, tool: Optional[str] = None
+    ) -> None:
         self._ensure_acquired(file_name)
         try:
-            self.client.put_file(self.session_id, file_name, data)
+            self.client.put_file(self.session_id, file_name, data, tool=tool)
         except CoreClientError as exc:
             self._translate(file_name, exc)
         self._cache[file_name] = copy.deepcopy(data)
+
+    def history(self, file_name: str, limit: int = 10) -> list:
+        if not self.session_id:
+            return []
+        try:
+            return self.client.session_history(
+                self.session_id, file_name, limit=limit
+            )
+        except CoreClientError:
+            return []
+
+    def revert(self, file_name: str, n_steps: int) -> bool:
+        if not self.session_id:
+            return False
+        try:
+            self.client.session_revert(self.session_id, file_name, n_steps)
+        except CoreClientError:
+            return False
+        # Refresh local cache so the next load() hits core (which now serves
+        # the rolled-back canonical content).
+        self._cache.pop(file_name, None)
+        return True
 
     def _ensure_acquired(self, file_name: str) -> None:
         if file_name in self._acquired:

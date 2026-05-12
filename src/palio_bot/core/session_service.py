@@ -1,28 +1,29 @@
-"""Session service — sessions, staged writes, optimistic concurrency.
+"""Session service — write-through with git-backed history.
 
 This is the business layer routes call into. Routes deal only with HTTP
 concerns (path params, status codes); all state transitions happen here.
 
-Concurrency model (no locks):
-  * `acquire` returns a snapshot + version. Multiple sessions may hold
-    staged copies of the same file simultaneously.
-  * `put` validates + stages. No lock check.
-  * `commit` compares the version the session was based on against the
-    canonical version. If they diverged (someone else committed meanwhile)
-    the commit is rejected with `VersionConflict`.
-  * After a successful commit, every OTHER session that has any of the
-    just-committed files in its dirty set is auto-discarded. A
-    `SessionDiscardedEvent` is broadcast for each — the web editor and
-    agent adapter react by resetting their UI state. This is the
-    "reactive" side of the model: whoever sees the change first stays,
-    the stale sessions fall off.
+Concurrency model:
+  * `acquire` returns canonical content + version (no in-memory staging).
+  * `put` validates, writes atomically to disk, records a per-write git
+    commit through `HistoryService`. Each PUT is a real on-disk change
+    and a real commit.
+  * `commit` squashes every per-PUT commit since `last_save` into one
+    and moves `last_save` to the new HEAD (festival-day tag is created
+    lazily if the day rolled over).
+  * `discard` restores every touched file to its `last_save` state and
+    records a `cancel session <id>` commit.
+
+The system today assumes a single active editor (CLI / agent / webapp
+edit) at a time. Multi-writer conflict resolution is out of scope —
+revisit when warranted.
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Set
+from typing import Callable, Dict, List, Optional
 
 from palio_bot.core.stream import Stream
 from palio_bot.core.file_store_local import (
@@ -31,6 +32,7 @@ from palio_bot.core.file_store_local import (
     UnknownFile,
     compute_version,
 )
+from palio_bot.core.history import HistoryService
 from palio_bot.core.session_store import Session, SessionStore, UnknownSession
 from palio_bot.stream.events import (
     FileChangedEvent,
@@ -49,17 +51,6 @@ class ValidationFailed(Exception):
         super().__init__(message)
 
 
-class VersionConflict(Exception):
-    def __init__(self, file_name: str, base_version: str, current_version: str) -> None:
-        self.file_name = file_name
-        self.base_version = base_version
-        self.current_version = current_version
-        super().__init__(
-            f"{file_name}: version {base_version[:12]} is stale "
-            f"(current is {current_version[:12]})"
-        )
-
-
 @dataclass
 class AcquireResult:
     content: dict
@@ -74,12 +65,14 @@ class SessionService:
         file_store: LocalFileStore,
         session_store: SessionStore,
         stream: Stream,
+        history: Optional[HistoryService] = None,
         on_commit: Optional[Callable[[List[str]], None]] = None,
     ) -> None:
         self.registry = registry
         self.file_store = file_store
         self.session_store = session_store
         self.stream = stream
+        self.history = history
         self.on_commit = on_commit
         # Files PUT by each session (vs. just seeded). Only dirty files are
         # written on commit and participate in conflict detection.
@@ -116,26 +109,25 @@ class SessionService:
     # ---------- per-file operations ----------
 
     def acquire(self, session_id: str, file_name: str) -> AcquireResult:
+        """Return canonical content + version. No in-memory staging."""
         self._require_session(session_id)
         if self.registry.get_config(file_name) is None:
             raise UnknownFile(file_name)
+        content = self.file_store.read(file_name)
+        return AcquireResult(content=content, version=compute_version(content))
 
-        staged = self.session_store.get_staged(session_id, file_name)
-        if staged is None:
-            content = self.file_store.read(file_name)
-            self.session_store.stage(session_id, file_name, content)
-            staged = content
-            # Capture the canonical version so we can detect conflicts at
-            # commit time. Only set on the first acquire — subsequent
-            # re-acquires within the same session keep the original base.
-            base_version = compute_version(content)
-            self._base_versions.setdefault(session_id, {})[file_name] = base_version
-
-        version = compute_version(staged)
-        return AcquireResult(content=staged, version=version)
-
-    def put(self, session_id: str, file_name: str, content: dict) -> str:
+    def put(
+        self,
+        session_id: str,
+        file_name: str,
+        content: dict,
+        tool: Optional[str] = None,
+    ) -> str:
+        """Write-through: validates, writes to disk, records a per-write
+        git commit. Each PUT is its own commit. Squashed at `commit()`.
+        """
         self._require_session(session_id)
+        session = self.session_store.get(session_id)
 
         config = self.registry.get_config(file_name)
         if config is None:
@@ -143,53 +135,67 @@ class SessionService:
         if not config.allow_edit:
             raise ReadOnlyFile(file_name)
 
-        # Require a prior acquire so we have a base_version to compare
-        # against at commit. Also seeds the staged dict.
-        if self.session_store.get_staged(session_id, file_name) is None:
-            canonical = self.file_store.read(file_name)
-            self._base_versions.setdefault(session_id, {})[file_name] = (
-                compute_version(canonical)
-            )
-
         ok, err = self.registry.validate_content(file_name, content)
         if not ok:
             raise ValidationFailed(err or "validation failed")
 
-        self.session_store.stage(session_id, file_name, content)
+        version = self.file_store.write_atomic(file_name, content)
         self._dirty.setdefault(session_id, set()).add(file_name)
-        return compute_version(content)
+
+        if self.history is not None:
+            try:
+                source, committer = _parse_session_label(session.label)
+                self.history.record_write(
+                    file_name=config.path.name,
+                    source=source,
+                    committer=committer,
+                    session_id=session_id,
+                    tool=tool,
+                )
+            except Exception:
+                logger.exception("core: history.record_write failed; ignored")
+
+        self.stream.broadcast(
+            FileChangedEvent(
+                session_id=session_id,
+                file=file_name,
+                version=version,
+            )
+        )
+        return version
 
     def commit(self, session_id: str) -> Dict[str, str]:
+        """Finalise the session: squash all per-PUT commits since
+        `last_save` into one, move `last_save`, maybe daily-tag.
+        Returns {file_name: version} for every file the session touched.
+        """
         self._require_session(session_id)
         session = self.session_store.get(session_id)
         dirty = sorted(self._dirty.get(session_id, set()))
 
-        # Optimistic concurrency: every dirty file's canonical version must
-        # still match what the session saw at acquire-time. Otherwise some
-        # other session committed in the meantime and this commit is stale.
-        base_versions = self._base_versions.get(session_id, {})
-        for file_name in dirty:
-            base = base_versions.get(file_name)
-            canonical = self.file_store.read(file_name)
-            current = compute_version(canonical)
-            if base is not None and base != current:
-                raise VersionConflict(file_name, base, current)
-
         versions: Dict[str, str] = {}
         for file_name in dirty:
-            staged = session.staged.get(file_name)
-            if staged is None:
-                continue
-            versions[file_name] = self.file_store.write_atomic(file_name, staged)
-
-        for file_name in versions:
-            self.stream.broadcast(
-                FileChangedEvent(
-                    session_id=session_id,
-                    file=file_name,
-                    version=versions[file_name],
+            try:
+                versions[file_name] = compute_version(
+                    self.file_store.read(file_name)
                 )
-            )
+            except FileNotFoundError:
+                continue
+
+        if self.history is not None and dirty:
+            try:
+                source, committer = _parse_session_label(session.label)
+                basenames = [
+                    self.registry.get_config(n).path.name for n in dirty
+                ]
+                self.history.finalize_save(
+                    source=source,
+                    committer=committer,
+                    session_id=session_id,
+                    files_touched=basenames,
+                )
+            except Exception:
+                logger.exception("core: history.finalize_save failed; ignored")
 
         self.stream.broadcast(
             SessionCommittedEvent(
@@ -202,15 +208,6 @@ class SessionService:
         self._dirty.pop(session_id, None)
         self._base_versions.pop(session_id, None)
         self.session_store.delete(session_id)
-
-        # Reactive discard: any OTHER live session that had one of these
-        # files dirty is now based on stale canonical content. Drop it and
-        # let its client (agent adapter or web editor) notice via the WS
-        # event and reset.
-        if versions:
-            self._discard_conflicting_sessions(
-                excluded=session_id, changed_files=set(versions.keys())
-            )
 
         if self.on_commit is not None and versions:
             try:
@@ -226,8 +223,95 @@ class SessionService:
         )
         return versions
 
-    def discard(self, session_id: str) -> None:
+    # ---------- history / revert ----------
+
+    def list_session_history(
+        self, session_id: str, file_name: str, limit: int = 10
+    ) -> List[Dict]:
+        """Per-file list of intra-session commits (since `last_save`).
+
+        Returns numbered entries with `step` = 1 for most recent.
+        """
         self._require_session(session_id)
+        if self.registry.get_config(file_name) is None:
+            raise UnknownFile(file_name)
+        if self.history is None:
+            return []
+        basename = self.registry.get_config(file_name).path.name
+        commits = self.history.list_session_commits(basename, limit=limit)
+        out: List[Dict] = []
+        for i, c in enumerate(commits, start=1):
+            out.append({
+                "step": i,
+                "summary": c.summary,
+                "ts_iso": c.ts.isoformat(),
+                "tool": c.tool,
+            })
+        return out
+
+    def revert(
+        self, session_id: str, file_name: str, n_steps: int
+    ) -> Optional[str]:
+        """Revert `file_name` by `n_steps` commits within the session.
+        Returns the new HEAD SHA, or None if out of range.
+        """
+        self._require_session(session_id)
+        session = self.session_store.get(session_id)
+        config = self.registry.get_config(file_name)
+        if config is None:
+            raise UnknownFile(file_name)
+        if self.history is None:
+            return None
+        source, committer = _parse_session_label(session.label)
+        basename = config.path.name
+        new_sha = self.history.revert_steps(
+            file_name=basename, n_steps=n_steps,
+            source=source, committer=committer,
+        )
+        if new_sha is not None:
+            self._dirty.setdefault(session_id, set()).add(file_name)
+            try:
+                version = compute_version(self.file_store.read(file_name))
+                self.stream.broadcast(FileChangedEvent(
+                    session_id=session_id, file=file_name, version=version,
+                ))
+            except FileNotFoundError:
+                pass
+        return new_sha
+
+    def discard(self, session_id: str) -> None:
+        """Cancel the session: restore every touched file to its
+        `last_save` state and commit a `cancel session <id>` marker.
+        """
+        self._require_session(session_id)
+        session = self.session_store.get(session_id)
+        dirty = sorted(self._dirty.get(session_id, set()))
+
+        if self.history is not None and dirty:
+            try:
+                source, committer = _parse_session_label(session.label)
+                basenames = [
+                    self.registry.get_config(n).path.name for n in dirty
+                ]
+                self.history.revert_session_files(
+                    files_touched=basenames,
+                    source=source,
+                    committer=committer,
+                    session_id=session_id,
+                )
+                # Broadcast file-changed so adapters re-fetch the
+                # rolled-back canonical state.
+                for n in dirty:
+                    try:
+                        version = compute_version(self.file_store.read(n))
+                        self.stream.broadcast(FileChangedEvent(
+                            session_id=session_id, file=n, version=version,
+                        ))
+                    except FileNotFoundError:
+                        continue
+            except Exception:
+                logger.exception("core: history.revert_session_files failed; ignored")
+
         self._dirty.pop(session_id, None)
         self._base_versions.pop(session_id, None)
         self.session_store.delete(session_id)
@@ -242,24 +326,18 @@ class SessionService:
         if not self.session_store.exists(session_id):
             raise UnknownSession(session_id)
 
-    def _discard_conflicting_sessions(
-        self, *, excluded: str, changed_files: Set[str]
-    ) -> None:
-        victims: List[str] = []
-        for s in list(self.session_store.list()):
-            if s.id == excluded:
-                continue
-            dirty = self._dirty.get(s.id, set())
-            if dirty & changed_files:
-                victims.append(s.id)
 
-        for sid in victims:
-            logger.info(
-                "core: auto-discarding session %s (conflicts with commit)", sid
-            )
-            self._dirty.pop(sid, None)
-            self._base_versions.pop(sid, None)
-            self.session_store.delete(sid)
-            self.stream.broadcast(
-                SessionDiscardedEvent(session_id=sid, locks_released=[])
-            )
+def _parse_session_label(label: str) -> tuple[str, Optional[str]]:
+    """Split a session label into (source, committer).
+
+    Adapters currently pass plain labels like "cli", "telegram", "agent".
+    Future labels may encode an end-user identifier as
+    "<adapter>:<committer>" (e.g. "telegram:@forna_tg"). Until then,
+    `committer` is None and we record only the adapter source.
+    """
+    if not label:
+        return ("unknown", None)
+    if ":" in label:
+        source, committer = label.split(":", 1)
+        return (source.strip() or "unknown", committer.strip() or None)
+    return (label.strip(), None)

@@ -3,15 +3,28 @@
 Shape: `GET /api/files/{file_name}[/{year}]` plus legacy aliases
 `GET /api/{palio,leaderboard,palio_games_status}[/{year}]` for the React
 SDK generated from the retired api_server.
+
+Two read modes, branched on bearer-auth presence:
+  * **Authenticated** (editor webapp / CLI / agent): working tree HEAD —
+    the in-progress state, including intra-session writes not yet saved.
+  * **Anonymous** (public webapp): `refs/palio/last_save` — the last
+    fully-saved state. Intra-session edits are invisible to the public
+    until the user saves.
+
+Year-scoped endpoints always read directly from `data/<year>/` and
+ignore the auth branch: archived years are immutable snapshots and not
+tracked by the history layer.
 """
 
 import json
 from pathlib import Path
 from typing import List, Tuple, Type
 
-from fastapi import APIRouter, HTTPException, Path as PathParam, Request
+from fastapi import APIRouter, Depends, HTTPException, Path as PathParam, Request
 from pydantic import BaseModel
 
+from palio_bot.core.auth import is_authenticated
+from palio_bot.core.history import LAST_SAVE_REF, HistoryService
 from palio_bot.models.game_status_models import PalioGamesStatus
 from palio_bot.models.leaderboard_models import Leaderboard
 from palio_bot.models.palio_models import PalioData
@@ -39,13 +52,41 @@ def _load_json(path: Path, label: str) -> dict:
         raise HTTPException(status_code=500, detail=f"Invalid JSON in {label}")
 
 
-@router.get("/files/{file_name}")
-async def get_file(file_name: str, request: Request):
-    if file_name not in _FILE_KEYS:
-        raise HTTPException(status_code=404, detail=f"unknown file: {file_name}")
+def _load_current(request: Request, file_name: str, authed: bool) -> dict:
+    """Return canonical content for `file_name`.
+
+    Authenticated → working tree (HEAD). Anonymous → last_save ref via
+    HistoryService.read_at_ref, with a fallback to working tree if the
+    history layer is unavailable or the ref hasn't been initialised yet.
+    """
     attr, validator = _FILE_KEYS[file_name]
     path: Path = getattr(request.app.state.config, attr)
-    data = _load_json(path, file_name)
+
+    if not authed:
+        history: HistoryService | None = getattr(
+            request.app.state, "history", None
+        )
+        if history is not None:
+            blob = history.read_at_ref(path.name, ref=LAST_SAVE_REF)
+            if blob is not None:
+                try:
+                    return json.loads(blob)
+                except json.JSONDecodeError:
+                    raise HTTPException(
+                        status_code=500, detail=f"Invalid JSON in {file_name}"
+                    )
+
+    return _load_json(path, file_name)
+
+
+@router.get("/files/{file_name}")
+async def get_file(
+    file_name: str, request: Request, authed: bool = Depends(is_authenticated)
+):
+    if file_name not in _FILE_KEYS:
+        raise HTTPException(status_code=404, detail=f"unknown file: {file_name}")
+    _, validator = _FILE_KEYS[file_name]
+    data = _load_current(request, file_name, authed)
     return validator.model_validate(data).model_dump()
 
 
@@ -83,10 +124,10 @@ def _bind_alias(file_name: str) -> None:
     """Register `GET /api/{file_name}[/{year}]` pointing at the generic handler."""
     _, validator = _FILE_KEYS[file_name]
 
-    async def _current(request: Request):
-        attr = _FILE_KEYS[file_name][0]
-        path: Path = getattr(request.app.state.config, attr)
-        data = _load_json(path, file_name)
+    async def _current(
+        request: Request, authed: bool = Depends(is_authenticated)
+    ):
+        data = _load_current(request, file_name, authed)
         return validator.model_validate(data).model_dump()
 
     async def _by_year(

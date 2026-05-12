@@ -23,7 +23,7 @@ from tests.core.conftest import LEADERBOARD_SEED, PALIO_SEED
 
 @pytest.fixture
 def core_test_client(core_config):
-    app = create_app(core_config, enable_leaderboard_hook=False)
+    app = create_app(core_config)
     with TestClient(app) as tc:
         yield tc
 

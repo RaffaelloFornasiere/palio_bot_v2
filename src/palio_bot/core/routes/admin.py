@@ -32,6 +32,7 @@ class ResetBody(BaseModel):
 async def reset(body: ResetBody, request: Request):
     svc = request.app.state.session_service
     config = request.app.state.config
+    history = getattr(request.app.state, "history", None)
 
     # Drop every in-flight session + its locks.
     for session in list(svc.session_store.list()):
@@ -52,5 +53,17 @@ async def reset(body: ResetBody, request: Request):
             elif target.exists():
                 target.unlink()
                 logger.info("admin/reset: removed %s (no seed provided)", target)
+
+    # Seeds bypassed the session layer, so anchor history to the new
+    # working tree: snap a commit and move `last_save` forward. Without
+    # this, a subsequent `json_revert(n=all)` would walk past the reset
+    # boundary into pre-reset state.
+    if history is not None:
+        tracked = [
+            getattr(config, attr) for attr in _MANAGED_FILE_ATTRS
+        ]
+        history.snap_workdir(
+            tracked_files=tracked, source="admin", label="reset",
+        )
 
     return {"ok": True}

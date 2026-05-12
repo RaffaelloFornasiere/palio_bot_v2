@@ -157,7 +157,6 @@ class MultiJSONEditorTool:
     ):
         self.registry = file_registry
         self.store: FileStore = file_store or DirectFileStore(file_registry)
-        self._last_content: Dict[str, str] = {}  # undo buffer per file
         self._viewed_paths: Dict[str, set[str]] = {}  # view-before-edit guardrail
 
     # ---------- file IO helpers ----------
@@ -179,7 +178,9 @@ class MultiJSONEditorTool:
         except Exception as e:
             return {}, f"Errore nel leggere il file: {str(e)}"
 
-    def _save_json(self, file_name: str, data: dict) -> Optional[str]:
+    def _save_json(
+        self, file_name: str, data: dict, tool: Optional[str] = None
+    ) -> Optional[str]:
         config = self.registry.get_config(file_name)
         if not config:
             return f"File '{file_name}' non registrato"
@@ -190,20 +191,8 @@ class MultiJSONEditorTool:
         if not config.allow_edit:
             return f"File '{file_name}' è in sola lettura"
 
-        # Backup current content for undo BEFORE writing. Stash as JSON string
-        # so undo() can restore via the store regardless of backend.
         try:
-            prev = self.store.load(file_name)
-            self._last_content[file_name] = json.dumps(prev, ensure_ascii=False)
-        except FileStoreNotFound:
-            # First write — nothing to undo to.
-            pass
-        except Exception:
-            # Best-effort backup; don't block the write if it fails.
-            pass
-
-        try:
-            self.store.save(file_name, data)
+            self.store.save(file_name, data, tool=tool)
         except FileStoreValidationError as exc:
             return exc.message
         except FileStoreReadOnly:
@@ -335,7 +324,7 @@ class MultiJSONEditorTool:
             jsonpath_expr = parse_ext(path)
             updated = jsonpath_expr.update_or_create(data, value)
 
-            save_error = self._save_json(file_name, updated)
+            save_error = self._save_json(file_name, updated, tool="json_set")
             if save_error:
                 return ToolResult(success=False, error=save_error)
 
@@ -376,7 +365,7 @@ class MultiJSONEditorTool:
                 merged = _deep_merge(match.value, partial)
                 match.full_path.update(data, merged)
 
-            save_error = self._save_json(file_name, data)
+            save_error = self._save_json(file_name, data, tool="json_merge")
             if save_error:
                 return ToolResult(success=False, error=save_error)
 
@@ -435,7 +424,7 @@ class MultiJSONEditorTool:
                         parent.pop(idx)
                         deleted_count += 1
 
-            save_error = self._save_json(file_name, data)
+            save_error = self._save_json(file_name, data, tool="json_delete")
             if save_error:
                 return ToolResult(success=False, error=save_error)
 
@@ -479,7 +468,7 @@ class MultiJSONEditorTool:
 
             target.append(value)
 
-            save_error = self._save_json(file_name, data)
+            save_error = self._save_json(file_name, data, tool="json_append")
             if save_error:
                 return ToolResult(success=False, error=save_error)
 
@@ -531,7 +520,7 @@ class MultiJSONEditorTool:
 
             target.insert(index, value)
 
-            save_error = self._save_json(file_name, data)
+            save_error = self._save_json(file_name, data, tool="json_insert")
             if save_error:
                 return ToolResult(success=False, error=save_error)
 
@@ -583,7 +572,7 @@ class MultiJSONEditorTool:
 
             removed_value = target.pop(index)
 
-            save_error = self._save_json(file_name, data)
+            save_error = self._save_json(file_name, data, tool="json_remove")
             if save_error:
                 return ToolResult(success=False, error=save_error)
 
@@ -603,40 +592,73 @@ class MultiJSONEditorTool:
                 success=False, error=f"Errore nel rimuovere dall'array: {str(e)}"
             )
 
-    # ---------- undo ----------
+    # ---------- history / revert ----------
 
-    def undo(self, file_name: str) -> ToolResult:
-        try:
-            if file_name not in self._last_content:
-                return ToolResult(
-                    success=False,
-                    error=f"Nessuna operazione da annullare per '{file_name}'.",
-                )
+    def history(self, file_name: str, limit: int = 10) -> ToolResult:
+        """List modifications to `file_name` since the last save.
 
-            prev = json.loads(self._last_content[file_name])
-            try:
-                self.store.save(file_name, prev)
-            except FileStoreValidationError as exc:
-                return ToolResult(success=False, error=exc.message)
-            except FileStoreReadOnly:
-                return ToolResult(
-                    success=False, error=f"File '{file_name}' è in sola lettura"
-                )
-            except Exception as e:
-                return ToolResult(
-                    success=False, error=f"Errore nell'annullamento: {str(e)}"
-                )
-
-            del self._last_content[file_name]
-            self._viewed_paths.pop(file_name, None)
-
+        Output is a numbered list, 1 = most recent. The numbers are the
+        argument to pass to `json_revert(n_steps=...)`.
+        """
+        if self.registry.get_config(file_name) is None:
             return ToolResult(
-                success=True,
-                message=f"Ultima modifica annullata per '{file_name}'.",
+                success=False, error=f"File '{file_name}' non registrato."
             )
 
-        except Exception as e:
-            return ToolResult(success=False, error=f"Errore nell'annullamento: {str(e)}")
+        entries = self.store.history(file_name, limit=limit)
+        if not entries:
+            return ToolResult(
+                success=True,
+                message=(
+                    f"Nessuna modifica da annullare per '{file_name}' "
+                    "nella sessione corrente."
+                ),
+                data={"entries": []},
+            )
+
+        lines = []
+        for i, e in enumerate(entries):
+            step = e.get("step", i + 1)
+            marker = " (most recent)" if step == 1 else ""
+            summary = e.get("summary", "")
+            tool_name = e.get("tool")
+            tool_hint = f" [{tool_name}]" if tool_name else ""
+            lines.append(f"{step}{marker} — {summary}{tool_hint}")
+        message = "\n".join(lines)
+
+        return ToolResult(
+            success=True, message=message, data={"entries": entries}
+        )
+
+    def revert(self, file_name: str, n_steps: int) -> ToolResult:
+        """Undo the last `n_steps` modifications to `file_name` made in
+        the current session. Use `json_history` first to pick `n_steps`.
+        """
+        if self.registry.get_config(file_name) is None:
+            return ToolResult(
+                success=False, error=f"File '{file_name}' non registrato."
+            )
+        if n_steps < 1:
+            return ToolResult(
+                success=False, error="`n_steps` deve essere >= 1."
+            )
+
+        ok = self.store.revert(file_name, n_steps)
+        if not ok:
+            return ToolResult(
+                success=False,
+                error=(
+                    f"Impossibile annullare {n_steps} modifiche su "
+                    f"'{file_name}': supera lo storico della sessione "
+                    "corrente. Usa `json_history` per vedere quante "
+                    "modifiche sono disponibili."
+                ),
+            )
+        self._viewed_paths.pop(file_name, None)
+        return ToolResult(
+            success=True,
+            message=f"Annullate le ultime {n_steps} modifiche su '{file_name}'.",
+        )
 
 
 def create_multi_json_editor_tools(
@@ -804,17 +826,50 @@ def create_multi_json_editor_tools(
             },
             function=editor.remove_at,
         ),
-        "json_undo": Tool(
-            name="json_undo",
-            description=f"Annulla l'ultima modifica a un file JSON specifico. File disponibili: {file_list}",
+        "json_history": Tool(
+            name="json_history",
+            description=(
+                "Elenca le modifiche apportate a un file nella sessione "
+                "corrente (dall'ultimo salvataggio). Output: lista "
+                "numerata, 1 = più recente. Usa i numeri come `n_steps` "
+                f"per `json_revert`. File disponibili: {file_list}"
+            ),
             parameters_schema={
                 "type": "object",
                 "properties": {
                     "file_name": {"type": "string", "enum": editable_files},
+                    "limit": {
+                        "type": "integer",
+                        "description": "Quante modifiche elencare (default 10).",
+                    },
                 },
                 "required": ["file_name"],
             },
-            function=editor.undo,
+            function=editor.history,
+        ),
+        "json_revert": Tool(
+            name="json_revert",
+            description=(
+                "Annulla le ultime `n_steps` modifiche a un file. "
+                "Funziona solo nella sessione corrente (non oltre "
+                "l'ultimo salvataggio). Chiama SEMPRE `json_history` "
+                "prima per scegliere `n_steps`: i numeri cambiano dopo "
+                "ogni revert (il revert stesso è una modifica), quindi "
+                "non chiamare json_revert più volte di fila senza "
+                f"rileggere la history. File: {file_list}"
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "file_name": {"type": "string", "enum": editable_files},
+                    "n_steps": {
+                        "type": "integer",
+                        "description": "Numero di modifiche da annullare (>= 1).",
+                    },
+                },
+                "required": ["file_name", "n_steps"],
+            },
+            function=editor.revert,
         ),
     }
 

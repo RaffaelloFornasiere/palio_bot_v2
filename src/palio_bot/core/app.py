@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from palio_bot.core.config import CoreConfig
+from palio_bot.core.history import HistoryService
 from palio_bot.core.stream import Stream
 from palio_bot.core.file_store_local import LocalFileStore
 from palio_bot.core.registry_factory import build_registry
@@ -42,6 +43,10 @@ def create_app(
     session_store = SessionStore()
     stream = Stream()
 
+    history = HistoryService(config.data_dir)
+    tracked = [registry.get_config(n).path for n in registry.list_files()]
+    history.init_repo(tracked)
+
     on_commit: Optional[Callable[[List[str]], None]] = None
 
     session_service = SessionService(
@@ -49,6 +54,7 @@ def create_app(
         file_store=file_store,
         session_store=session_store,
         stream=stream,
+        history=history,
         on_commit=on_commit,
     )
 
@@ -57,6 +63,7 @@ def create_app(
     app.state.file_store = file_store
     app.state.session_store = session_store
     app.state.stream = stream
+    app.state.history = history
     app.state.session_service = session_service
 
     app.add_middleware(

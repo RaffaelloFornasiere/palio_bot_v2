@@ -85,12 +85,19 @@ class CoreClient:
         )
 
     def put_file(
-        self, session_id: str, file_name: str, content: Dict[str, Any]
+        self,
+        session_id: str,
+        file_name: str,
+        content: Dict[str, Any],
+        tool: Optional[str] = None,
     ) -> str:
+        body: Dict[str, Any] = {"content": content}
+        if tool:
+            body["tool"] = tool
         data = self._request(
             "PUT",
             f"/api/sessions/{session_id}/files/{file_name}",
-            json={"content": content},
+            json=body,
         )
         return data["version"]
 
@@ -100,6 +107,25 @@ class CoreClient:
 
     def discard(self, session_id: str) -> None:
         self._request("POST", f"/api/sessions/{session_id}/discard")
+
+    def session_history(
+        self, session_id: str, file_name: str, limit: int = 10
+    ) -> list:
+        data = self._request(
+            "GET",
+            f"/api/sessions/{session_id}/history/{file_name}",
+            params={"limit": limit},
+        )
+        return data.get("entries", [])
+
+    def session_revert(
+        self, session_id: str, file_name: str, n_steps: int
+    ) -> None:
+        self._request(
+            "POST",
+            f"/api/sessions/{session_id}/revert/{file_name}",
+            json={"n_steps": n_steps},
+        )
 
     # ---------- admin ----------
 

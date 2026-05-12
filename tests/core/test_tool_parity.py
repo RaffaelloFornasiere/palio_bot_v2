@@ -70,7 +70,7 @@ def _registry_for(data_dir: Path) -> FileRegistry:
 
 
 def _run_edit_sequence(editor: MultiJSONEditorTool) -> None:
-    """Exercise view / set_field / append / undo against leaderboard."""
+    """Exercise view + two set_field calls against leaderboard."""
     editor.view("leaderboard")
     set_res = editor.set_field(
         "leaderboard",
@@ -113,7 +113,7 @@ def test_direct_and_remote_produce_same_canonical(
         leaderboard_file_path=remote_data_dir / "leaderboard.json",
         data_dir=remote_data_dir,
     )
-    app = create_app(core_config, enable_leaderboard_hook=False)
+    app = create_app(core_config)
     with TestClient(app) as tc:
         client = CoreClient(base_url="http://testserver", http_client=tc)
         sid = client.create_session("parity-test")
@@ -129,33 +129,38 @@ def test_direct_and_remote_produce_same_canonical(
     assert direct_canonical == remote_canonical
 
 
-def test_direct_and_remote_undo_produce_same_canonical(
-    direct_data_dir: Path, remote_data_dir: Path
-):
-    direct_registry = _registry_for(direct_data_dir)
-    direct_tool = MultiJSONEditorTool(direct_registry, DirectFileStore(direct_registry))
-    direct_tool.view("leaderboard")
-    direct_tool.set_field("leaderboard", "$.palio_leaderboard.villa.points", 999)
-    direct_tool.undo("leaderboard")
+def test_remote_history_and_revert_via_core(remote_data_dir: Path):
+    """Through RemoteFileStore: two set_field calls then `json_revert(1)`
+    must leave the canonical file at the state after the first set_field.
 
+    DirectFileStore intentionally has no history layer (see protocol
+    docstring); this is a remote-only contract, exercised here to keep
+    parity tests pointed at the surface that matters for adapters."""
     core_config = CoreConfig(
         palio_file_path=remote_data_dir / "palio.json",
         palio_games_status_path=remote_data_dir / "palio_games_status.json",
         leaderboard_file_path=remote_data_dir / "leaderboard.json",
         data_dir=remote_data_dir,
     )
-    app = create_app(core_config, enable_leaderboard_hook=False)
+    app = create_app(core_config)
     with TestClient(app) as tc:
         client = CoreClient(base_url="http://testserver", http_client=tc)
-        sid = client.create_session("parity-undo")
-        remote_tool = MultiJSONEditorTool(
+        sid = client.create_session("history-revert")
+        tool = MultiJSONEditorTool(
             _registry_for(remote_data_dir), RemoteFileStore(client, sid)
         )
-        remote_tool.view("leaderboard")
-        remote_tool.set_field("leaderboard", "$.palio_leaderboard.villa.points", 999)
-        remote_tool.undo("leaderboard")
+        tool.view("leaderboard")
+        tool.set_field("leaderboard", "$.palio_leaderboard.villa.points", 50)
+        tool.set_field("leaderboard", "$.palio_leaderboard.villa.points", 999)
+
+        hist = tool.history("leaderboard")
+        assert hist.success
+        assert len(hist.data["entries"]) == 2
+
+        rev = tool.revert("leaderboard", n_steps=1)
+        assert rev.success
+
         client.commit(sid)
 
-    assert json.loads((direct_data_dir / "leaderboard.json").read_text()) == json.loads(
-        (remote_data_dir / "leaderboard.json").read_text()
-    )
+    final = json.loads((remote_data_dir / "leaderboard.json").read_text())
+    assert final["palio_leaderboard"]["villa"]["points"] == 50

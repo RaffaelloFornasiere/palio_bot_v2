@@ -71,6 +71,16 @@ def _auth_configured(config: CoreConfig) -> bool:
     return bool(config.bearer_token) or bool(config.firebase_project_id)
 
 
+def _token_is_valid(token: Optional[str], config: CoreConfig) -> bool:
+    if not token:
+        return False
+    if config.bearer_token and secrets.compare_digest(token, config.bearer_token):
+        return True
+    if _verify_firebase_id_token(token, config) is not None:
+        return True
+    return False
+
+
 def require_auth(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer_scheme),
@@ -87,12 +97,29 @@ def require_auth(
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=401, detail="missing bearer token")
 
-    token = credentials.credentials
-
-    if config.bearer_token and secrets.compare_digest(token, config.bearer_token):
-        return
-
-    if _verify_firebase_id_token(token, config) is not None:
+    if _token_is_valid(credentials.credentials, config):
         return
 
     raise HTTPException(status_code=401, detail="invalid or expired token")
+
+
+def is_authenticated(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer_scheme),
+) -> bool:
+    """Non-raising variant: True when the request carries valid bearer
+    creds (static token or Firebase). False otherwise.
+
+    Used by endpoints that want to differentiate authenticated edit-mode
+    callers from anonymous public-mode callers — e.g. file reads where
+    the public sees `last_save` and the editor sees the working tree.
+
+    In dev/loopback (no auth configured) this returns True for every
+    request, so the editor view keeps working without a token.
+    """
+    config: CoreConfig = request.app.state.config
+    if not _auth_configured(config):
+        return True
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        return False
+    return _token_is_valid(credentials.credentials, config)

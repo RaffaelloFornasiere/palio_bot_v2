@@ -186,19 +186,23 @@ def test_remove_at_invalid_index(editor: MultiJSONEditorTool):
     assert not result.success
 
 
-# ---------- undo ----------
+# ---------- history / revert ----------
+#
+# DirectFileStore (used by this fixture) has no history layer — eval
+# scenarios run against a real core, not this in-process store. The
+# tool surface still must exist and degrade gracefully.
 
 
-def test_undo_reverts_last_edit(editor: MultiJSONEditorTool, tmp_data_dir: Path):
+def test_history_on_direct_store_returns_empty(editor: MultiJSONEditorTool):
     editor.set_field("palio_games_status", "$.game_scores.calcetto.status", "in-progress")
-    undo = editor.undo("palio_games_status")
-    assert undo.success
-    data = _read(tmp_data_dir / "palio_games_status.json")
-    assert data["game_scores"]["calcetto"]["status"] == "not-started"
+    result = editor.history("palio_games_status")
+    assert result.success
+    assert result.data == {"entries": []}
 
 
-def test_undo_without_prior_edit(editor: MultiJSONEditorTool):
-    result = editor.undo("palio_games_status")
+def test_revert_on_direct_store_fails(editor: MultiJSONEditorTool):
+    editor.set_field("palio_games_status", "$.game_scores.calcetto.status", "in-progress")
+    result = editor.revert("palio_games_status", n_steps=1)
     assert not result.success
 
 

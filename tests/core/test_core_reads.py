@@ -129,3 +129,124 @@ def test_legacy_year_scoped_alias(core_client, core_data_dir):
     res = core_client.get("/api/palio/2024")
     assert res.status_code == 200
     assert res.json()["competition_name"] == "Test Palio"
+
+
+# ---------- read split: public sees last_save, authed sees working tree ----------
+#
+# These tests configure a bearer token to exercise the production branch
+# where anonymous callers (public webapp) see the saved state and
+# authenticated callers (editor webapp) see the live working tree.
+
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from palio_bot.core.app import create_app  # noqa: E402
+from palio_bot.core.config import CoreConfig  # noqa: E402
+
+from tests.core.conftest import LEADERBOARD_SEED  # noqa: E402
+
+
+@pytest.fixture
+def authed_setup(tmp_path: Path):
+    """Core with a bearer token configured. Yields (authed_client,
+    public_client, data_dir)."""
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "palio.json").write_text(
+        json.dumps({
+            "competition_name": "Test Palio",
+            "villages": ["villa", "salt"],
+            "villages_colors": {"villa": "#ff0000", "salt": "#00ff00"},
+            "games": [],
+            "non_game_events": [],
+        })
+    )
+    (data / "leaderboard.json").write_text(json.dumps(LEADERBOARD_SEED))
+    (data / "palio_games_status.json").write_text(
+        json.dumps({"game_scores": {}, "last_updated": "2026-04-20T00:00:00Z"})
+    )
+    cfg = CoreConfig(
+        palio_file_path=data / "palio.json",
+        palio_games_status_path=data / "palio_games_status.json",
+        leaderboard_file_path=data / "leaderboard.json",
+        data_dir=data,
+        firebase_config_path=tmp_path / "no_firebase.json",
+        bearer_token="test-token",
+    )
+    app = create_app(cfg)
+    with TestClient(app) as base:
+        authed = TestClient(app, headers={"Authorization": "Bearer test-token"})
+        public = TestClient(app)  # no Authorization header
+        # Use base only to keep TestClient(app) lifecycle parity; not exposed.
+        del base
+        yield authed, public, data
+
+
+def test_public_sees_last_save_during_session(authed_setup):
+    """While a session has in-flight intra-session writes, public reads
+    must keep showing the previously-saved state."""
+    authed, public, _ = authed_setup
+    sid = authed.post("/api/sessions", json={"label": "cli"}).json()["id"]
+    authed.post(f"/api/sessions/{sid}/acquire/leaderboard")
+    new_content = {
+        **LEADERBOARD_SEED,
+        "palio_leaderboard": {
+            "villa": {"points": 777, "position": 1},
+            "salt": {"points": 0, "position": 2},
+        },
+    }
+    authed.put(
+        f"/api/sessions/{sid}/files/leaderboard",
+        json={"content": new_content, "tool": "json_set"},
+    )
+
+    # Authed sees the in-progress (HEAD) state.
+    authed_view = authed.get("/api/files/leaderboard").json()
+    assert authed_view["palio_leaderboard"]["villa"]["points"] == 777
+
+    # Public still sees the previous save (= seed here).
+    public_view = public.get("/api/files/leaderboard").json()
+    assert public_view["palio_leaderboard"]["villa"]["points"] == 0
+
+    # After commit, both align.
+    authed.post(f"/api/sessions/{sid}/commit")
+    assert (
+        public.get("/api/files/leaderboard").json()[
+            "palio_leaderboard"]["villa"]["points"] == 777
+    )
+
+
+def test_legacy_alias_respects_read_split(authed_setup):
+    """The legacy `/api/leaderboard` alias must use the same auth-based
+    branch as `/api/files/leaderboard`."""
+    authed, public, _ = authed_setup
+    sid = authed.post("/api/sessions", json={"label": "cli"}).json()["id"]
+    authed.post(f"/api/sessions/{sid}/acquire/leaderboard")
+    new_content = {
+        **LEADERBOARD_SEED,
+        "palio_leaderboard": {
+            "villa": {"points": 42, "position": 1},
+            "salt": {"points": 0, "position": 2},
+        },
+    }
+    authed.put(
+        f"/api/sessions/{sid}/files/leaderboard",
+        json={"content": new_content, "tool": "json_set"},
+    )
+
+    assert authed.get("/api/leaderboard").json()[
+        "palio_leaderboard"]["villa"]["points"] == 42
+    assert public.get("/api/leaderboard").json()[
+        "palio_leaderboard"]["villa"]["points"] == 0
+
+
+def test_dev_mode_serves_working_tree_to_everyone(core_client, core_data_dir):
+    """When neither PALIO_CORE_TOKEN nor FIREBASE_PROJECT_ID is set,
+    `is_authenticated` returns True for every request → public reads
+    fall back to working tree (= today's pre-refactor behavior)."""
+    res = core_client.get("/api/files/leaderboard")
+    assert res.status_code == 200
+    # Same content as on-disk = no surprise switch in dev.
+    on_disk = json.loads((core_data_dir / "leaderboard.json").read_text())
+    assert res.json()["palio_leaderboard"] == on_disk["palio_leaderboard"]

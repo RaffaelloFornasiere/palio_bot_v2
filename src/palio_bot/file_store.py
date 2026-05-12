@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Protocol
+from typing import Optional, Protocol
 
 from palio_bot.tools.file_registry import FileRegistry
 
@@ -58,7 +58,20 @@ class FileStoreLockConflict(FileStoreError):
 
 class FileStore(Protocol):
     def load(self, file_name: str) -> dict: ...
-    def save(self, file_name: str, data: dict) -> None: ...
+    def save(
+        self, file_name: str, data: dict, tool: Optional[str] = None
+    ) -> None: ...
+
+    def history(self, file_name: str, limit: int = 10) -> list:
+        """Return numbered intra-session commits. Empty list if no
+        history layer (DirectFileStore) or nothing pending."""
+        ...
+
+    def revert(self, file_name: str, n_steps: int) -> bool:
+        """Revert the last `n_steps` writes to `file_name` within the
+        current session. Returns True on success, False if out of range
+        or no history layer."""
+        ...
 
 
 class DirectFileStore:
@@ -83,7 +96,12 @@ class DirectFileStore:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def save(self, file_name: str, data: dict) -> None:
+    def save(
+        self, file_name: str, data: dict, tool: Optional[str] = None
+    ) -> None:
+        # `tool` is accepted for protocol compatibility with RemoteFileStore
+        # but ignored: DirectFileStore has no history layer to annotate.
+        del tool
         config = self.registry.get_config(file_name)
         if config is None:
             raise FileStoreUnknown(file_name)
@@ -102,3 +120,12 @@ class DirectFileStore:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
         self.registry.mark_modified(file_name)
+
+    def history(self, file_name: str, limit: int = 10) -> list:
+        # No git layer in direct mode; eval scenarios don't track history.
+        del file_name, limit
+        return []
+
+    def revert(self, file_name: str, n_steps: int) -> bool:
+        del file_name, n_steps
+        return False

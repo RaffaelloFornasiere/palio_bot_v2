@@ -133,8 +133,11 @@ async def test_system_commits_through_core(system_bundle):
     await system.send_message("bump villa to 200")
     assert system.remote_session_id is not None
 
-    pre = json.loads((data_dir / "leaderboard.json").read_text())
-    assert pre["palio_leaderboard"]["villa"]["points"] == 0
+    # Write-through model: the canonical disk file changes at each agent
+    # tool call, not at save time. (The public-vs-edit visibility split
+    # lives at the read layer — covered by test_core_reads.py.)
+    pre_disk = json.loads((data_dir / "leaderboard.json").read_text())
+    assert pre_disk["palio_leaderboard"]["villa"]["points"] == 200
 
     system.save_session()
     post = json.loads((data_dir / "leaderboard.json").read_text())
