@@ -275,14 +275,18 @@ async def run_scenario(
 
                 elapsed_ms = int((time.time() - t0) * 1000)
 
-                # In `reset=True` mode each step is its own session, so we
-                # save to materialise edits before the next reset wipes
-                # them. In chained mode the working tree is already
-                # canonical (write-through PUTs), so saving between steps
-                # would only collapse the session's history and break
-                # cross-step `json_history` / `json_revert` — keep one
-                # long session that spans the whole scenario.
-                if reset and system.get_active_session():
+                # Save between steps by default: closes the core session,
+                # moves `last_save`, starts a fresh core session for the
+                # next step. Empirically letting the session live across
+                # all steps degraded mid-strength models on long chained
+                # scenarios (bigger tool-result outputs, more confusion).
+                #
+                # Per-step opt-out via `save_after: false`: needed when a
+                # step's expected effect is an undo/correction of the
+                # immediately-prior step. Without sharing a session
+                # those two steps can't interact via `json_revert`.
+                save_after = step.get("save_after", True)
+                if save_after and system.get_active_session():
                     try:
                         system.save_session()
                     except Exception as e:
