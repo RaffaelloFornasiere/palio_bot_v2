@@ -138,7 +138,26 @@ class Tool(BaseModel):
         arbitrary_types_allowed = True
     
     def call(self, **kwargs) -> ToolResult:
-        """Call the tool function with the given parameters."""
+        """Call the tool function with the given parameters.
+
+        Pre-validates required arguments against `parameters_schema` so a
+        missing arg produces an actionable `ToolResult` the LLM can read
+        and self-correct on, instead of a Python `TypeError` whose
+        message reads like an internal stack trace.
+        """
+        required = self.parameters_schema.get("required", []) or []
+        missing = [k for k in required if k not in kwargs]
+        if missing:
+            allowed = list(self.parameters_schema.get("properties", {}).keys())
+            return ToolResult(
+                success=False,
+                error=(
+                    f"Tool '{self.name}': missing required argument(s) "
+                    f"{missing}. You sent {sorted(kwargs.keys())}. "
+                    f"Expected parameters: {allowed}. "
+                    f"Riprova con tutti gli argomenti richiesti."
+                ),
+            )
         return self.function(**kwargs)
 
 

@@ -50,6 +50,7 @@
     {
       "id": "s5_penalty",
       "prompt": "applica una penalità di 5 secondi a Villa nella divisione maschile della Corsa coi Sacchi per partenza anticipata",
+      "save_after": false,
       "changes": {
         "palio_games_status.json": [
           { "path": "$.game_scores.G02.divisions[0].score_penalties", "set": [

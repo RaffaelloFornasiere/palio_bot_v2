@@ -32,6 +32,7 @@
     {
       "id": "s3_mark_completed",
       "prompt": "ok, segna la divisione maschile come completata.",
+      "save_after": false,
       "changes": {
         "palio_games_status.json": [
           { "path": "$.game_scores.G02.divisions[0].status", "set": "completed" }
@@ -40,6 +41,7 @@
     },
     {
       "id": "s4_verify_villa_score",
+      "save_after": false,
       "prompt": "ricordami quanto ha totalizzato Villa nella maschile della corsa coi sacchi",
       "judge": {
         "expected_behavior": "L'agente legge lo stato attuale e risponde che Villa ha 52 (non 25, perché la correzione è stata applicata).",
