@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import shutil
 import tempfile
 import time
@@ -127,15 +128,23 @@ async def run_scenario(
     pinned_port = os.getenv("EVAL_CORE_PORT")
     port = int(pinned_port) if pinned_port else None
 
+    # The eval core inherits the user's .env, so if FIREBASE_PROJECT_ID is
+    # set in real config the spawned core will refuse unauthenticated
+    # requests. Bypass that by minting a one-shot bearer for this run and
+    # threading it through both the admin client and the Container's
+    # CoreClient.
+    eval_token = secrets.token_urlsafe(32)
+
     try:
-        with CoreProcess(data_dir=data_dir, port=port) as core:
+        with CoreProcess(data_dir=data_dir, port=port, token=eval_token) as core:
             emit(f"  core ▸ {core.base_url}  events viewer: {core.base_url}/events-viewer")
-            admin = CoreClient(base_url=core.base_url)
+            admin = CoreClient(base_url=core.base_url, token=eval_token)
 
             cfg = Config(
                 openrouter_api_key=api_key,
                 openrouter_model=model,
                 palio_core_url=core.base_url,
+                palio_core_token=eval_token,
                 palio_file_path=data_dir / "palio.json",
                 palio_games_status_path=data_dir / "palio_games_status.json",
                 palio_games_status_temp_path=data_dir / "palio_games_status_tmp.json",

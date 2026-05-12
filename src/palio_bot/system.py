@@ -283,6 +283,9 @@ class System(Producer):
 
     # ---------- event consumer ----------
 
+    def filter(self, event: Event) -> bool:
+        return isinstance(event, SessionDiscardedEvent)
+
     async def consume(self, event: Event) -> None:
         """React to core-side lifecycle events.
 
