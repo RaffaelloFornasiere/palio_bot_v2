@@ -3,20 +3,20 @@
   "model": "qwen/qwen3.6-plus",
   "passed": 4,
   "total": 5,
-  "total_tokens": 133316,
-  "total_elapsed_s": 96.89,
+  "total_tokens": 111602,
+  "total_elapsed_s": 92.97,
   "steps": [
     {
       "id": "s1_ambiguous_village_prefix",
       "prompt": "sotto ha vinto il taglio del tronco maschile",
       "passed": true,
-      "elapsed_ms": 3872,
-      "tokens": 11680,
+      "elapsed_ms": 9456,
+      "tokens": 11950,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [],
       "diffs": {},
-      "final_text": "Con \"sotto\" intendi **Sottocastello** o **Sottomonte**? Potresti specificare?",
+      "final_text": "Con \"sotto\" intendi **Sottocastello** o **Sottomonte**? Potresti specificare quale borgo ha vinto il taglio del tronco maschile?",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": true,
@@ -28,17 +28,17 @@
       "id": "s2_colloquial_game_name",
       "prompt": "a che ora inizia il calcetto?",
       "passed": true,
-      "elapsed_ms": 21427,
-      "tokens": 12645,
+      "elapsed_ms": 20812,
+      "tokens": 12813,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [],
       "diffs": {},
-      "final_text": "Il **Calcio a Cinque (G09)** inizia il **3 agosto 2025 alle ore 20:00** con la prima partita **Sottocastello vs Salt**.\n\nEcco il calendario completo delle partite del girone:\n\n| Data | Orario | Partita |\n|------|--------|---------|\n| 3 ago | 20:00–21:00 | Sottocastello vs Salt |\n| 3 ago | 21:00–22:00 | Villa vs Sottomonte |\n| 4 ago | 20:00–21:00 | Sottomonte vs Sottocastello |\n| 4 ago | 21:00–22:00 | Sornico vs Salt |\n| 5 ago | 20:00–21:00 | Sornico vs Villa |\n| 5 ago | 21:00–22:00 | Salt vs Sottomonte |\n| 6 ago | 20:00–21:00 | Villa vs Salt |\n| 6 ago | 21:00–22:00 | Sornico vs Sottocastello |\n| 7 ago | 20:00–21:00 | Sottocastello vs Villa |\n| 7 ago | 21:00–22:00 | Sottomonte vs Sornico |\n| 8 ago | 20:00–21:00 | **Semifinali** |\n| 8 ago | 21:00–22:00 | **Finali** |",
+      "final_text": "Il **Calcio a Cinque (G09)** inizia il **3 agosto 2025 alle ore 20:00** con la prima partita del girone: **Sottocastello vs Salt**.\n\nEcco il calendario completo delle partite del girone:\n\n| Data | Ora | Partita |\n|------|-----|---------|\n| 3 ago | 20:00 | Sottocastello vs Salt |\n| 3 ago | 21:00 | Villa vs Sottomonte |\n| 4 ago | 20:00 | Sottomonte vs Sottocastello |\n| 4 ago | 21:00 | Sornico vs Salt |\n| 5 ago | 20:00 | Sornico vs Villa |\n| 5 ago | 21:00 | Salt vs Sottomonte |\n| 6 ago | 20:00 | Villa vs Salt |\n| 6 ago | 21:00 | Sornico vs Sottocastello |\n| 7 ago | 20:00 | Sottocastello vs Villa |\n| 7 ago | 21:00 | Sottomonte vs Sornico |\n| 8 ago | 20:00 | Semifinali |\n| 8 ago | 21:00 | Finali |",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": true,
-        "reasoning": "L'agente ha correttamente identificato il gioco 'Calcio a Cinque' (G09) associandolo al termine 'calcetto'. Ha riportato l'orario di inizio corretto (3 agosto alle 20:00) e ha fornito il calendario completo basandosi fedelmente sui dati presenti nel file palio.json senza inventare informazioni.",
+        "reasoning": "L'agente ha correttamente identificato il gioco 'Calcio a Cinque' (G09) associandolo al termine 'calcetto'. Ha riportato correttamente l'orario di inizio della prima partita (3 agosto alle 20:00) e ha fornito il calendario completo basandosi esclusivamente sui dati presenti nel file palio.json, senza inventare informazioni.",
         "failed_criteria": []
       }
     },
@@ -46,8 +46,8 @@
       "id": "s3_village_typos",
       "prompt": "corsa coi sacchi maschile, ecco i tre tempi principali: vila 40, sornic 45, saltt 42. registrali.",
       "passed": true,
-      "elapsed_ms": 21217,
-      "tokens": 36559,
+      "elapsed_ms": 30154,
+      "tokens": 37762,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -57,11 +57,11 @@
         "json_set"
       ],
       "diffs": {},
-      "final_text": "Fatto! Ho registrato i tempi della **Corsa coi Sacchi - Divisione Maschile (G02)**:\n\n| Borgo | Tempo (secondi) |\n|---|---|\n| Villa | 40 |\n| Sornico | 45 |\n| Salt | 42 |\n\nLo stato del gioco e della divisione è stato impostato a **in-progress**. Mancano ancora i tempi di Sottocastello e Sottomonte.",
+      "final_text": "Fatto! Ho registrato i tempi per la **Corsa coi Sacchi (G02) - Divisione Maschile**:\n\n| Borgo | Tempo (s) |\n|-------|-----------|\n| Villa | 40 |\n| Salt | 42 |\n| Sornico | 45 |\n\nLo stato del gioco e della divisione è stato impostato a **in-progress**. \n\nNota: mancano ancora i tempi di **Sottocastello** e **Sottomonte**. Quando li hai, dimmeli e li aggiungo.",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": true,
-        "reasoning": "L'agente ha correttamente identificato i borghi nonostante i typo (Villa, Sornico, Salt), ha registrato i punteggi associandoli ai nomi corretti presenti nel contesto e ha confermato l'operazione senza creare nuove chiavi errate.",
+        "reasoning": "L'agente ha correttamente identificato i borghi nonostante i typo (Villa, Salt, Sornico), ha registrato i punteggi sotto i nomi corretti e non ha creato nuove chiavi errate. Ha inoltre confermato l'operazione utilizzando i nomi validi presenti nel contesto.",
         "failed_criteria": []
       }
     },
@@ -69,17 +69,17 @@
       "id": "s4_missing_game_context",
       "prompt": "villa 5",
       "passed": true,
-      "elapsed_ms": 6404,
-      "tokens": 11789,
+      "elapsed_ms": 6712,
+      "tokens": 12087,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [],
       "diffs": {},
-      "final_text": "Ciao! Il messaggio \"villa 5\" è un po' troppo vago. Per poterti aiutare ho bisogno di più dettagli:\n\n1. **A quale gioco ti riferisci?** (es. Calcetto, Freccette, Taglio del Tronco, Briscola, ecc.)\n2. **Cosa significa \"5\"?** È un punteggio segnato da Villa? Il risultato di una partita (es. 5-qualcosa)? Un bonus/penalità?\n\nFammi sapere e procedo subito con l'aggiornamento!",
+      "final_text": "Non ho abbastanza informazioni per procedere. \"Villa 5\" potrebbe riferirsi a:\n\n- Un punteggio di Villa in un gioco specifico (ma quale gioco?)\n- Qualcosa legato al gioco G05 (Strade Mate)?\n\nPotresti specificare a quale gioco ti riferisci?",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": true,
-        "reasoning": "L'agente ha correttamente identificato l'ambiguità del messaggio dell'utente. Ha chiesto esplicitamente a quale gioco si riferisse il punteggio e non ha registrato alcun dato nel sistema, rispettando entrambi i criteri richiesti.",
+        "reasoning": "L'agente ha correttamente identificato la mancanza di contesto, chiedendo esplicitamente a quale gioco si riferisse il punteggio e non ha registrato il valore in alcun database o variabile, rispettando entrambi i criteri.",
         "failed_criteria": []
       }
     },
@@ -87,8 +87,8 @@
       "id": "s5_status_word_overload",
       "prompt": "il taglio è andato, chiudi tutto",
       "passed": false,
-      "elapsed_ms": 34271,
-      "tokens": 60643,
+      "elapsed_ms": 16142,
+      "tokens": 36990,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -100,11 +100,11 @@
       "diffs": {
         "palio_games_status.json": "--- expected\n+++ actual\n@@ -11,7 +11,7 @@\n             \"Sottomonte\": 28.2,\n             \"Villa\": 63.23\n           },\n-          \"status\": \"in-progress\"\n+          \"status\": \"completed\"\n         },\n         {\n           \"name\": \"Femminile\",\n@@ -20,10 +20,10 @@\n             \"Sottomonte\": 34.67,\n             \"Villa\": 61.05\n           },\n-          \"status\": \"in-progress\"\n+          \"status\": \"completed\"\n         }\n       ],\n-      \"status\": \"in-progress\"\n+      \"status\": \"completed\"\n     },\n     \"G02\": {\n       \"divisions\": ["
       },
-      "final_text": "Fatto! Ho marcato il **Taglio del Tronco (G01)** come completato:\n\n- ✅ Stato gioco: `completed`\n- ✅ Divisione Maschile: `completed`\n- ✅ Divisione Femminile: `completed`\n\nLa classifica verrà aggiornata automaticamente dal sistema separato.",
+      "final_text": "Perfetto! Ho chiuso il **Taglio del Tronco (G01)**:\n\n- ✅ Stato generale → **completed**\n- ✅ Divisione **Maschile** → **completed**\n- ✅ Divisione **Femminile** → **completed**\n\nLa classifica generale verrà aggiornata automaticamente dal sistema separato.",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": false,
-        "reasoning": "L'agente ha eseguito modifiche multiple allo stato del gioco (G01 e le sue divisioni) senza chiedere chiarimenti o conferme, violando esplicitamente il comportamento atteso definito nel task che richiedeva di gestire l'ambiguità del comando 'chiudi tutto'.",
+        "reasoning": "L'agente ha eseguito modifiche multiple (cambio di stato del gioco e delle due divisioni) senza chiedere chiarimenti o conferme, violando esplicitamente il task che richiedeva di gestire l'ambiguità del comando 'chiudi tutto'. L'agente ha interpretato arbitrariamente il comando come 'completa il gioco G01' invece di chiedere se l'utente intendesse chiudere la sessione o il gioco.",
         "failed_criteria": [
           "Chiede chiarimento su cosa significhi 'chiudi tutto' (sessione vs gioco vs divisioni)",
           "Non applica modifiche multiple senza conferma"

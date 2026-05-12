@@ -1,22 +1,24 @@
 {
   "scenario": "leaderboard_query",
   "model": "openai/gpt-5.4-nano",
-  "passed": 4,
+  "passed": 3,
   "total": 5,
-  "total_tokens": 69158,
-  "total_elapsed_s": 18.41,
+  "total_tokens": 65692,
+  "total_elapsed_s": 21.82,
   "steps": [
     {
       "id": "s1_total_points",
       "prompt": "quanti punti ha Villa in classifica generale?",
       "passed": true,
-      "elapsed_ms": 1037,
-      "tokens": 8547,
+      "elapsed_ms": 4293,
+      "tokens": 18721,
       "send_error": null,
       "tool_failures": [],
-      "tool_calls": [],
+      "tool_calls": [
+        "json_view"
+      ],
       "diffs": {},
-      "final_text": "Villa in classifica generale ha **42 punti**.",
+      "final_text": "Villa ha **42 punti** in classifica generale.",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": true,
@@ -28,17 +30,17 @@
       "id": "s2_leader",
       "prompt": "chi è in testa alla classifica?",
       "passed": true,
-      "elapsed_ms": 1053,
-      "tokens": 8557,
+      "elapsed_ms": 1058,
+      "tokens": 9314,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [],
       "diffs": {},
-      "final_text": "In testa alla classifica generale c’è **Villa** con **42 punti** (posizione **1**).",
+      "final_text": "In testa alla classifica c’è **Villa** con **42 punti** (posizione **1**).",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": true,
-        "reasoning": "L'agente ha identificato correttamente il borgo Villa come primo in classifica e ha citato correttamente il punteggio di 42 punti, come indicato nel file leaderboard.json.",
+        "reasoning": "L'agente ha identificato correttamente il borgo Villa come primo in classifica e ha riportato il punteggio esatto di 42 punti, come indicato nel file leaderboard.json.",
         "failed_criteria": []
       }
     },
@@ -46,59 +48,58 @@
       "id": "s3_gap_first_last",
       "prompt": "di quanti punti il primo è avanti sull'ultimo?",
       "passed": true,
-      "elapsed_ms": 2251,
-      "tokens": 17340,
+      "elapsed_ms": 1490,
+      "tokens": 9355,
       "send_error": null,
       "tool_failures": [],
-      "tool_calls": [
-        "json_view"
-      ],
+      "tool_calls": [],
       "diffs": {},
-      "final_text": "Il primo (Villa, **42** punti) è avanti sull’ultimo (Sornico, **14** punti) di **28 punti**.",
+      "final_text": "Dalla classifica attuale in `current_leaderboard`:\n\n- **1° (Villa): 42 punti**\n- **5° (Sornico): 14 punti**\n\nQuindi il primo è avanti sull’ultimo di **42 - 14 = 28 punti**.",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": true,
-        "reasoning": "L'agente ha identificato correttamente Villa come primo (42 punti) e Sornico come ultimo (14 punti), calcolando correttamente la differenza di 28 punti come richiesto dai criteri.",
+        "reasoning": "The agent correctly identified Villa as the first-placed village (42 points) and Sornico as the last-placed village (14 points). The calculation of the difference (28 points) is accurate and matches the context data.",
         "failed_criteria": []
       }
     },
     {
       "id": "s4_gap_between_two",
       "prompt": "quanti punti separano Salt da Sornico?",
-      "passed": true,
-      "elapsed_ms": 2842,
-      "tokens": 17332,
+      "passed": false,
+      "elapsed_ms": 2033,
+      "tokens": 9466,
       "send_error": null,
       "tool_failures": [],
-      "tool_calls": [
-        "json_view"
-      ],
+      "tool_calls": [],
       "diffs": {},
-      "final_text": "Salt ha **28** punti e Sornico ne ha **14**: quindi li separano **14 punti**.",
+      "final_text": "Nei dati attuali del `palio_games_status`, **Salt** e **Sornico** hanno punteggi solo nei giochi **G01** e **G02** (G04 non contiene `scores`).\n\n- **G01 (Taglio del Tronco)**: Salt = 35+36 = **71**, Sornico = 42+43 = **85** ⇒ differenza **14**\n- **G02 (Corsa coi Sacchi)**: Salt = 31+32 = **63**, Sornico = 35+36 = **71** ⇒ differenza **8**\n\n👉 **Risultato:** nei giochi dove ci sono i punteggi, **Salt è indietro di 14 punti rispetto a Sornico (G01) e di 8 punti (G02)**.",
       "judge": {
         "model": "google/gemini-3-flash-preview",
-        "passed": true,
-        "reasoning": "L'agente ha identificato correttamente i punteggi di Salt (28) e Sornico (14) dal file leaderboard.json e ha calcolato correttamente la differenza di 14 punti, soddisfacendo entrambi i criteri richiesti.",
-        "failed_criteria": []
+        "passed": false,
+        "reasoning": "L'agente ha calcolato la differenza basandosi sui tempi/punteggi grezzi dei singoli giochi (G01 e G02) invece di utilizzare la classifica generale (palio_leaderboard) presente nel file leaderboard.json. Sebbene citi il numero 14 come differenza nel gioco G01, fallisce nel fornire la differenza corretta di 14 punti basata sulla classifica generale (28 vs 14). Inoltre, afferma erroneamente che Salt sia 'indietro' rispetto a Sornico, mentre Salt ha 28 punti e Sornico 14 (Salt è avanti).",
+        "failed_criteria": [
+          "Indica 14 come differenza",
+          "Cita i due punteggi (28 e 14) o almeno uno dei due"
+        ]
       }
     },
     {
       "id": "s5_per_game_winner",
       "prompt": "chi ha preso più punti nello Scatolone?",
       "passed": false,
-      "elapsed_ms": 3316,
-      "tokens": 17382,
+      "elapsed_ms": 3268,
+      "tokens": 18836,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view"
       ],
       "diffs": {},
-      "final_text": "Nello **Scatolone (G04)** non risultano ancora registrati i punteggi dei borghi: in `palio_games_status` la partita è marcata **completed**, ma i dettagli (`scores` o risultati match) sono **assenti**.  \n\nSe mi dai i risultati (anche solo per borgo: chi ha vinto/pareggiato/sconfitto), li posso inserire e dirti subito chi ha preso più punti.",
+      "final_text": "Nello **Scatolone (G04)**, nello stato attuale di `palio_games_status` risulta solo:\n\n- `status: completed`\n- ma **non ci sono punteggi per borgo** (la lista `rounds` è vuota)\n\nQuindi **non posso determinare chi ha preso più punti** dai dati disponibili in questo file.\n\nSe vuoi, dimmi **i risultati/round** del G04 (o almeno i punti finali per i borghi), e li inserisco.",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": false,
-        "reasoning": "L'agente ha fallito nel recuperare i dati corretti. Sebbene abbia controllato il file 'palio_games_status.json' (che effettivamente non contiene i punteggi per G04), ha ignorato il file 'leaderboard.json' che nella sezione 'game_leaderboards.G04' riporta chiaramente Villa con 20 punti. Di conseguenza, l'agente ha dichiarato erroneamente di non avere i dati.",
+        "reasoning": "L'agente ha fallito nel recuperare i dati corretti. Sebbene il file 'palio_games_status.json' non contenesse i dettagli dei round, il file 'leaderboard.json' conteneva esplicitamente la classifica per il gioco G04 (Lo Scatolone) nella sezione 'game_leaderboards', indicando Villa con 20 punti. L'agente ha dichiarato erroneamente di non poter determinare il vincitore.",
         "failed_criteria": [
           "Indica Villa come chi ha preso più punti in G04",
           "Riporta il valore 20 oppure il rank"

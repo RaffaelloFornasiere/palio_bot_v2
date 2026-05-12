@@ -1,66 +1,66 @@
 {
   "scenario": "complete_corsa_sacchi",
   "model": "openai/gpt-5.4-nano",
-  "passed": 4,
+  "passed": 6,
   "total": 6,
-  "total_tokens": 123420,
-  "total_elapsed_s": 22.51,
+  "total_tokens": 156256,
+  "total_elapsed_s": 25.87,
   "steps": [
     {
       "id": "s1_view",
       "prompt": "mostra lo stato della Corsa coi Sacchi",
       "passed": true,
-      "elapsed_ms": 2788,
-      "tokens": 16907,
+      "elapsed_ms": 3457,
+      "tokens": 18394,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view"
       ],
       "diffs": {},
-      "final_text": "Ecco lo stato della **Corsa coi Sacchi (G02)**.\n\n- **Stato gioco:** `not-started`\n- **Divisioni:**\n  - **Maschile:** `not-started`\n    - scores: `{}`  \n    - penalties: `[]`\n    - bonus applicati: `[]`\n    - penalità applicate: `[]`\n  - **Femminile:** `not-started`\n    - scores: `{}`  \n    - penalties: `[]`\n    - bonus applicati: `[]`\n    - penalità applicate: `[]`\n\nSe vuoi, dimmi i risultati per **Maschile** o **Femminile** (es. tempi/ordine di arrivo o i punteggi corrispondenti) e li inserisco.",
+      "final_text": "Ecco lo stato della **Corsa coi Sacchi (G02)**:\n\n- **Stato gioco:** `not-started`\n- **Divisioni:**\n  - **Maschile:** `not-started`\n    - punteggi: `{}`  \n    - penalità sui punteggi: `[]`\n    - bonus applicati: `[]`\n    - penalità applicate: `[]`\n  - **Femminile:** `not-started`\n    - punteggi: `{}`  \n    - penalità sui punteggi: `[]`\n    - bonus applicati: `[]`\n    - penalità applicate: `[]`",
       "judge": null
     },
     {
       "id": "s2_start_game",
       "prompt": "la Corsa coi Sacchi è iniziata. Imposta lo stato del gioco e di entrambe le divisioni a 'in-progress'.",
       "passed": true,
-      "elapsed_ms": 3358,
-      "tokens": 17852,
+      "elapsed_ms": 4366,
+      "tokens": 29244,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_set",
         "json_set",
-        "json_set"
+        "json_set",
+        "json_view"
       ],
       "diffs": {},
-      "final_text": "Fatto: ho impostato **Corsa coi Sacchi (G02)** su `in-progress` e anche entrambe le divisioni su `in-progress`.\n\n- G02 (gioco): `in-progress`\n- Divisione **Maschile**: `in-progress`\n- Divisione **Femminile**: `in-progress`",
+      "final_text": "Fatto: ho impostato **Corsa coi Sacchi (G02)** a `in-progress`.\n\n- **Gioco (G02):** `in-progress`\n- **Divisione Maschile:** `in-progress`\n- **Divisione Femminile:** `in-progress`",
       "judge": null
     },
     {
       "id": "s3_mens_scores",
       "prompt": "divisione maschile della Corsa coi Sacchi: Salt 45, Sottocastello 38, Villa 52, Sornico 40, Sottomonte 47. Marca la divisione come completata.",
-      "passed": false,
-      "elapsed_ms": 2824,
-      "tokens": 18363,
+      "passed": true,
+      "elapsed_ms": 4330,
+      "tokens": 30725,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
+        "json_set",
         "json_set"
       ],
-      "diffs": {
-        "palio_games_status.json": "--- expected\n+++ actual\n@@ -20,13 +20,7 @@\n           \"applied_penalties\": [],\n           \"name\": \"Maschile\",\n           \"score_penalties\": [],\n-          \"scores\": {\n-            \"Salt\": 45,\n-            \"Sornico\": 40,\n-            \"Sottocastello\": 38,\n-            \"Sottomonte\": 47,\n-            \"Villa\": 52\n-          },\n+          \"scores\": {},\n           \"status\": \"completed\"\n         },\n         {"
-      },
-      "final_text": "Ho aggiornato la divisione **Maschile** di **Corsa coi Sacchi (G02)**, marcandola come `completed`.",
+      "diffs": {},
+      "final_text": "Ho aggiornato la **divisione Maschile di Corsa coi Sacchi (G02)**:\n\n- Punteggi: Salt 45, Sottocastello 38, Villa 52, Sornico 40, Sottomonte 47\n- Stato divisione: `completed`",
       "judge": null
     },
     {
       "id": "s4_womens_scores",
       "prompt": "divisione femminile: Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48. Marca femminile e l'intero gioco come completati.",
       "passed": true,
-      "elapsed_ms": 5353,
-      "tokens": 19164,
+      "elapsed_ms": 3725,
+      "tokens": 21538,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -69,40 +69,38 @@
         "json_set"
       ],
       "diffs": {},
-      "final_text": "Fatto. Ho aggiornato **Corsa coi Sacchi (G02)**:\n\n- Divisione **Femminile**: marcata `completed` e impostati i punteggi  \n  - Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48\n- **Intero gioco G02**: marcato `completed`",
+      "final_text": "Fatto: ho aggiornato **Corsa coi Sacchi (G02)**.\n\n- **Divisione Femminile**: impostata `completed`\n  - Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48\n- **Gioco G02 (intero)**: impostato `completed`",
       "judge": null
     },
     {
       "id": "s5_penalty",
       "prompt": "applica una penalità di 5 secondi a Villa nella divisione maschile della Corsa coi Sacchi per partenza anticipata",
-      "passed": false,
-      "elapsed_ms": 5537,
-      "tokens": 30293,
+      "passed": true,
+      "elapsed_ms": 3179,
+      "tokens": 22255,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_view",
         "json_set"
       ],
-      "diffs": {
-        "palio_games_status.json": "--- expected\n+++ actual\n@@ -21,7 +21,7 @@\n           \"name\": \"Maschile\",\n           \"score_penalties\": [\n             {\n-              \"description\": \"partenza anticipata\",\n+              \"description\": \"Partenza anticipata (penalità 5 secondi)\",\n               \"points\": -5,\n               \"village\": \"Villa\"\n             }"
-      },
-      "final_text": "Ho applicato la penalità nella **divisione Maschile di G02 (Corsa coi Sacchi)**:\n\n- **Villa**: penalità **“Partenza anticipata (penalità 5 secondi)”** = **-5** secondi\n- Inserita in `score_penalties` della divisione Maschile.",
+      "diffs": {},
+      "final_text": "Ho applicato a **Villa** nella **divisione Maschile** di **Corsa coi Sacchi (G02)** una **penalità**:\n\n- **Motivo:** partenza anticipata  \n- **Valore:** 5 secondi (penalità di `5` nel campo `score_penalties`)",
       "judge": null
     },
     {
       "id": "s6_undo",
       "prompt": "annulla l'ultima modifica ai giochi",
       "passed": true,
-      "elapsed_ms": 2497,
-      "tokens": 20841,
+      "elapsed_ms": 6007,
+      "tokens": 34100,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_undo"
+        "json_history",
+        "json_revert"
       ],
       "diffs": {},
-      "final_text": "Annullata l’ultima modifica in **palio_games_status** (ripristinato lo stato precedente).",
+      "final_text": "Fatto: ho annullato l’ultima modifica apportata a **palio_games_status** (la penalità di 5 secondi a Villa nella divisione maschile di G02).",
       "judge": null
     }
   ]
