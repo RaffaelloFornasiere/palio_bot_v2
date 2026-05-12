@@ -3,30 +3,30 @@
   "model": "google/gemini-3-flash-preview",
   "passed": 8,
   "total": 8,
-  "total_tokens": 228467,
-  "total_elapsed_s": 59.6,
+  "total_tokens": 212840,
+  "total_elapsed_s": 58.09,
   "steps": [
     {
       "id": "s1_status",
       "prompt": "qual è lo stato dello Scatolone?",
       "passed": true,
-      "elapsed_ms": 4420,
-      "tokens": 18496,
+      "elapsed_ms": 3808,
+      "tokens": 19920,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view"
       ],
       "diffs": {},
-      "final_text": "Il gioco \"Lo Scatolone\" (G04) si trova attualmente nello stato **non iniziato** (not-started). Non sono ancora stati registrati round o punteggi.",
+      "final_text": "Il gioco **Lo Scatolone** (ID: G04) risulta attualmente nello stato: **non iniziato** (`not-started`).\n\nAl momento non sono registrati round, bonus o penalità.",
       "judge": null
     },
     {
       "id": "s2_start",
       "prompt": "lo Scatolone è iniziato",
       "passed": true,
-      "elapsed_ms": 6789,
-      "tokens": 39090,
+      "elapsed_ms": 6143,
+      "tokens": 41942,
       "send_error": null,
       "tool_failures": [
         {
@@ -41,32 +41,31 @@
         "json_set"
       ],
       "diffs": {},
-      "final_text": "Perfetto, ho aggiornato lo stato del gioco **Lo Scatolone** (G04) a \"in-progress\".",
+      "final_text": "Perfetto, ho aggiornato lo stato del gioco **Lo Scatolone** a **in corso** (`in-progress`).",
       "judge": null
     },
     {
       "id": "s3_round1",
       "prompt": "villa 9 sottocastello 5",
       "passed": true,
-      "elapsed_ms": 5914,
-      "tokens": 30856,
+      "elapsed_ms": 4765,
+      "tokens": 22241,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_view",
         "json_append",
         "json_set"
       ],
       "diffs": {},
-      "final_text": "Risultato registrato per **Lo Scatolone**: Villa (9) - Sottocastello (5). Il round è stato aggiunto correttamente.",
+      "final_text": "Registrato il risultato per **Lo Scatolone**: Villa 9 - Sottocastello 5. Il round è stato aggiunto correttamente.",
       "judge": null
     },
     {
       "id": "s4_round2",
       "prompt": "salt 5 sottomonte 7",
       "passed": true,
-      "elapsed_ms": 23946,
-      "tokens": 23522,
+      "elapsed_ms": 3510,
+      "tokens": 22877,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -74,15 +73,15 @@
         "json_set"
       ],
       "diffs": {},
-      "final_text": "<thinking>\nL'utente ha fornito un altro risultato per il gioco \"Lo Scatolone\" (G04): Salt (5) vs Sottomonte (7).\n\n<brainstorm>\n- Gioco: \"Lo Scatolone\" (G04).\n- Tipo: `round-robin`.\n- Risultato: Salt (5) vs Sottomonte (7).\n- File: `palio_games_status`.\n- Operazione: Aggiungere un nuovo round alla lista `rounds` di G04 e aggiornare il timestamp.\n</brainstorm>\n\n<draft>\n1. Creerò l'oggetto round: `{\"scores\": [{\"village\": \"Salt\", \"points\": \"5\"}, {\"village\": \"Sottomonte\", \"points\": \"7\"}], \"score_penalties\": []}`.\n2. Userò `json_append` per aggiungerlo a `$.game_scores.G04.rounds`.\n3. Aggiornerò `last_updated`.\n</draft>\n\n<verify>\nHo tutte le informazioni. Procedo.\n</verify>\n</thinking>\n\nRisultato registrato: Salt (5) - Sottomonte (7) per il gioco **Lo Scatolone**.",
+      "final_text": "Registrato il risultato per **Lo Scatolone**: Salt 5 - Sottomonte 7. Il round è stato aggiunto correttamente.",
       "judge": null
     },
     {
       "id": "s5_batch_of_four",
       "prompt": "sornico 6 sottocastello 9\nvilla 10 sottomonte 8\nsalt 7 sottocastello 7\nsornico 7 villa 11",
       "passed": true,
-      "elapsed_ms": 4988,
-      "tokens": 25737,
+      "elapsed_ms": 4851,
+      "tokens": 24192,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -93,15 +92,15 @@
         "json_set"
       ],
       "diffs": {},
-      "final_text": "<thinking>\nL'utente ha fornito una serie di risultati per il gioco \"Lo Scatolone\" (G04).\n\n<brainstorm>\n- Gioco: \"Lo Scatolone\" (G04).\n- Risultati forniti:\n  1. Sornico (6) - Sottocastello (9)\n  2. Villa (10) - Sottomonte (8)\n  3. Salt (7) - Sottocastello (7)\n  4. Sornico (7) - Villa (11)\n- Operazione: Aggiungere ogni risultato come nuovo round in `$.game_scores.G04.rounds` e aggiornare `last_updated`.\n</brainstorm>\n\n<draft>\nUtilizzerò `json_append` per ciascuno dei 4 risultati e infine `json_set` per il timestamp.\n</draft>\n\n<verify>\nTutti i borghi e i punteggi sono chiari. Procedo.\n</verify>\n</thinking>\n\nTutti i risultati sono stati registrati correttamente per **Lo Scatolone**:\n- Sornico (6) vs Sottocastello (9)\n- Villa (10) vs Sottomonte (8)\n- Salt (7) vs Sottocastello (7)\n- Sornico (7) vs Villa (11)",
+      "final_text": "Ho aggiunto i seguenti risultati per **Lo Scatolone**:\n- Sornico 6 - Sottocastello 9\n- Villa 10 - Sottomonte 8\n- Salt 7 - Sottocastello 7\n- Sornico 7 - Villa 11",
       "judge": null
     },
     {
       "id": "s6_batch_of_three",
       "prompt": "sottomonte 8 sottocastello 7\nsalt 8 villa 10\nsornico 8 sottomonte 8",
       "passed": true,
-      "elapsed_ms": 4676,
-      "tokens": 28352,
+      "elapsed_ms": 4459,
+      "tokens": 25830,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -111,15 +110,15 @@
         "json_set"
       ],
       "diffs": {},
-      "final_text": "<thinking>\nL'utente ha fornito altri tre risultati per \"Lo Scatolone\" (G04).\n\n<brainstorm>\n- Gioco: \"Lo Scatolone\" (G04).\n- Risultati:\n  1. Sottomonte (8) - Sottocastello (7)\n  2. Salt (8) - Villa (10)\n  3. Sornico (8) - Sottomonte (8)\n- Operazione: Aggiungere i round e aggiornare il timestamp.\n</brainstorm>\n\n<draft>\nUtilizzerò `json_append` per i 3 nuovi round e `json_set` per `last_updated`.\n</draft>\n\n<verify>\nInformazioni complete. Procedo.\n</verify>\n</thinking>\n\nHo registrato gli ultimi risultati per **Lo Scatolone**:\n- Sottomonte (8) vs Sottocastello (7)\n- Salt (8) vs Villa (10)\n- Sornico (8) vs Sottomonte (8)",
+      "final_text": "Ho aggiunto gli ultimi risultati per **Lo Scatolone**:\n- Sottomonte 8 - Sottocastello 7\n- Salt 8 - Villa 10\n- Sornico 8 - Sottomonte 8",
       "judge": null
     },
     {
       "id": "s7_last_two",
       "prompt": "salt 9 sornico 6\nsalt 9 sottocastello 8",
       "passed": true,
-      "elapsed_ms": 4372,
-      "tokens": 30518,
+      "elapsed_ms": 26461,
+      "tokens": 28069,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -128,15 +127,15 @@
         "json_set"
       ],
       "diffs": {},
-      "final_text": "Risultati aggiunti per **Lo Scatolone**:\n- Salt (9) vs Sornico (6)\n- Salt (9) vs Sottocastello (8)",
+      "final_text": "Ho aggiunto i risultati finali per **Lo Scatolone**:\n- Salt 9 - Sornico 6\n- Salt 9 - Sottocastello 8",
       "judge": null
     },
     {
       "id": "s8_complete",
       "prompt": "marca lo Scatolone come completato",
       "passed": true,
-      "elapsed_ms": 4370,
-      "tokens": 31896,
+      "elapsed_ms": 3324,
+      "tokens": 27769,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -144,7 +143,7 @@
         "json_set"
       ],
       "diffs": {},
-      "final_text": "Il gioco **Lo Scatolone** (G04) è stato marcato come completato.",
+      "final_text": "Il gioco **Lo Scatolone** è stato marcato come **completato**.",
       "judge": null
     }
   ]

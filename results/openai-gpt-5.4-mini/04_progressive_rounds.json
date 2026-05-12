@@ -3,133 +3,155 @@
   "model": "openai/gpt-5.4-mini",
   "passed": 8,
   "total": 8,
-  "total_tokens": 159802,
-  "total_elapsed_s": 37.76,
+  "total_tokens": 395378,
+  "total_elapsed_s": 60.18,
   "steps": [
     {
       "id": "s1_status",
       "prompt": "qual è lo stato dello Scatolone?",
       "passed": true,
-      "elapsed_ms": 3481,
-      "tokens": 16271,
+      "elapsed_ms": 3159,
+      "tokens": 17637,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view"
       ],
       "diffs": {},
-      "final_text": "Lo Scatolone (G04) è **not-started**.\n\nDettagli attuali:\n- **rounds**: vuoto\n- **bonuses applicati**: nessuno\n- **penalties applicate**: nessuna",
+      "final_text": "Lo Scatolone (G04) è **non iniziato**.\n\nStato attuale:\n- **status:** `not-started`\n- **rounds:** vuoto\n- **bonifiche applicate:** nessuna\n- **penalità applicate:** nessuna",
       "judge": null
     },
     {
       "id": "s2_start",
       "prompt": "lo Scatolone è iniziato",
       "passed": true,
-      "elapsed_ms": 4057,
-      "tokens": 16510,
+      "elapsed_ms": 10042,
+      "tokens": 54854,
       "send_error": null,
-      "tool_failures": [],
+      "tool_failures": [
+        {
+          "tool": "unknown",
+          "error": "Per modificare 'palio_games_status' al path '$.last_updated' devi prima chiamare view('palio_games_status', ...) su quel path o un suo antenato."
+        }
+      ],
       "tool_calls": [
+        "json_history",
+        "json_set",
+        "json_set",
+        "json_view",
         "json_set"
       ],
       "diffs": {},
-      "final_text": "Fatto: **Lo Scatolone (G04) è ora in-progress**.",
+      "final_text": "Fatto: **Lo Scatolone è ora in corso**.\n\n- **status:** `in-progress`",
       "judge": null
     },
     {
       "id": "s3_round1",
       "prompt": "villa 9 sottocastello 5",
       "passed": true,
-      "elapsed_ms": 5762,
-      "tokens": 16976,
+      "elapsed_ms": 8727,
+      "tokens": 58108,
       "send_error": null,
-      "tool_failures": [],
+      "tool_failures": [
+        {
+          "tool": "unknown",
+          "error": "Tool execution failed: MultiJSONEditorTool.merge() missing 1 required positional argument: 'partial'"
+        }
+      ],
       "tool_calls": [
-        "json_append"
+        "json_history",
+        "json_merge",
+        "json_view",
+        "json_set",
+        "json_set"
       ],
       "diffs": {},
-      "final_text": "Registrato il risultato di **Lo Scatolone (G04)**:\n- **Villa** 9\n- **Sottocastello** 5",
+      "final_text": "Registrato il risultato dello Scatolone:\n\n- **Villa 9**\n- **Sottocastello 5**\n\nStato gioco: **in-progress**.",
       "judge": null
     },
     {
       "id": "s4_round2",
       "prompt": "salt 5 sottomonte 7",
       "passed": true,
-      "elapsed_ms": 2758,
-      "tokens": 17335,
+      "elapsed_ms": 6877,
+      "tokens": 41615,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_append"
+        "json_view",
+        "json_set",
+        "json_set"
       ],
       "diffs": {},
-      "final_text": "Registrato il risultato:\n- **Salt** 5\n- **Sottomonte** 7",
+      "final_text": "Registrato anche questo round dello Scatolone:\n\n- **Salt 5**\n- **Sottomonte 7**\n\nSe vuoi, posso anche mostrarti lo stato attuale completo del gioco.",
       "judge": null
     },
     {
       "id": "s5_batch_of_four",
       "prompt": "sornico 6 sottocastello 9\nvilla 10 sottomonte 8\nsalt 7 sottocastello 7\nsornico 7 villa 11",
       "passed": true,
-      "elapsed_ms": 6159,
-      "tokens": 27726,
+      "elapsed_ms": 7909,
+      "tokens": 45488,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_append",
-        "json_append",
-        "json_append",
-        "json_append"
+        "json_view",
+        "json_set",
+        "json_set"
       ],
       "diffs": {},
-      "final_text": "Registrati i 4 risultati aggiuntivi di **Lo Scatolone (G04)**:\n- **Sornico** 6, **Sottocastello** 9\n- **Villa** 10, **Sottomonte** 8\n- **Salt** 7, **Sottocastello** 7\n- **Sornico** 7, **Villa** 11",
+      "final_text": "Aggiunti i 4 risultati dello Scatolone.\n\nRound registrati:\n- Sornico 6 — Sottocastello 9\n- Villa 10 — Sottomonte 8\n- Salt 7 — Sottocastello 7\n- Sornico 7 — Villa 11\n\nStato del gioco: **in-progress**.",
       "judge": null
     },
     {
       "id": "s6_batch_of_three",
       "prompt": "sottomonte 8 sottocastello 7\nsalt 8 villa 10\nsornico 8 sottomonte 8",
       "passed": true,
-      "elapsed_ms": 4845,
-      "tokens": 20561,
+      "elapsed_ms": 8095,
+      "tokens": 52342,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_append",
-        "json_append",
-        "json_append"
+        "json_view",
+        "json_set",
+        "json_set"
       ],
       "diffs": {},
-      "final_text": "Aggiunti i 3 risultati di **Lo Scatolone (G04)**:\n- **Sottomonte** 8, **Sottocastello** 7\n- **Salt** 8, **Villa** 10\n- **Sornico** 8, **Sottomonte** 8",
+      "final_text": "Aggiunti i 3 nuovi risultati dello Scatolone:\n\n- Sottomonte 8 — Sottocastello 7\n- Salt 8 — Villa 10\n- Sornico 8 — Sottomonte 8\n\nStato gioco: **in-progress**.",
       "judge": null
     },
     {
       "id": "s7_last_two",
       "prompt": "salt 9 sornico 6\nsalt 9 sottocastello 8",
       "passed": true,
-      "elapsed_ms": 5675,
-      "tokens": 21885,
+      "elapsed_ms": 7558,
+      "tokens": 60691,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_append",
-        "json_append"
+        "json_view",
+        "json_set",
+        "json_set"
       ],
       "diffs": {},
-      "final_text": "Aggiunti i 2 risultati:\n- **Salt** 9, **Sornico** 6\n- **Salt** 9, **Sottocastello** 8",
+      "final_text": "Aggiunti i 2 nuovi risultati dello Scatolone:\n\n- Salt 9 — Sornico 6\n- Salt 9 — Sottocastello 8\n\nStato gioco: **in-progress**.",
       "judge": null
     },
     {
       "id": "s8_complete",
       "prompt": "marca lo Scatolone come completato",
       "passed": true,
-      "elapsed_ms": 4902,
-      "tokens": 22538,
+      "elapsed_ms": 7091,
+      "tokens": 64643,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
+        "json_history",
+        "json_set",
         "json_set"
       ],
       "diffs": {},
-      "final_text": "Fatto: **Lo Scatolone (G04) è stato marcato come completed**.",
+      "final_text": "Fatto: **Lo Scatolone è stato marcato come completato**.",
       "judge": null
     }
   ]

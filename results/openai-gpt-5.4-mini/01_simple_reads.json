@@ -3,82 +3,82 @@
   "model": "openai/gpt-5.4-mini",
   "passed": 8,
   "total": 8,
-  "total_tokens": 124759,
-  "total_elapsed_s": 40.74,
+  "total_tokens": 134950,
+  "total_elapsed_s": 45.12,
   "steps": [
     {
       "id": "s1_show_status",
       "prompt": "mostra lo stato attuale dei giochi",
       "passed": true,
-      "elapsed_ms": 8153,
-      "tokens": 20913,
+      "elapsed_ms": 7630,
+      "tokens": 11405,
       "send_error": null,
       "tool_failures": [],
-      "tool_calls": [
-        "json_view"
-      ],
+      "tool_calls": [],
       "diffs": {},
-      "final_text": "Stato attuale dei giochi:\n\n- G01 Taglio del Tronco: in-progress\n  - Maschile: in-progress\n  - Femminile: in-progress\n- G02 Corsa coi Sacchi: not-started\n  - Maschile: not-started\n  - Femminile: not-started\n- G03 Anguria: not-started\n- G04 Lo Scatolone: not-started\n- G05 Strade Mate: not-started\n- G06 Staffetta: not-started\n- G07 Bicicletta: not-started\n- G08 Freccette: not-started\n- G09 Calcio a Cinque: not-started\n- G10 Pallavolo: not-started\n  - Maschile: not-started\n  - Femminile: not-started\n- G11 Bocce: not-started\n- G12 Morra: not-started\n- G13 Briscola: not-started\n  - Maschile: not-started\n  - Femminile: not-started\n- G14 Intesa Vincente: not-started\n- G15 Bale Pignote Jr: not-started\n  - Maschile: not-started\n  - Femminile: not-started\n- G16 I Camerieri: not-started\n  - Maschile: not-started\n  - Femminile: not-started\n- G17 Bale Pignote Sr: not-started\n  - Maschile: not-started\n  - Femminile: not-started\n\nUltimo aggiornamento stato giochi: 2026-04-19T16:12:58.730967Z",
+      "final_text": "{\"game_scores\":{\"G01\":{\"status\":\"in-progress\",\"divisions\":[{\"score_penalties\":[],\"scores\":{\"Sornico\":54.97,\"Sottocastello\":26.22,\"Salt\":30.07,\"Villa\":63.23,\"Sottomonte\":28.2},\"status\":\"in-progress\",\"name\":\"Maschile\",\"applied_bonuses\":[],\"applied_penalties\":[]},{\"score_penalties\":[],\"applied_penalties\":[],\"applied_bonuses\":[],\"name\":\"Femminile\",\"scores\":{\"Sottomonte\":\"34.67\",\"Sottocastello\":\"38.82\",\"Villa\":\"61.05\"},\"status\":\"in-progress\"}]},\"G02\":{\"status\":\"not-started\",\"divisions\":[{\"name\":\"Maschile\",\"status\":\"not-started\",\"scores\":{},\"score_penalties\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},{\"name\":\"Femminile\",\"status\":\"not-started\",\"scores\":{},\"score_penalties\":[],\"applied_bonuses\":[],\"applied_penalties\":[]}]},\"G03\":{\"status\":\"not-started\",\"scores\":{},\"score_penalties\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},\"G04\":{\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},\"G05\":{\"status\":\"not-started\",\"scores\":{},\"score_penalties\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},\"G06\":{\"status\":\"not-started\",\"scores\":{},\"score_penalties\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},\"G07\":{\"status\":\"not-started\",\"scores\":{},\"score_penalties\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},\"G08\":{\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},\"G09\":{\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},\"G10\":{\"status\":\"not-started\",\"divisions\":[{\"name\":\"Maschile\",\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},{\"name\":\"Femminile\",\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]}]},\"G11\":{\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},\"G12\":{\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},\"G13\":{\"status\":\"not-started\",\"divisions\":[{\"name\":\"Maschile\",\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},{\"name\":\"Femminile\",\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]}]},\"G14\":{\"status\":\"not-started\",\"scores\":{},\"score_penalties\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},\"G15\":{\"status\":\"not-started\",\"divisions\":[{\"name\":\"Maschile\",\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},{\"name\":\"Femminile\",\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]}]},\"G16\":{\"status\":\"not-started\",\"divisions\":[{\"name\":\"Maschile\",\"status\":\"not-started\",\"scores\":{},\"score_penalties\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},{\"name\":\"Femminile\",\"status\":\"not-started\",\"scores\":{},\"score_penalties\":[],\"applied_bonuses\":[],\"applied_penalties\":[]}]},\"G17\":{\"status\":\"not-started\",\"divisions\":[{\"name\":\"Maschile\",\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]},{\"name\":\"Femminile\",\"status\":\"not-started\",\"rounds\":[],\"applied_bonuses\":[],\"applied_penalties\":[]}]}},\"last_updated\":\"2026-04-19T16:12:58.730967Z\"}\n\nEcco lo stato attuale dei giochi:\n\n- **G01 – Taglio del Tronco**: in-progress  \n  - **Maschile**: in-progress  \n  - **Femminile**: in-progress  \n\n- **G02 – Corsa coi Sacchi**: not-started  \n  - **Maschile**: not-started  \n  - **Femminile**: not-started  \n\n- **G03 – Anguria**: not-started  \n\n- **G04 – Lo Scatolone**: not-started  \n\n- **G05 – Strade Mate**: not-started  \n\n- **G06 – Staffetta**: not-started  \n\n- **G07 – Bicicletta**: not-started  \n\n- **G08 – Freccette**: not-started  \n\n- **G09 – Calcio a Cinque**: not-started  \n\n- **G10 – Pallavolo**: not-started  \n  - **Maschile**: not-started  \n  - **Femminile**: not-started  \n\n- **G11 – Bocce**: not-started  \n\n- **G12 – Morra**: not-started  \n\n- **G13 – Briscola**: not-started  \n  - **Maschile**: not-started  \n  - **Femminile**: not-started  \n\n- **G14 – Intesa Vincente**: not-started  \n\n- **G15 – Bale Pignote Jr**: not-started  \n  - **Maschile**: not-started  \n  - **Femminile**: not-started  \n\n- **G16 – I Camerieri**: not-started  \n  - **Maschile**: not-started  \n  - **Femminile**: not-started  \n\n- **G17 – Bale Pignote Sr**: not-started  \n  - **Maschile**: not-started  \n  - **Femminile**: not-started  \n\nSe vuoi, posso anche mostrartelo in formato più compatto o evidenziare solo i giochi già iniziati.",
       "judge": null
     },
     {
       "id": "s2_show_leaderboard",
       "prompt": "mostra la classifica attuale",
       "passed": true,
-      "elapsed_ms": 4837,
-      "tokens": 19052,
+      "elapsed_ms": 2395,
+      "tokens": 20428,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view"
       ],
       "diffs": {},
-      "final_text": "Ecco la classifica attuale:\n\n1. **Sornico** — 0 punti  \n2. **Sottocastello** — 0 punti  \n3. **Salt** — 0 punti  \n4. **Sottomonte** — 0 punti  \n5. **Villa** — 0 punti",
+      "final_text": "Ecco la classifica attuale:\n\n1. Sornico — 0 punti\n2. Sottocastello — 0 punti\n3. Salt — 0 punti\n4. Sottomonte — 0 punti\n5. Villa — 0 punti\n\nSe vuoi, posso anche mostrarti lo stato dei giochi.",
       "judge": null
     },
     {
       "id": "s3_specific_game",
       "prompt": "qual è lo stato della gara di calcio a cinque?",
       "passed": true,
-      "elapsed_ms": 4401,
-      "tokens": 18862,
+      "elapsed_ms": 3546,
+      "tokens": 20305,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view"
       ],
       "diffs": {},
-      "final_text": "La gara di **Calcio a Cinque (G09)** è attualmente:\n\n- **Stato:** `not-started`\n- **Round registrati:** nessuno\n- **Bonus applicati:** nessuno\n- **Penalità applicate:** nessuna\n\nSe vuoi, posso anche mostrarti il dettaglio completo dei match già inseriti nel torneo.",
+      "final_text": "La gara di **Calcio a Cinque (G09)** è attualmente **non iniziata**.\n\nStato:\n- **status:** `not-started`\n- **rounds:** `[]`\n- **bonus applicati:** `[]`\n- **penalità applicate:** `[]`\n\nSe vuoi, posso anche mostrarti il calendario delle partite già previsto per questo gioco.",
       "judge": null
     },
     {
       "id": "s4_count_pending",
       "prompt": "quante gare non sono ancora iniziate?",
       "passed": true,
-      "elapsed_ms": 1557,
-      "tokens": 9352,
+      "elapsed_ms": 2635,
+      "tokens": 21943,
       "send_error": null,
       "tool_failures": [],
-      "tool_calls": [],
+      "tool_calls": [
+        "json_view"
+      ],
       "diffs": {},
-      "final_text": "Al momento ci sono **13 gare non ancora iniziate**.\n\nDettaglio rapido:\n- **1 gara** in corso: **G01**\n- **13 gare** non iniziate: **G02–G17**, esclusa **G01**\n- **0 gare** completate\n\nSe vuoi, posso anche elencarti quali sono.",
+      "final_text": "Ci sono **15 gare non ancora iniziate**.\n\nHo contato tutte le gare con stato `not-started`; **G01** è già `in-progress`, quindi non rientra nel conteggio.",
       "judge": null
     },
     {
       "id": "s5_count_in_progress",
       "prompt": "quante gare sono attualmente in corso?",
       "passed": true,
-      "elapsed_ms": 1430,
-      "tokens": 9324,
+      "elapsed_ms": 1124,
+      "tokens": 10084,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [],
       "diffs": {},
-      "final_text": "Attualmente è in corso **1 gara**.\n\nDettaglio:\n- **G01 - Taglio del Tronco**: **in-progress**\n\nTutte le altre gare risultano **not-started**.",
+      "final_text": "Attualmente è **in corso 1 gara**: **G01 – Taglio del Tronco**.\n\nSe vuoi, posso anche dirti **quali divisioni** sono in corso e il dettaglio dello stato.",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": true,
-        "reasoning": "L'agente ha identificato correttamente che c'è una sola gara in corso e ha citato correttamente il nome e l'ID della gara (G01 - Taglio del Tronco) basandosi sui dati presenti in palio_games_status.json.",
+        "reasoning": "L'agente ha correttamente identificato che c'è una sola gara in corso e l'ha nominata correttamente (G01 - Taglio del Tronco) basandosi sui dati forniti nel file palio_games_status.json.",
         "failed_criteria": []
       }
     },
@@ -86,19 +86,19 @@
       "id": "s6_leaderboard_standings",
       "prompt": "chi sta vincendo nella classifica generale?",
       "passed": true,
-      "elapsed_ms": 3421,
-      "tokens": 18982,
+      "elapsed_ms": 3008,
+      "tokens": 20423,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view"
       ],
       "diffs": {},
-      "final_text": "Al momento non c’è un vincitore netto: tutti i borghi hanno **0 punti**.\n\nIn classifica generale, per posizione attuale:\n1. **Sornico**\n2. **Sottocastello**\n3. **Salt**\n4. **Sottomonte**\n5. **Villa**\n\nQuindi, formalmente, **Sornico è in testa** perché è al 1° posto, ma a pari punti con tutti gli altri.",
+      "final_text": "Al momento la classifica generale è in parità: tutti i borghi hanno 0 punti.\n\nPer posizione, è primo **Sornico**, ma solo per l’ordinamento attuale della classifica:\n1. Sornico — 0 punti  \n2. Sottocastello — 0 punti  \n3. Salt — 0 punti  \n4. Sottomonte — 0 punti  \n5. Villa — 0 punti\n\nSe vuoi, posso anche mostrarti lo stato dei giochi che potrebbero influenzare la classifica.",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": true,
-        "reasoning": "L'agente ha correttamente identificato che tutti i borghi hanno 0 punti, rispettando i dati presenti in leaderboard.json. Ha inoltre riportato correttamente l'ordine di classifica basato sulla posizione (position) indicata nel file, specificando esplicitamente che si tratta di un pari merito a zero punti.",
+        "reasoning": "L'agente ha correttamente identificato che tutti i borghi hanno 0 punti e che la classifica è in parità. Non ha inventato punteggi e ha riportato fedelmente i dati presenti nel file leaderboard.json.",
         "failed_criteria": []
       }
     },
@@ -106,17 +106,17 @@
       "id": "s7_ambiguous_vittoria",
       "prompt": "villa ha vinto",
       "passed": true,
-      "elapsed_ms": 2068,
-      "tokens": 9391,
+      "elapsed_ms": 1629,
+      "tokens": 10131,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [],
       "diffs": {},
-      "final_text": "Mi serve sapere **quale gioco** intendi: “Villa ha vinto” da solo non basta per aggiornare lo stato.\n\nSe il gioco ha divisioni, indicami anche **la divisione**:\n- G01 Taglio del Tronco → Maschile / Femminile\n- G13 Briscola → Maschile / Femminile\n- G16 I Camerieri → Maschile / Femminile\n\nE, se è un gioco round-robin, idealmente anche **contro chi** e con **quale risultato**.",
+      "final_text": "Mi manca un’informazione essenziale: **in quale gioco** Villa ha vinto?\n\nSe il gioco ha **divisioni**, mi serve anche la **divisione**.  \nEsempi:\n- “Villa ha vinto nel **G09 Calcio a Cinque**”\n- “Villa ha vinto nel **G01 Taglio del Tronco, Maschile**”\n\nDimmi il gioco (e la divisione se serve) e aggiorno lo stato.",
       "judge": {
         "model": "google/gemini-3-flash-preview",
         "passed": true,
-        "reasoning": "L'agente ha correttamente identificato l'ambiguità del messaggio dell'utente, chiedendo esplicitamente a quale gioco si riferisse senza apportare modifiche ai dati. La risposta è formulata come una richiesta di chiarimento e non afferma di aver aggiornato nulla.",
+        "reasoning": "L'agente ha correttamente identificato l'ambiguità del messaggio dell'utente, chiedendo esplicitamente a quale gioco si riferisse senza apportare modifiche ai dati. La risposta è formulata come una richiesta di chiarimento e non contiene affermazioni circa aggiornamenti già avvenuti.",
         "failed_criteria": []
       }
     },
@@ -124,8 +124,8 @@
       "id": "s8_specific_village_points",
       "prompt": "quanti punti ha Sottocastello nella classifica?",
       "passed": true,
-      "elapsed_ms": 8540,
-      "tokens": 18883,
+      "elapsed_ms": 2262,
+      "tokens": 20231,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
