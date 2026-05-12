@@ -74,11 +74,52 @@ def _coerce_numeric_strings(obj: Any) -> Any:
     return obj
 
 
+# Optional-but-defaulted array fields that should compare equal when empty
+# regardless of whether they are present or omitted in either side. The
+# Pydantic models default these to []; agents that omit them produce
+# semantically equivalent output.
+_OPTIONAL_EMPTY_LIST_FIELDS = frozenset({
+    "score_penalties",
+    "applied_penalties",
+    "applied_bonuses",
+})
+
+# Free-form text fields where capitalization / surrounding whitespace are
+# cosmetic. Diff should ignore those.
+_FREEFORM_TEXT_FIELDS = frozenset({"description"})
+
+# Timestamp-ish fields agents sometimes invent / refresh. These are pure
+# bookkeeping and shouldn't ever cause a structural diff to fail, at any
+# depth in the tree.
+_TIMESTAMP_FIELDS = frozenset({"last_updated", "updated_at"})
+
+
+def _normalize_freeform(obj: Any) -> Any:
+    """Recursively normalize free-form text fields, drop empty optional
+    arrays, and strip bookkeeping timestamps so cosmetic agent variance
+    doesn't fail the structural diff."""
+    if isinstance(obj, dict):
+        out: dict = {}
+        for k, v in obj.items():
+            if k in _TIMESTAMP_FIELDS:
+                continue
+            if k in _OPTIONAL_EMPTY_LIST_FIELDS and isinstance(v, list) and not v:
+                continue
+            if k in _FREEFORM_TEXT_FIELDS and isinstance(v, str):
+                out[k] = v.strip().lower()
+            else:
+                out[k] = _normalize_freeform(v)
+        return out
+    if isinstance(obj, list):
+        return [_normalize_freeform(x) for x in obj]
+    return obj
+
+
 def _normalize_for_diff(fname: str, data: Any) -> Any:
     data = copy.deepcopy(data)
-    if fname == "palio_games_status.json" and isinstance(data, dict):
-        data.pop("last_updated", None)
-    return _coerce_numeric_strings(data)
+    data = _coerce_numeric_strings(data)
+    data = _normalize_freeform(data)
+    return data
 
 
 def _json_diff(expected: Any, actual: Any, *, context: int = 3) -> str:
@@ -169,11 +210,14 @@ async def run_scenario(
                 await c.init_container()
                 return c, rec
 
-            async def teardown(c: Container) -> None:
+            async def teardown(c: Container, *, save: bool = True) -> None:
                 try:
                     sys_ = c.system()
                     if sys_.get_active_session():
-                        sys_.cancel_session()
+                        if save:
+                            sys_.save_session()
+                        else:
+                            sys_.cancel_session()
                 except Exception:
                     pass
                 try:
@@ -197,7 +241,11 @@ async def run_scenario(
 
                 if reset:
                     if container is not None:
-                        await teardown(container)
+                        # Between independent steps we don't want the
+                        # previous step's edits leaking into the next
+                        # `admin_reset` — discard so working tree goes
+                        # back to last_save before the seed copy runs.
+                        await teardown(container, save=False)
                     container, recorder = await fresh_container()
 
                 system = container.system()
@@ -227,8 +275,14 @@ async def run_scenario(
 
                 elapsed_ms = int((time.time() - t0) * 1000)
 
-                # Commit staged edits so canonical reflects the agent's work.
-                if system.get_active_session():
+                # In `reset=True` mode each step is its own session, so we
+                # save to materialise edits before the next reset wipes
+                # them. In chained mode the working tree is already
+                # canonical (write-through PUTs), so saving between steps
+                # would only collapse the session's history and break
+                # cross-step `json_history` / `json_revert` — keep one
+                # long session that spans the whole scenario.
+                if reset and system.get_active_session():
                     try:
                         system.save_session()
                     except Exception as e:
