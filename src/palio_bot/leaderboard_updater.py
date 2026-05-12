@@ -453,13 +453,15 @@ class LeaderboardUpdater:
                 final_points[village] += bonus_points
                 logger.info(f"Applied bonus to {village}: +{bonus_points} points (reason: {bonus.get('description', 'No description')})")
         
-        # Apply penalties
+        # Apply penalties. Convention: `points` is a positive magnitude that
+        # gets SUBTRACTED. abs() is defensive in case legacy data still has
+        # the old signed convention.
         for penalty in game_data.get('applied_penalties', []):
             village = penalty.get('village')
-            penalty_points = penalty.get('points', 0)
+            penalty_points = abs(penalty.get('points', 0))
             if village in final_points:
-                final_points[village] += penalty_points  # penalties are negative numbers
-                logger.info(f"Applied penalty to {village}: {penalty_points} points (reason: {penalty.get('description', 'No description')})")
+                final_points[village] -= penalty_points
+                logger.info(f"Applied penalty to {village}: -{penalty_points} points (reason: {penalty.get('description', 'No description')})")
         
         return final_points
     

@@ -9,14 +9,14 @@ class ScorePenalty(BaseModel):
     """A penalty applied to raw scores/rounds that affects ranking."""
     village: str = Field(..., description="The village receiving the penalty")
     description: str = Field(..., description="Description of the penalty")
-    points: int | float = Field(..., description="Points deducted from raw score (negative number)")
+    points: int | float = Field(..., description="Magnitude to subtract from raw score (positive number)")
 
 
 class GamePenalty(BaseModel):
     """A penalty applied to final leaderboard points after ranking."""
     village: str = Field(..., description="The village receiving the penalty")
     description: str = Field(..., description="Description of the penalty")
-    points: int = Field(..., description="Points deducted from leaderboard points (negative number)")
+    points: int = Field(..., description="Magnitude to subtract from leaderboard points (positive number)")
 
 
 class GameBonus(BaseModel):

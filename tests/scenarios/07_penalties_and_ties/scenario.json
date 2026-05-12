@@ -47,7 +47,7 @@
       "changes": {
         "palio_games_status.json": [
           { "path": "$.game_scores.G02.divisions[0].score_penalties", "set": [
-            { "village": "Villa", "description": "partenza anticipata", "points": -5 }
+            { "village": "Villa", "description": "partenza anticipata", "points": 5 }
           ]}
         ]
       }

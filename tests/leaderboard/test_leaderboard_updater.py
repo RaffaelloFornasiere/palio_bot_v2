@@ -389,8 +389,15 @@ def test_update_leaderboard_score_based_no_divisions(tmp_path: Path):
 
 
 def test_update_leaderboard_score_based_with_divisions_combines_raw_scores(tmp_path: Path):
-    """Divisions are combined by RAW score, then RANKING_POINTS applied to the combined ranking."""
-    palio = {"games": [{"id": "G02", "name": "Corsa", "type": "score-based", "lower_is_better": True}]}
+    """Divisions are combined by RAW score, then RANKING_POINTS applied to the combined ranking.
+
+    Requires the explicit `combine_divisions: true` flag on the game
+    definition. Without it, divisions are treated as independent
+    contests and their per-division ranking points are summed instead."""
+    palio = {"games": [{
+        "id": "G02", "name": "Corsa", "type": "score-based",
+        "lower_is_better": True, "combine_divisions": True,
+    }]}
     status = {
         "game_scores": {
             "G02": {
@@ -485,7 +492,12 @@ def test_update_leaderboard_skips_non_completed_games(tmp_path: Path):
     assert "G02" not in out["game_leaderboards"]
 
 
-def test_update_leaderboard_specific_game_only_processes_that_game(tmp_path: Path):
+def test_update_leaderboard_specific_game_id_is_ignored_and_recomputes_all(
+    tmp_path: Path, caplog
+):
+    """The `specific_game_id` kwarg was removed; the updater now always
+    recomputes every completed game and logs a warning if a caller
+    passes it. This is the regression guard for the dropped narrow path."""
     palio = {"games": [
         {"id": "G01", "name": "A", "type": "score-based", "lower_is_better": False},
         {"id": "G02", "name": "B", "type": "score-based", "lower_is_better": False},
@@ -505,22 +517,36 @@ def test_update_leaderboard_specific_game_only_processes_that_game(tmp_path: Pat
         },
         "last_updated": "2026-04-19T00:00:00Z",
     }
-    # Pre-populate leaderboard with G01 already there
-    seed_lb = _empty_leaderboard()
-    updater = _make_updater(tmp_path, palio, status, seed_lb)
-    updater.update_leaderboard(specific_game_id="G02")
+    updater = _make_updater(tmp_path, palio, status, _empty_leaderboard())
+
+    with caplog.at_level("WARNING"):
+        updater.update_leaderboard(specific_game_id="G02")
+    assert any(
+        "specific_game_id is no longer honored" in r.message for r in caplog.records
+    )
 
     out = json.loads((tmp_path / "leaderboard.json").read_text())
+    # Both completed games appear — narrow filter is gone.
+    assert "G01" in out["game_leaderboards"]
     assert "G02" in out["game_leaderboards"]
-    # G01 was not in the prior leaderboard and was not requested → should not appear
-    assert "G01" not in out["game_leaderboards"]
 
 
-def test_update_leaderboard_specific_game_skips_when_not_completed(tmp_path: Path):
-    palio = {"games": [{"id": "G01", "name": "A", "type": "score-based", "lower_is_better": False}]}
+def test_update_leaderboard_skips_in_progress_games_even_when_requested(
+    tmp_path: Path
+):
+    """An in-progress game produces no `game_leaderboards` entry, even
+    if a (no-longer-honored) `specific_game_id` points at it. Completed
+    games are still computed."""
+    palio = {"games": [
+        {"id": "G01", "name": "A", "type": "score-based", "lower_is_better": False},
+    ]}
     status = {
         "game_scores": {
-            "G01": {"status": "in-progress", "scores": {"Villa": 10}, "applied_bonuses": [], "applied_penalties": []},
+            "G01": {
+                "status": "in-progress",
+                "scores": {"Villa": 10},
+                "applied_bonuses": [], "applied_penalties": [],
+            },
         },
         "last_updated": "2026-04-19T00:00:00Z",
     }
@@ -528,8 +554,7 @@ def test_update_leaderboard_specific_game_skips_when_not_completed(tmp_path: Pat
     updater.update_leaderboard(specific_game_id="G01")
 
     out = json.loads((tmp_path / "leaderboard.json").read_text())
-    # Output not modified — file stays as the seeded empty leaderboard
-    assert out == _empty_leaderboard()
+    assert "G01" not in out["game_leaderboards"]
 
 
 def test_update_leaderboard_applies_game_level_bonuses_after_ranking(tmp_path: Path):
