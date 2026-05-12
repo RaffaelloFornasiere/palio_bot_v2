@@ -265,7 +265,6 @@ class LeaderboardUpdater:
             'game_name': game_def['name'],
             'divisions': divisions,
             'overall_leaderboard': overall_leaderboard,
-            'completed': True,
             'updated_at': datetime.now().isoformat()
         }
     

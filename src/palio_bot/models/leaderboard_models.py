@@ -20,7 +20,6 @@ class GameLeaderboard(BaseModel):
     game_name: str
     divisions: List[DivisionLeaderboard]
     overall_leaderboard: Dict[str, LeaderboardEntry] # village -> LeaderboardEntry
-    completed: Optional[bool] = True
     updated_at: Optional[str] = None
 
 
