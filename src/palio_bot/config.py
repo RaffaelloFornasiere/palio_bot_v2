@@ -42,7 +42,7 @@ class Config(BaseSettings):
 
     # OpenRouter
     openrouter_api_key: Optional[str] = None
-    openrouter_model: str = "anthropic/claude-3.5-haiku"
+    openrouter_model: str = "google/gemini-3-flash-preview"
     openrouter_base_url: str = "https://openrouter.ai/api"
 
     # llama.cpp
