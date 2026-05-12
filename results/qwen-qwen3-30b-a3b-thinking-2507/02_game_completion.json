@@ -1,0 +1,105 @@
+{
+  "scenario": "complete_corsa_sacchi",
+  "model": "qwen/qwen3-30b-a3b-thinking-2507",
+  "passed": 6,
+  "total": 6,
+  "total_tokens": 139207,
+  "total_elapsed_s": 89.92,
+  "steps": [
+    {
+      "id": "s1_view",
+      "prompt": "mostra lo stato della Corsa coi Sacchi",
+      "passed": true,
+      "elapsed_ms": 9615,
+      "tokens": 20533,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view"
+      ],
+      "diffs": {},
+      "final_text": "Lo stato attuale della Corsa coi Sacchi (G02) è:\n\n- **Stato generale**: non-started\n- **Divisioni**:\n  - *Maschile*: non-started\n  - *Femminile*: non-started\n\nNessun risultato è stato registrato per questa gara. I punteggi sono ancora vuoti e lo stato rimane \"not-started\" per entrambe le divisioni.",
+      "judge": null
+    },
+    {
+      "id": "s2_start_game",
+      "prompt": "la Corsa coi Sacchi è iniziata. Imposta lo stato del gioco e di entrambe le divisioni a 'in-progress'.",
+      "passed": true,
+      "elapsed_ms": 10978,
+      "tokens": 21480,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "Lo stato della Corsa coi Sacchi è stato aggiornato correttamente:\n\n- **Stato generale del gioco**: `in-progress`\n- **Divisione Maschile**: `in-progress`\n- **Divisione Femminile**: `in-progress`\n\nOra il gioco è attivo e le divisioni sono in fase di svolgimento.",
+      "judge": null
+    },
+    {
+      "id": "s3_mens_scores",
+      "prompt": "divisione maschile della Corsa coi Sacchi: Salt 45, Sottocastello 38, Villa 52, Sornico 40, Sottomonte 47. Marca la divisione come completata.",
+      "passed": true,
+      "elapsed_ms": 17495,
+      "tokens": 22904,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "La divisione **Maschile** della Corsa coi Sacchi è stata completata con i seguenti punteggi:\n- **Salt**: 45\n- **Sottocastello**: 38\n- **Villa**: 52\n- **Sornico**: 40\n- **Sottomonte**: 47\n\nLo stato della divisione è stato aggiornato a **completed**. La divisione Femminile rimane ancora in \"in-progress\" (non è stata modificata).",
+      "judge": null
+    },
+    {
+      "id": "s4_womens_scores",
+      "prompt": "divisione femminile: Salt 42, Sottocastello 39, Villa 55, Sornico 44, Sottomonte 48. Marca femminile e l'intero gioco come completati.",
+      "passed": true,
+      "elapsed_ms": 18661,
+      "tokens": 24056,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_set",
+        "json_set",
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "La divisione **Femminile** della Corsa coi Sacchi è stata completata con i seguenti punteggi:\n- **Salt**: 42\n- **Sottocastello**: 39\n- **Villa**: 55\n- **Sornico**: 44\n- **Sottomonte**: 48\n\nLo stato della divisione è stato aggiornato a **completed** e lo stato generale del gioco è stato impostato a **completed**.  \nLa Corsa coi Sacchi è ora completamente conclusa.",
+      "judge": null
+    },
+    {
+      "id": "s5_penalty",
+      "prompt": "applica una penalità di 5 secondi a Villa nella divisione maschile della Corsa coi Sacchi per partenza anticipata",
+      "passed": true,
+      "elapsed_ms": 23554,
+      "tokens": 25673,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_append"
+      ],
+      "diffs": {},
+      "final_text": "La penalità di **5 secondi** è stata applicata a **Villa** nella divisione maschile della Corsa coi Sacchi per **partenza anticipata**. \n\nLa penalità è stata registrata nella lista `score_penalties` della divisione maschile. Ora Villa avrà il punteggio finale ridotto di 5 secondi (sempre che il sistema di calcolo tenga conto delle penalità prima del calcolo finale).",
+      "judge": null
+    },
+    {
+      "id": "s6_undo",
+      "prompt": "annulla l'ultima modifica ai giochi",
+      "passed": true,
+      "elapsed_ms": 8871,
+      "tokens": 24561,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_undo"
+      ],
+      "diffs": {},
+      "final_text": "L'ultima modifica ai giochi (la penalità applicata a Villa nella divisione maschile della Corsa coi Sacchi) è stata annullata con successo. Lo stato del gioco è ora tornato a prima dell'aggiunta della penalità.",
+      "judge": null
+    }
+  ]
+}

@@ -3,80 +3,114 @@
   "model": "qwen/qwen3.6-plus",
   "passed": 9,
   "total": 10,
-  "total_tokens": 402919,
-  "total_elapsed_s": 154.0,
+  "total_tokens": 375441,
+  "total_elapsed_s": 160.5,
   "steps": [
     {
       "id": "s1_inventory",
       "prompt": "elenca i giochi disponibili e indicami il loro stato attuale",
       "passed": true,
-      "elapsed_ms": 14672,
-      "tokens": 22276,
+      "elapsed_ms": 26167,
+      "tokens": 22847,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view"
       ],
       "diffs": {},
-      "final_text": "Ecco l'elenco dei giochi attualmente registrati nel sistema e il loro stato:\n\n| ID | Gioco | Tipo | Stato | Divisioni |\n|----|-------|------|-------|-----------|\n| **G01** | Taglio del Tronco | score-based | ⏸️ not-started | Maschile, Femminile |\n| **G02** | Corsa coi Sacchi | score-based | ⏸️ not-started | Maschile, Femminile |\n| **G03** | Anguria | score-based | ⏸️ not-started | Maschile, Femminile |\n| **G04** | Lo Scatolone | round-robin | ⏸️ not-started | Maschile, Femminile |\n| **G05** | Strade Mate | score-based | ⏸️ not-started | Unica |\n| **G06** | Staffetta | score-based | ⏸️ not-started | Maschile, Femminile |\n| **G09** | Calcio a Cinque | round-robin | ⏸️ not-started | Maschile, Femminile |\n\n**Nota:** Tutti i giochi sono attualmente in stato **\"not-started\"** (non ancora iniziati).\n\nAlcuni giochi presenti nella specifica del Palio (G07-Bicicletta, G08-Freccette, G10-Pallavolo, G11-Bocce, G12-Morra, G13-Briscola, G14-Intesa Vincente, G15-Bale Pignote Jr, G16-I Camerieri, G17-Bale Pignote Sr) non sono ancora stati inizializzati nel file di stato. Se serve, posso aggiungerli.",
+      "final_text": "Ecco l'elenco completo dei giochi del Palio dei Borghi con il loro stato attuale:\n\n| ID | Gioco | Tipo | Divisioni | Stato |\n|----|-------|------|-----------|-------|\n| G01 | Taglio del Tronco | Score-based | Maschile, Femminile | ⏸️ Not-started |\n| G02 | Corsa coi Sacchi | Score-based | Maschile, Femminile | ⏸️ Not-started |\n| G03 | Anguria | Score-based | Maschile, Femminile | ⏸️ Not-started |\n| G04 | Lo Scatolone | Round-robin | Maschile, Femminile | ⏸️ Not-started |\n| G05 | Strade Mate | Score-based | Unica | ⏸️ Not-started |\n| G06 | Staffetta | Score-based | Maschile, Femminile | ⏸️ Not-started |\n| G07 | Bicicletta | Score-based | — | ❌ Non inizializzato |\n| G08 | Freccette | Round-robin | — | ❌ Non inizializzato |\n| G09 | Calcio a Cinque | Round-robin | Maschile, Femminile | ⏸️ Not-started |\n| G10 | Pallavolo | Round-robin | — | ❌ Non inizializzato |\n| G11 | Bocce | Round-robin | — | ❌ Non inizializzato |\n| G12 | Morra | Round-robin | — | ❌ Non inizializzato |\n| G13 | Briscola | Round-robin | Maschile, Femminile | ❌ Non inizializzato |\n| G14 | Intesa Vincente | Score-based | — | ❌ Non inizializzato |\n| G15 | Bale Pignote Jr | Round-robin | — | ❌ Non inizializzato |\n| G16 | I Camerieri | Score-based | Femminile, Maschile | ❌ Non inizializzato |\n| G17 | Bale Pignote Sr | Round-robin | — | ❌ Non inizializzato |\n\n**Riepilogo:**\n- **7 giochi** sono presenti nel sistema (tutti in stato **not-started**)\n- **10 giochi** non sono ancora stati inizializzati nel file di stato\n\nTutti i giochi inizializzati hanno le rispettive divisioni in stato **not-started**. Nessun gioco è attualmente in corso o completato.",
       "judge": null
     },
     {
       "id": "s2_taglio_start",
       "prompt": "Il Taglio del Tronco inizia. Metti sia il gioco sia entrambe le divisioni a 'in-progress'.",
       "passed": true,
-      "elapsed_ms": 11855,
-      "tokens": 36249,
+      "elapsed_ms": 8896,
+      "tokens": 24360,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_view",
         "json_merge"
       ],
       "diffs": {},
-      "final_text": "Fatto! Il **Taglio del Tronco (G01)** è ora in stato **\"in-progress\"**, e entrambe le divisioni (**Maschile** e **Femminile**) sono state aggiornate allo stesso stato.",
+      "final_text": "Fatto! Il **Taglio del Tronco (G01)** e tutte le sue divisioni sono ora in stato **in-progress**:\n\n- 🪓 **G01 - Taglio del Tronco** → `in-progress`\n  - Divisione Maschile → `in-progress`\n  - Divisione Femminile → `in-progress`",
       "judge": null
     },
     {
       "id": "s3_taglio_complete",
       "prompt": "Taglio del Tronco è terminato. Marca il gioco e le divisioni come completati.",
       "passed": true,
-      "elapsed_ms": 11157,
-      "tokens": 37370,
+      "elapsed_ms": 8081,
+      "tokens": 24821,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
-        "json_view",
         "json_merge"
       ],
       "diffs": {},
-      "final_text": "Perfetto! Il **Taglio del Tronco (G01)** e entrambe le divisioni (**Maschile** e **Femminile**) sono ora contrassegnati come **\"completed\"**.",
+      "final_text": "Fatto! Il **Taglio del Tronco (G01)** e le sue divisioni sono ora contrassegnati come **completed**:\n\n- 🪓 **G01 - Taglio del Tronco** → `completed`\n  - Divisione Maschile → `completed`\n  - Divisione Femminile → `completed`",
       "judge": null
     },
     {
       "id": "s4_corsa_sacchi_mens",
       "prompt": "Corsa coi Sacchi: inizia e registra i risultati maschili. Salt 30s, Sottocastello 28s, Villa 35s, Sornico 32s, Sottomonte 31s. Completa la divisione maschile.",
       "passed": true,
-      "elapsed_ms": 31094,
-      "tokens": 40235,
+      "elapsed_ms": 23027,
+      "tokens": 39270,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view",
         "json_set",
-        "json_set",
-        "json_set"
+        "json_merge"
       ],
       "diffs": {},
-      "final_text": "Fatto! Ecco cosa è stato aggiornato per la **Corsa coi Sacchi (G02)**:\n\n- **Stato gioco**: `in-progress`\n- **Divisione Maschile**: `completed`\n- **Risultati Maschili**:\n  - 🥇 Sottocastello: 28s\n  - 🥈 Salt: 30s\n  - 🥉 Sottomonte: 31s\n  - Sornico: 32s\n  - Villa: 35s\n\nLa divisione **Femminile** è ancora in stato \"not-started\". Quando vuoi, possiamo registrare anche quei risultati!",
+      "final_text": "Fatto! Ecco lo stato aggiornato della **Corsa coi Sacchi (G02)**:\n\n- 🏃 **G02 - Corsa coi Sacchi** → `in-progress`\n  - 🏅 **Divisione Maschile** → `completed`\n    - Sottocastello: 28s\n    - Sottomonte: 31s\n    - Sornico: 32s\n    - Salt: 30s\n    - Villa: 35s\n  - ⏸️ **Divisione Femminile** → `not-started`\n\nLa divisione maschile è completa con tutti i tempi registrati.",
       "judge": null
     },
     {
       "id": "s5_corsa_sacchi_women",
       "prompt": "Corsa coi Sacchi femminile: Salt 34, Sottocastello 32, Villa 40, Sornico 33, Sottomonte 36. Completa la divisione e il gioco.",
       "passed": true,
-      "elapsed_ms": 15528,
-      "tokens": 42186,
+      "elapsed_ms": 18311,
+      "tokens": 41420,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view",
+        "json_merge",
+        "json_set"
+      ],
+      "diffs": {},
+      "final_text": "Fatto! Ecco lo stato aggiornato della **Corsa coi Sacchi (G02)**:\n\n- 🏃 **G02 - Corsa coi Sacchi** → `completed`\n  - 🏅 **Divisione Maschile** → `completed`\n    - Sottocastello: 28s, Salt: 30s, Sottomonte: 31s, Sornico: 32s, Villa: 35s\n  - 🏅 **Divisione Femminile** → `completed`\n    - Sottocastello: 32s, Sornico: 33s, Salt: 34s, Sottomonte: 36s, Villa: 40s\n\nIl gioco è ora completamente terminato.",
+      "judge": null
+    },
+    {
+      "id": "s6_anguria_bonus",
+      "prompt": "Imposta l'Anguria a 'in-progress' e assegna un bonus di 3 punti di classifica a Sornico nella divisione maschile per buona condotta.",
+      "passed": false,
+      "elapsed_ms": 20784,
+      "tokens": 44110,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view",
+        "json_set",
+        "json_set",
+        "json_append"
+      ],
+      "diffs": {
+        "palio_games_status.json": "--- expected\n+++ actual\n@@ -51,7 +51,7 @@\n         {\n           \"applied_bonuses\": [\n             {\n-              \"description\": \"buona condotta\",\n+              \"description\": \"Buona condotta\",\n               \"points\": 3,\n               \"village\": \"Sornico\"\n             }\n@@ -60,7 +60,7 @@\n           \"name\": \"Maschile\",\n           \"score_penalties\": [],\n           \"scores\": {},\n-          \"status\": \"not-started\"\n+          \"status\": \"in-progress\"\n         },\n         {\n           \"applied_bonuses\": [],"
+      },
+      "final_text": "Fatto! Ecco lo stato aggiornato dell'**Anguria (G03)**:\n\n- 🍉 **G03 - Anguria** → `in-progress`\n  - 🏅 **Divisione Maschile** → `in-progress`\n    - ✅ Bonus applicato: **Sornico** +3 punti classifica (Buona condotta)\n  - ⏸️ **Divisione Femminile** → `not-started`",
+      "judge": null
+    },
+    {
+      "id": "s7_scatolone_start",
+      "prompt": "Lo Scatolone inizia. Metti il gioco e le due divisioni a 'in-progress'.",
+      "passed": true,
+      "elapsed_ms": 14204,
+      "tokens": 46048,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -86,68 +120,32 @@
         "json_set"
       ],
       "diffs": {},
-      "final_text": "Fatto! Ecco l'aggiornamento per la **Corsa coi Sacchi (G02)**:\n\n**Divisione Femminile** → `completed`\n- 🥇 Sottocastello: 32s\n- 🥈 Salt: 34s\n- 🥉 Sornico: 33s\n- Sottomonte: 36s\n- Villa: 40s\n\n**Gioco G02** → `completed` ✅\n\nLa Corsa coi Sacchi è ora completamente terminata per entrambe le divisioni!",
-      "judge": null
-    },
-    {
-      "id": "s6_anguria_bonus",
-      "prompt": "Imposta l'Anguria a 'in-progress' e assegna un bonus di 3 punti di classifica a Sornico nella divisione maschile per buona condotta.",
-      "passed": true,
-      "elapsed_ms": 18609,
-      "tokens": 44981,
-      "send_error": null,
-      "tool_failures": [],
-      "tool_calls": [
-        "json_view",
-        "json_set",
-        "json_append"
-      ],
-      "diffs": {},
-      "final_text": "Fatto! Ecco gli aggiornamenti per l'**Anguria (G03)**:\n\n- **Stato gioco**: `in-progress` ✅\n- **Divisione Maschile**: aggiunto bonus per **Sornico** (+3 punti) per \"buona condotta\" ✅\n\nLa divisione **Femminile** rimane in stato \"not-started\".",
-      "judge": null
-    },
-    {
-      "id": "s7_scatolone_start",
-      "prompt": "Lo Scatolone inizia. Metti il gioco e le due divisioni a 'in-progress'.",
-      "passed": false,
-      "elapsed_ms": 9667,
-      "tokens": 46381,
-      "send_error": null,
-      "tool_failures": [],
-      "tool_calls": [
-        "json_view",
-        "json_merge"
-      ],
-      "diffs": {
-        "palio_games_status.json": "--- expected\n+++ actual\n@@ -76,17 +76,11 @@\n     \"G04\": {\n       \"divisions\": [\n         {\n-          \"applied_bonuses\": [],\n-          \"applied_penalties\": [],\n           \"name\": \"Maschile\",\n-          \"rounds\": [],\n           \"status\": \"in-progress\"\n         },\n         {\n-          \"applied_bonuses\": [],\n-          \"applied_penalties\": [],\n           \"name\": \"Femminile\",\n-          \"rounds\": [],\n           \"status\": \"in-progress\"\n         }\n       ],"
-      },
-      "final_text": "Fatto! **Lo Scatolone (G04)** è ora in stato **\"in-progress\"**, e entrambe le divisioni (**Maschile** e **Femminile**) sono state aggiornate allo stesso stato.",
+      "final_text": "Fatto!**Lo Scatolone (G04)** è ora in stato **in-progress**:\n\n- 📦 **G04 - Lo Scatolone** → `in-progress`\n  - 🏅 **Divisione Maschile** → `in-progress`\n  - 🏅 **Divisione Femminile** → `in-progress`",
       "judge": null
     },
     {
       "id": "s8_strade_mate",
       "prompt": "Strade Mate: risultati unica divisione. Salt 12, Sottocastello 10, Villa 9, Sornico 11, Sottomonte 13. Completa.",
       "passed": true,
-      "elapsed_ms": 16903,
-      "tokens": 48198,
+      "elapsed_ms": 17757,
+      "tokens": 48133,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view",
-        "json_set",
-        "json_set",
+        "json_merge",
         "json_set"
       ],
       "diffs": {},
-      "final_text": "Fatto! Ecco gli aggiornamenti per **Strade Mate (G05)**:\n\n- **Stato gioco**: `completed` ✅\n- **Divisione Unica**: `completed` ✅\n- **Risultati**:\n  - 🥇 Sottomonte: 13\n  - 🥈 Salt: 12\n  - 🥉 Sornico: 11\n  - Sottocastello: 10\n  - Villa: 9\n\nStrade Mate è ora completamente completato!",
+      "final_text": "Fatto! Ecco lo stato aggiornato di **Strade Mate (G05)**:\n\n- 🛣️ **G05 - Strade Mate** → `completed`\n  - 🏅 **Divisione Unica** → `completed`\n    - Sottocastello: 10\n    - Villa: 9\n    - Sornico: 11\n    - Salt: 12\n    - Sottomonte: 13\n\nIl gioco è ora completo con tutti i punteggi registrati.",
       "judge": null
     },
     {
       "id": "s9_cancel_penalty",
       "prompt": "annulla il bonus di Sornico sull'Anguria (era sbagliato)",
       "passed": true,
-      "elapsed_ms": 9756,
-      "tokens": 49922,
+      "elapsed_ms": 11710,
+      "tokens": 49657,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
@@ -155,22 +153,22 @@
         "json_remove"
       ],
       "diffs": {},
-      "final_text": "Fatto! Il bonus di Sornico per \"buona condotta\" (+3 punti) nella divisione maschile dell'Anguria è stato rimosso.",
+      "final_text": "Fatto! Il bonus di Sornico sull'Anguria (divisione maschile) è stato rimosso.",
       "judge": null
     },
     {
       "id": "s10_summary",
       "prompt": "riepiloga quali giochi sono completati finora",
       "passed": true,
-      "elapsed_ms": 14447,
-      "tokens": 35121,
+      "elapsed_ms": 10633,
+      "tokens": 34775,
       "send_error": null,
       "tool_failures": [],
       "tool_calls": [
         "json_view"
       ],
       "diffs": {},
-      "final_text": "Ecco il riepilogo dei giochi **completati** finora:\n\n| ID | Gioco | Status | Divisioni |\n|----|-------|--------|-----------|\n| **G01** | Taglio del Tronco | ✅ completed | Maschile ✅, Femminile ✅ |\n| **G02** | Corsa coi Sacchi | ✅ completed | Maschile ✅, Femminile ✅ |\n| **G05** | Strade Mate | ✅ completed | Unica ✅ |\n\n---\n\n**Giochi in corso:**\n| ID | Gioco | Status | Divisioni |\n|----|-------|--------|-----------|\n| **G03** | Anguria | 🟡 in-progress | Maschile: not-started, Femminile: not-started |\n| **G04** | Lo Scatolone | 🟡 in-progress | Maschile: in-progress, Femminile: in-progress |\n\n---\n\n**Giochi non ancora iniziati:**\n| ID | Gioco | Status |\n|----|-------|--------|\n| **G06** | Staffetta | ⏸️ not-started |\n| **G09** | Calcio a Cinque | ⏸️ not-started |\n\nIn totale: **3 giochi completati**, **2 in corso**, **2 non iniziati**.",
+      "final_text": "Ecco il riepilogo dei giochi **completati** finora:\n\n| # | ID | Gioco | Tipo | Divisioni |\n|---|----|-------|------|-----------|\n| 1 | G01 | Taglio del Tronco | Score-based | Maschile ✅, Femminile ✅ |\n| 2 | G02 | Corsa coi Sacchi | Score-based | Maschile ✅, Femminile ✅ |\n| 3 | G05 | Strade Mate | Score-based | Unica ✅ |\n\n**Totale: 3 giochi completati su 7 inizializzati.**\n\nGli altri giochi attualmente nel sistema sono:\n- 🟡 **In progress:** G03 (Anguria), G04 (Lo Scatolone)\n- ⏸️ **Not-started:** G06 (Staffetta), G09 (Calcio a Cinque)",
       "judge": null
     }
   ]
