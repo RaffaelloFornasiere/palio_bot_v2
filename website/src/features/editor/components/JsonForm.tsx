@@ -371,11 +371,11 @@ const DictNode: React.FC<NodeProps & { hint: Extract<Hint, { kind: 'dict' }> }> 
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ pl: 0 }}>{keyLabel}</TableCell>
+              <TableCell sx={{ pl: 0, pr: 1 }}>{keyLabel}</TableCell>
               {fields.map((f) => (
-                <TableCell key={f.name}>{f.label ?? f.name}</TableCell>
+                <TableCell key={f.name} sx={{ px: 1 }}>{f.label ?? f.name}</TableCell>
               ))}
-              <TableCell sx={{ width: 40, pr: 0 }} />
+              <TableCell sx={{ width: 40, pl: 1, pr: 0 }} />
             </TableRow>
           </TableHead>
           <TableBody>
@@ -383,11 +383,17 @@ const DictNode: React.FC<NodeProps & { hint: Extract<Hint, { kind: 'dict' }> }> 
               const row = (valueFor(k) ?? {}) as Record<string, any>;
               return (
                 <TableRow key={k}>
-                  <TableCell sx={{ pl: 0 }}>
+                  <TableCell sx={{ pl: 0, pr: 1 }}>
                     <Chip label={k} size="small" color={hint.keyHint === 'village' ? 'primary' : 'default'} />
                   </TableCell>
                   {fields.map((f) => (
-                    <TableCell key={f.name}>
+                    <TableCell
+                      key={f.name}
+                      sx={{
+                        px: 1,
+                        '& .MuiOutlinedInput-input': { px: 1 },
+                      }}
+                    >
                       <FieldNode
                         value={row[f.name]}
                         onChange={(nv) => onChange({ ...data, [k]: { ...row, [f.name]: nv } })}
@@ -396,7 +402,7 @@ const DictNode: React.FC<NodeProps & { hint: Extract<Hint, { kind: 'dict' }> }> 
                       />
                     </TableCell>
                   ))}
-                  <TableCell sx={{ pr: 0 }}>
+                  <TableCell sx={{ pl: 1, pr: 0 }}>
                     {!isMasterVillage(k) && (
                       <IconButton size="small" onClick={() => removeKey(k)} aria-label="rimuovi">
                         <DeleteIcon fontSize="small" />

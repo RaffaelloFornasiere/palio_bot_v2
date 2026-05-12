@@ -126,48 +126,106 @@ const gameRoundHint: Hint = {
   ],
 };
 
-// Union-aware single-game hint: fields exist depending on the game variant.
-// Both variants share status + applied_bonuses + applied_penalties. The rest
-// are marked optional so the form only renders what's present in the data.
-export const singleGameStatusHint: Hint = {
-  kind: 'object',
-  fields: [
-    { name: 'status', label: 'Stato', hint: { kind: 'enum', options: STATUS_OPTIONS } },
+export type GameVariant = 'score-based' | 'round-robin';
 
-    // score-based only
-    {
-      name: 'scores',
-      label: 'Punteggi (score-based)',
-      optional: true,
-      collapsible: true,
+type ObjectField = Extract<Hint, { kind: 'object' }>['fields'][number];
+
+// Variant-aware single-game hint. When `type` is known the form prunes the
+// branch of the other variant so the user only sees one "Aggiungi …" button.
+// When `type` is undefined we fall back to a permissive union — useful for
+// generic editors that don't know the game type.
+export function singleGameStatusHintFor(type?: GameVariant): Hint {
+  const showScores = type !== 'round-robin';
+  const showRounds = type !== 'score-based';
+
+  const scoresField: ObjectField = {
+    name: 'scores',
+    label: showRounds ? 'Punteggi (score-based)' : 'Punteggi',
+    optional: true,
+    collapsible: true,
+    hint: {
+      kind: 'dict',
+      keyHint: 'village',
+      value: { kind: 'numberOrString' },
+      defaultValue: () => 0,
+    },
+    defaultValue: () => ({}),
+  };
+
+  const scorePenaltiesField: ObjectField = {
+    name: 'score_penalties',
+    label: showRounds ? 'Penalità punteggio (score-based)' : 'Penalità punteggio',
+    optional: true,
+    collapsible: true,
+    hint: {
+      kind: 'array',
+      itemLabel: (_, v) => v?.village || 'penalità',
+      defaultItem: () => ({ village: '', description: '', points: 0 }),
+      item: scorePenaltyHint,
+    },
+    defaultValue: () => [],
+  };
+
+  const roundsField: ObjectField = {
+    name: 'rounds',
+    label: showScores ? 'Round (round-robin)' : 'Round',
+    optional: true,
+    collapsible: true,
+    hint: {
+      kind: 'nullable',
+      inner: {
+        kind: 'array',
+        itemLabel: (i) => `Round ${i + 1}`,
+        defaultItem: () => ({ scores: [], score_penalties: [] }),
+        item: gameRoundHint,
+      },
+    },
+    defaultValue: () => [],
+  };
+
+  const appliedBonusesField: ObjectField = {
+    name: 'applied_bonuses',
+    label: 'Bonus di gioco',
+    collapsible: true,
+    hint: {
+      kind: 'array',
+      itemLabel: (_, v) => v?.village ? `${v.village} (+${v.points})` : 'bonus',
+      defaultItem: () => ({ village: '', description: '', points: 0 }),
+      item: gameBonusHint,
+    },
+  };
+
+  const appliedPenaltiesField: ObjectField = {
+    name: 'applied_penalties',
+    label: 'Penalità di gioco',
+    collapsible: true,
+    hint: {
+      kind: 'array',
+      itemLabel: (_, v) => v?.village ? `${v.village} (${v.points})` : 'penalità',
+      defaultItem: () => ({ village: '', description: '', points: 0 }),
+      item: gamePenaltyHint,
+    },
+  };
+
+  // Divisions inherit the parent game's variant.
+  const divisionItemFields: ObjectField[] = [
+    { name: 'name', label: 'Nome', hint: { kind: 'string' } },
+    { name: 'status', label: 'Stato', hint: { kind: 'enum', options: STATUS_OPTIONS } },
+  ];
+  if (showScores) {
+    divisionItemFields.push({
+      name: 'scores', label: 'Punteggi',
       hint: {
         kind: 'dict',
         keyHint: 'village',
         value: { kind: 'numberOrString' },
         defaultValue: () => 0,
       },
-      defaultValue: () => ({}),
-    },
-    {
-      name: 'score_penalties',
-      label: 'Penalità punteggio (score-based)',
-      optional: true,
-      collapsible: true,
-      hint: {
-        kind: 'array',
-        itemLabel: (_, v) => v?.village || 'penalità',
-        defaultItem: () => ({ village: '', description: '', points: 0 }),
-        item: scorePenaltyHint,
-      },
-      defaultValue: () => [],
-    },
-
-    // round-robin only
-    {
-      name: 'rounds',
-      label: 'Round (round-robin)',
-      optional: true,
-      collapsible: true,
+    });
+  }
+  if (showRounds) {
+    divisionItemFields.push({
+      name: 'rounds', label: 'Round', optional: true, collapsible: true,
       hint: {
         kind: 'nullable',
         inner: {
@@ -178,118 +236,84 @@ export const singleGameStatusHint: Hint = {
         },
       },
       defaultValue: () => [],
-    },
-
-    // both variants may use divisions (different shape)
-    {
-      name: 'divisions',
-      label: 'Divisioni',
-      optional: true,
-      collapsible: true,
-      hint: {
-        kind: 'nullable',
-        inner: {
-          kind: 'array',
-          // Heuristic: if item has `scores` (dict) it's score-based, else round-robin.
-          // We render with the shared schema; both variants share the same top-level fields.
-          itemLabel: (i, v) => v?.name || `Divisione ${i + 1}`,
-          defaultItem: () => ({
-            name: '',
-            status: STATUS_OPTIONS[0],
-            scores: {},
-            score_penalties: [],
-            applied_bonuses: [],
-            applied_penalties: [],
-          }),
-          // We pick based on which fields exist — use a permissive union
-          item: {
-            kind: 'object',
-            fields: [
-              { name: 'name', label: 'Nome', hint: { kind: 'string' } },
-              { name: 'status', label: 'Stato', hint: { kind: 'enum', options: STATUS_OPTIONS } },
-              {
-                name: 'scores', label: 'Punteggi',
-                hint: {
-                  kind: 'dict',
-                  keyHint: 'village',
-                  value: { kind: 'numberOrString' },
-                  defaultValue: () => 0,
-                },
-              },
-              {
-                name: 'rounds', label: 'Round', optional: true, collapsible: true,
-                hint: {
-                  kind: 'nullable',
-                  inner: {
-                    kind: 'array',
-                    itemLabel: (i) => `Round ${i + 1}`,
-                    defaultItem: () => ({ scores: [], score_penalties: [] }),
-                    item: gameRoundHint,
-                  },
-                },
-                defaultValue: () => [],
-              },
-              {
-                name: 'score_penalties', label: 'Penalità punteggio', optional: true, collapsible: true,
-                hint: {
-                  kind: 'array',
-                  itemLabel: (_, v) => v?.village || 'penalità',
-                  defaultItem: () => ({ village: '', description: '', points: 0 }),
-                  item: scorePenaltyHint,
-                },
-                defaultValue: () => [],
-              },
-              {
-                name: 'applied_bonuses', label: 'Bonus applicati', optional: true, collapsible: true,
-                hint: {
-                  kind: 'array',
-                  itemLabel: (_, v) => v?.village || 'bonus',
-                  defaultItem: () => ({ village: '', description: '', points: 0 }),
-                  item: gameBonusHint,
-                },
-                defaultValue: () => [],
-              },
-              {
-                name: 'applied_penalties', label: 'Penalità applicate', optional: true, collapsible: true,
-                hint: {
-                  kind: 'array',
-                  itemLabel: (_, v) => v?.village || 'penalità',
-                  defaultItem: () => ({ village: '', description: '', points: 0 }),
-                  item: gamePenaltyHint,
-                },
-                defaultValue: () => [],
-              },
-            ],
-          },
-        },
-      },
-      defaultValue: () => [],
-    },
-
-    {
-      name: 'applied_bonuses',
-      label: 'Bonus di gioco',
-      collapsible: true,
+    });
+  }
+  if (showScores) {
+    divisionItemFields.push({
+      name: 'score_penalties', label: 'Penalità punteggio', optional: true, collapsible: true,
       hint: {
         kind: 'array',
-        itemLabel: (_, v) => v?.village ? `${v.village} (+${v.points})` : 'bonus',
+        itemLabel: (_, v) => v?.village || 'penalità',
+        defaultItem: () => ({ village: '', description: '', points: 0 }),
+        item: scorePenaltyHint,
+      },
+      defaultValue: () => [],
+    });
+  }
+  divisionItemFields.push(
+    {
+      name: 'applied_bonuses', label: 'Bonus applicati', optional: true, collapsible: true,
+      hint: {
+        kind: 'array',
+        itemLabel: (_, v) => v?.village || 'bonus',
         defaultItem: () => ({ village: '', description: '', points: 0 }),
         item: gameBonusHint,
       },
+      defaultValue: () => [],
     },
     {
-      name: 'applied_penalties',
-      label: 'Penalità di gioco',
-      collapsible: true,
+      name: 'applied_penalties', label: 'Penalità applicate', optional: true, collapsible: true,
       hint: {
         kind: 'array',
-        itemLabel: (_, v) => v?.village ? `${v.village} (${v.points})` : 'penalità',
+        itemLabel: (_, v) => v?.village || 'penalità',
         defaultItem: () => ({ village: '', description: '', points: 0 }),
         item: gamePenaltyHint,
       },
+      defaultValue: () => [],
     },
-  ],
-};
+  );
+
+  const divisionsField: ObjectField = {
+    name: 'divisions',
+    label: 'Divisioni',
+    optional: true,
+    collapsible: true,
+    hint: {
+      kind: 'nullable',
+      inner: {
+        kind: 'array',
+        itemLabel: (i, v) => v?.name || `Divisione ${i + 1}`,
+        defaultItem: () => {
+          const def: Record<string, any> = {
+            name: '',
+            status: STATUS_OPTIONS[0],
+            applied_bonuses: [],
+            applied_penalties: [],
+          };
+          if (showScores) def.scores = {};
+          return def;
+        },
+        item: { kind: 'object', fields: divisionItemFields },
+      },
+    },
+    defaultValue: () => [],
+  };
+
+  const fields: ObjectField[] = [
+    { name: 'status', label: 'Stato', hint: { kind: 'enum', options: STATUS_OPTIONS } },
+    ...(showScores ? [scoresField, scorePenaltiesField] : []),
+    ...(showRounds ? [roundsField] : []),
+    divisionsField,
+    appliedBonusesField,
+    appliedPenaltiesField,
+  ];
+
+  return { kind: 'object', fields };
+}
+
+// Permissive union (both variants visible) — used by callers that don't
+// know the game type.
+export const singleGameStatusHint: Hint = singleGameStatusHintFor();
 
 export const gameStatusSchema: Hint = {
   kind: 'object',

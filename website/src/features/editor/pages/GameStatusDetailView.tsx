@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Alert, Box, Typography } from '@mui/material';
 import { JsonForm } from '../components/JsonForm';
-import { singleGameStatusHint } from '../schema';
+import { GameVariant, singleGameStatusHintFor } from '../schema';
 import { useGameStatusContext } from './EditGameStatusPage';
 
 const GameStatusDetailView: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const { content, setContent, villages, games } = useGameStatusContext();
 
-  if (!gameId) return null;
+  const gameData = gameId ? content.game_scores?.[gameId] : undefined;
+  const gameMeta = gameId ? games.find((g) => g.id === gameId) : undefined;
+  const variant = gameMeta?.type as GameVariant | undefined;
+  const hint = useMemo(() => singleGameStatusHintFor(variant), [variant]);
 
-  const gameData = content.game_scores?.[gameId];
-  const gameMeta = games.find((g) => g.id === gameId);
+  if (!gameId) return null;
 
   if (gameData == null) {
     return (
@@ -35,7 +37,7 @@ const GameStatusDetailView: React.FC = () => {
             game_scores: { ...(prev.game_scores ?? {}), [gameId]: nv },
           }))
         }
-        hint={singleGameStatusHint}
+        hint={hint}
         villages={villages}
       />
     </Box>
