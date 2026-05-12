@@ -26,6 +26,7 @@ dependencies = [
     "websockets>=16.0",
     "google-auth>=2.30.0",
     "requests>=2.31.0",
+    "pygit2>=1.15",
 ]
 
 [dependency-groups]
