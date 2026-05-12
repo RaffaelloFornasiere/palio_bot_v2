@@ -10,6 +10,8 @@ import CalendarPage from './features/calendar/pages/CalendarioPage';
 import LoginPage from './features/editor/pages/LoginPage';
 import EditorHomePage from './features/editor/pages/EditorHomePage';
 import EditLeaderboardPage from './features/editor/pages/EditLeaderboardPage';
+import LeaderboardOverviewView from './features/editor/pages/LeaderboardOverviewView';
+import LeaderboardGameView from './features/editor/pages/LeaderboardGameView';
 import EditGameStatusPage from './features/editor/pages/EditGameStatusPage';
 import GameStatusListView from './features/editor/pages/GameStatusListView';
 import GameStatusDetailView from './features/editor/pages/GameStatusDetailView';
@@ -39,7 +41,10 @@ function App() {
             <Route path="/edit/login" element={<LoginPage />} />
             <Route path="/edit" element={<RequireAuth />}>
               <Route index element={<EditorHomePage />} />
-              <Route path="leaderboard" element={<EditLeaderboardPage />} />
+              <Route path="leaderboard" element={<EditLeaderboardPage />}>
+                <Route index element={<LeaderboardOverviewView />} />
+                <Route path=":gameId" element={<LeaderboardGameView />} />
+              </Route>
               <Route path="games" element={<EditGameStatusPage />}>
                 <Route index element={<GameStatusListView />} />
                 <Route path=":gameId" element={<GameStatusDetailView />} />

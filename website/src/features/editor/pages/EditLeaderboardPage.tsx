@@ -1,43 +1,68 @@
-import React from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { Alert, Button, Box } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Outlet, useMatch, useNavigate, useOutletContext } from 'react-router-dom';
 import { useEditorSession } from '../hooks/useEditorSession';
 import { EditorShell } from '../components/EditorShell';
-import { JsonForm } from '../components/JsonForm';
-import { leaderboardSchema } from '../schema';
+import { editorApi } from '../api/client';
 
-interface Leaderboard {
+interface LeaderboardEntry { points: number; position: number }
+interface DivisionLeaderboard {
+  name: string;
+  leaderboard: Record<string, LeaderboardEntry>;
+  updated_at?: string | null;
+}
+interface GameLeaderboard {
+  game_id: string;
+  game_name: string;
+  divisions: DivisionLeaderboard[];
+  overall_leaderboard: Record<string, LeaderboardEntry>;
+  updated_at?: string | null;
+}
+export interface LeaderboardData {
   villages: string[];
-  palio_leaderboard: Record<string, { points: number; position: number }>;
-  game_leaderboards: Record<string, any>;
+  palio_leaderboard: Record<string, LeaderboardEntry>;
+  game_leaderboards: Record<string, GameLeaderboard>;
 }
 
+export interface LeaderboardOutletContext {
+  content: LeaderboardData;
+  setContent: (updater: (prev: LeaderboardData) => LeaderboardData) => void;
+  villages: string[];
+}
+
+export const useLeaderboardContext = () =>
+  useOutletContext<LeaderboardOutletContext>();
+
 const EditLeaderboardPage: React.FC = () => {
-  const session = useEditorSession<Leaderboard>('leaderboard', 'manual_edit_leaderboard');
+  const session = useEditorSession<LeaderboardData>('leaderboard', 'manual_edit_leaderboard');
+  const [villages, setVillages] = useState<string[]>([]);
+  const navigate = useNavigate();
+  const onDetail = useMatch('/edit/leaderboard/:gameId');
+
+  useEffect(() => {
+    editorApi
+      .readFile<{ villages?: string[] }>('palio')
+      .then((p) => setVillages(p.villages ?? []))
+      .catch(() => setVillages([]));
+  }, []);
+
+  // Resolve villages: prefer palio.json, fall back to leaderboard's own
+  // copy if the read failed.
+  const effectiveVillages =
+    villages.length > 0 ? villages : session.content?.villages ?? [];
+
+  const onBack = onDetail ? () => navigate('/edit/leaderboard') : undefined;
+  const title = onDetail ? 'Classifica · gioco' : 'Classifica';
 
   return (
-    <EditorShell title="Classifica" session={session}>
+    <EditorShell title={title} session={session} onBack={onBack}>
       {(content) => (
-        <Box>
-          <Alert
-            severity="info"
-            sx={{ mb: 2 }}
-            action={
-              <Button component={RouterLink} to="/edit/games" size="small" color="inherit">
-                Apri Stato giochi
-              </Button>
-            }
-          >
-            Bonus e penalità si gestiscono in Stato giochi: la classifica viene
-            ricalcolata da quei valori.
-          </Alert>
-          <JsonForm
-            value={content}
-            onChange={(nv) => session.setContent(() => nv)}
-            hint={leaderboardSchema}
-            villages={content.villages ?? []}
-          />
-        </Box>
+        <Outlet
+          context={{
+            content,
+            setContent: session.setContent,
+            villages: effectiveVillages,
+          } satisfies LeaderboardOutletContext}
+        />
       )}
     </EditorShell>
   );

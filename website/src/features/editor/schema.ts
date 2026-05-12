@@ -18,42 +18,39 @@ const villagePointsDict: Hint = {
   presentation: 'table',
 };
 
-export const leaderboardSchema: Hint = {
+// Just the palio leaderboard map (village → {points, position}). Shown on
+// the leaderboard home page, editable behind a toggle.
+export const palioLeaderboardHint: Hint = villagePointsDict;
+
+// One game's leaderboard entry. Used in the per-game detail view.
+export const singleGameLeaderboardHint: Hint = {
   kind: 'object',
   fields: [
+    { name: 'game_name', label: 'Nome gioco', hint: { kind: 'string' } },
     {
-      name: 'villages',
-      label: 'Borghi',
-      hint: {
-        kind: 'array',
-        item: { kind: 'string' },
-        defaultItem: () => '',
-        itemLabel: (_, v) => v || '(vuoto)',
-      },
+      name: 'updated_at',
+      label: 'Aggiornato il',
+      optional: true,
+      hint: { kind: 'nullable', inner: { kind: 'string' } },
     },
     {
-      name: 'palio_leaderboard',
-      label: 'Classifica Palio',
+      name: 'overall_leaderboard',
+      label: 'Classifica generale',
       collapsible: true,
       hint: villagePointsDict,
     },
     {
-      name: 'game_leaderboards',
-      label: 'Classifiche per gioco',
+      name: 'divisions',
+      label: 'Divisioni',
       collapsible: true,
       hint: {
-        kind: 'dict',
-        valueLabel: (v: any) => v?.game_name || '(senza nome)',
-        value: {
+        kind: 'array',
+        itemLabel: (i, v) => v?.name || `Divisione ${i + 1}`,
+        defaultItem: () => ({ name: '', leaderboard: {}, updated_at: null }),
+        item: {
           kind: 'object',
           fields: [
-            { name: 'game_name', label: 'Nome gioco', hint: { kind: 'string' } },
-            {
-              name: 'completed',
-              label: 'Completato',
-              optional: true,
-              hint: { kind: 'nullable', inner: { kind: 'boolean' } },
-            },
+            { name: 'name', label: 'Nome', hint: { kind: 'string' } },
             {
               name: 'updated_at',
               label: 'Aggiornato il',
@@ -61,47 +58,12 @@ export const leaderboardSchema: Hint = {
               hint: { kind: 'nullable', inner: { kind: 'string' } },
             },
             {
-              name: 'overall_leaderboard',
-              label: 'Classifica generale',
-              collapsible: true,
+              name: 'leaderboard',
+              label: 'Punteggi',
               hint: villagePointsDict,
-            },
-            {
-              name: 'divisions',
-              label: 'Divisioni',
-              collapsible: true,
-              hint: {
-                kind: 'array',
-                itemLabel: (i, v) => v?.name || `Divisione ${i + 1}`,
-                defaultItem: () => ({ name: '', leaderboard: {}, updated_at: null }),
-                item: {
-                  kind: 'object',
-                  fields: [
-                    { name: 'name', label: 'Nome', hint: { kind: 'string' } },
-                    {
-                      name: 'updated_at',
-                      label: 'Aggiornato il',
-                      optional: true,
-                      hint: { kind: 'nullable', inner: { kind: 'string' } },
-                    },
-                    {
-                      name: 'leaderboard',
-                      label: 'Punteggi',
-                      hint: villagePointsDict,
-                    },
-                  ],
-                },
-              },
             },
           ],
         },
-        defaultValue: () => ({
-          game_name: '',
-          divisions: [],
-          overall_leaderboard: {},
-          completed: true,
-          updated_at: null,
-        }),
       },
     },
   ],
