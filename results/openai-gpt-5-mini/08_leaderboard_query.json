@@ -1,0 +1,105 @@
+{
+  "scenario": "leaderboard_query",
+  "model": "openai/gpt-5-mini",
+  "passed": 5,
+  "total": 5,
+  "total_tokens": 79712,
+  "total_elapsed_s": 64.59,
+  "steps": [
+    {
+      "id": "s1_total_points",
+      "prompt": "quanti punti ha Villa in classifica generale?",
+      "passed": true,
+      "elapsed_ms": 5515,
+      "tokens": 9534,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [],
+      "diffs": {},
+      "final_text": "Villa ha 42 punti in classifica generale.",
+      "judge": {
+        "model": "google/gemini-3-flash-preview",
+        "passed": true,
+        "reasoning": "L'agente ha correttamente identificato il punteggio di Villa (42) dalla classifica generale presente nel file leaderboard.json, senza confonderlo con i punteggi dei singoli giochi (10, 12 o 20).",
+        "failed_criteria": []
+      }
+    },
+    {
+      "id": "s2_leader",
+      "prompt": "chi è in testa alla classifica?",
+      "passed": true,
+      "elapsed_ms": 6246,
+      "tokens": 9656,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [],
+      "diffs": {},
+      "final_text": "Controllo la classifica fornita nel contesto: in cima c'è Villa con 42 punti (posizione 1).\n\nVuoi che mostri l'intera classifica o i dettagli dei singoli giochi che hanno contribuito?",
+      "judge": {
+        "model": "google/gemini-3-flash-preview",
+        "passed": true,
+        "reasoning": "L'agente ha identificato correttamente il borgo Villa come primo in classifica e ha citato correttamente il punteggio di 42 punti e la posizione #1, come indicato nel file leaderboard.json.",
+        "failed_criteria": []
+      }
+    },
+    {
+      "id": "s3_gap_first_last",
+      "prompt": "di quanti punti il primo è avanti sull'ultimo?",
+      "passed": true,
+      "elapsed_ms": 14675,
+      "tokens": 19919,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view"
+      ],
+      "diffs": {},
+      "final_text": "Il primo (Villa, 42 punti) è avanti sull'ultimo (Sornico, 14 punti) di 42 − 14 = 28 punti. Vuoi che mostri la classifica completa?",
+      "judge": {
+        "model": "google/gemini-3-flash-preview",
+        "passed": true,
+        "reasoning": "L'agente ha identificato correttamente Villa come primo (42 punti) e Sornico come ultimo (14 punti), calcolando correttamente la differenza di 28 punti come richiesto dai criteri.",
+        "failed_criteria": []
+      }
+    },
+    {
+      "id": "s4_gap_between_two",
+      "prompt": "quanti punti separano Salt da Sornico?",
+      "passed": true,
+      "elapsed_ms": 5490,
+      "tokens": 9579,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [],
+      "diffs": {},
+      "final_text": "<thinking>\nPiano: controllo la classifica attuale (current_leaderboard fornita nel contesto), estraggo i punti di Salt e Sornico e calcolo la differenza assoluta.\nVerifica: nel current_leaderboard Salt ha 28 punti, Sornico 14 punti — ho tutte le informazioni necessarie.\n</thinking>\n\nSalt ha 28 punti, Sornico 14 punti — li separano 14 punti.",
+      "judge": {
+        "model": "google/gemini-3-flash-preview",
+        "passed": true,
+        "reasoning": "L'agente ha identificato correttamente i punteggi di Salt (28) e Sornico (14) dal file leaderboard.json e ha calcolato correttamente la differenza di 14 punti, soddisfacendo entrambi i criteri richiesti.",
+        "failed_criteria": []
+      }
+    },
+    {
+      "id": "s5_per_game_winner",
+      "prompt": "chi ha preso più punti nello Scatolone?",
+      "passed": true,
+      "elapsed_ms": 23864,
+      "tokens": 31024,
+      "send_error": null,
+      "tool_failures": [],
+      "tool_calls": [
+        "json_view",
+        "json_view"
+      ],
+      "diffs": {},
+      "final_text": "Lo Scatolone corrisponde al gioco G04. Dalla classifica di gioco (game_leaderboards → G04) il borgo con più punti è Villa: 20 punti.",
+      "judge": {
+        "model": "google/gemini-3-flash-preview",
+        "passed": true,
+        "reasoning": "L'agente ha identificato correttamente il gioco G04 (Lo Scatolone), ha indicato Villa come il borgo con il punteggio più alto e ha riportato correttamente il valore di 20 punti senza confondersi con la classifica generale.",
+        "failed_criteria": []
+      }
+    }
+  ]
+}
