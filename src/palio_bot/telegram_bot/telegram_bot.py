@@ -91,9 +91,63 @@ class PalioTelegramBot:
             "/save - Salva modifiche senza chiudere sessione\n"
             "/cancel - Annulla le modifiche della sessione corrente\n"
             "/close - Chiudi la sessione salvando le modifiche\n"
-            "/stop - Interrompi l'elaborazione in corso",
+            "/stop - Interrompi l'elaborazione in corso\n"
+            "/mode - Cambia tra modalità Semplice e Dettagliata",
             parse_mode='HTML'
         )
+
+    async def mode(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /mode — show current render mode + toggle button."""
+        if not self.validate(update):
+            return
+        if not self.container:
+            await update.message.reply_text("❌ Sistema non inizializzato")
+            return
+        settings = self.container.telegram_settings()
+        await update.message.reply_text(
+            self._mode_status_text(settings.verbose),
+            reply_markup=self._mode_keyboard(settings.verbose),
+            parse_mode='HTML',
+        )
+
+    async def mode_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle the toggle button from /mode."""
+        query = update.callback_query
+        if query is None:
+            return
+        await query.answer()
+        if query.data != "mode:toggle":
+            return
+        if not self.container:
+            await query.edit_message_text("❌ Sistema non inizializzato")
+            return
+        settings = self.container.telegram_settings()
+        new_verbose = settings.toggle_verbose()
+        await query.edit_message_text(
+            self._mode_status_text(new_verbose),
+            reply_markup=self._mode_keyboard(new_verbose),
+            parse_mode='HTML',
+        )
+
+    @staticmethod
+    def _mode_status_text(verbose: bool) -> str:
+        if verbose:
+            return (
+                "<b>Modalità: Dettagliata</b>\n\n"
+                "Vedi pensieri, tool e contatori token in tempo reale."
+            )
+        return (
+            "<b>Modalità: Semplice</b>\n\n"
+            "Vedi solo la risposta finale dell'assistente. "
+            "Mentre lavora compare un breve “Sto lavorando…”."
+        )
+
+    @staticmethod
+    def _mode_keyboard(verbose: bool) -> InlineKeyboardMarkup:
+        label = "Passa a Semplice" if verbose else "Passa a Dettagliata"
+        return InlineKeyboardMarkup([[
+            InlineKeyboardButton(label, callback_data="mode:toggle"),
+        ]])
         
     async def status(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /status command"""
@@ -595,6 +649,8 @@ def main():
     application.add_handler(CommandHandler("cancel", bot.cancel))
     application.add_handler(CommandHandler("close", bot.close))
     application.add_handler(CommandHandler("stop", bot.stop_command))
+    application.add_handler(CommandHandler("mode", bot.mode))
+    application.add_handler(CallbackQueryHandler(bot.mode_callback, pattern=r"^mode:"))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
     application.add_handler(MessageHandler(filters.VOICE, bot.handle_voice_message))
     

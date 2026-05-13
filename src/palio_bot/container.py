@@ -24,6 +24,7 @@ from palio_bot.models.game_status_models import PalioGamesStatus
 from palio_bot.models.leaderboard_models import Leaderboard
 from palio_bot.models.palio_models import PalioData
 from palio_bot.services.audio_transcription import AudioTranscriptionService
+from palio_bot.telegram_bot.settings import TelegramSettings
 from palio_bot.telegram_bot.telegram_consumer import TelegramConsumer
 from palio_bot.tools.file_registry import FileConfig, FileRegistry
 from palio_bot.tools.multi_json_editor_tool import create_multi_json_editor_tools
@@ -62,6 +63,7 @@ class Container:
         self._system: Optional[System] = None
         self._cli_consumer: Optional[CLIConsumer] = None
         self._audio_transcription_service: Optional[AudioTranscriptionService] = None
+        self._telegram_settings: Optional[TelegramSettings] = None
 
         logger.info(
             "Container initialized (label=%s, provider=%s, core_url=%s)",
@@ -206,8 +208,13 @@ class Container:
             self.stream().add_consumer(self._cli_consumer)
         return self._cli_consumer
 
+    def telegram_settings(self) -> TelegramSettings:
+        if self._telegram_settings is None:
+            self._telegram_settings = TelegramSettings(self.config.telegram_settings_path)
+        return self._telegram_settings
+
     def create_telegram_consumer(self, bot: Bot, chat_id: int) -> TelegramConsumer:
-        consumer = TelegramConsumer(bot, chat_id)
+        consumer = TelegramConsumer(bot, chat_id, self.telegram_settings())
         self.stream().add_consumer(consumer)
         return consumer
 

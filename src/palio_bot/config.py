@@ -36,6 +36,7 @@ class Config(BaseSettings):
     palio_games_status_temp_path: Path = Path("data/palio_games_status_tmp.json")
     leaderboard_file_path: Path = Path("data/leaderboard.json")
     session_file_path: Path = Path("data/session.json")
+    telegram_settings_path: Path = Path("data/telegram_settings.json")
 
     # LLM provider selection
     llm_provider: LLMProvider = "openrouter"

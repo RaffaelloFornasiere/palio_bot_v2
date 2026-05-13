@@ -1,4 +1,5 @@
 session.json
+telegram_settings.json
 *.backup_*.json
 *_tmp.json
 *.writing
