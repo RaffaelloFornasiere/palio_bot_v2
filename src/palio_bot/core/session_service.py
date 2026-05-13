@@ -164,14 +164,46 @@ class SessionService:
         )
         return version
 
-    def commit(self, session_id: str) -> Dict[str, str]:
+    def commit(
+        self,
+        session_id: str,
+        leaderboard: Optional[dict] = None,
+    ) -> Dict[str, str]:
         """Finalise the session: squash all per-PUT commits since
         `last_save` into one, move `last_save`, maybe daily-tag.
         Returns {file_name: version} for every file the session touched.
+
+        If `leaderboard` is provided, it's written through the same git
+        layer as a per-tool commit before the squash, so the resulting
+        save commit contains both the agent's edits and the recomputed
+        leaderboard atomically.
         """
         self._require_session(session_id)
         session = self.session_store.get(session_id)
         dirty = sorted(self._dirty.get(session_id, set()))
+
+        leaderboard_touched = False
+        if leaderboard is not None:
+            ok, err = self.registry.validate_content("leaderboard", leaderboard)
+            if not ok:
+                raise ValidationFailed(err or "invalid leaderboard")
+            self.file_store.write_atomic("leaderboard", leaderboard)
+            leaderboard_touched = True
+            if self.history is not None:
+                try:
+                    source, committer = _parse_session_label(session.label)
+                    lb_path = self.registry.get_config("leaderboard").path.name
+                    self.history.record_write(
+                        file_name=lb_path,
+                        source=source,
+                        committer=committer,
+                        session_id=session_id,
+                        tool="leaderboard_recompute",
+                    )
+                except Exception:
+                    logger.exception(
+                        "core: history.record_write(leaderboard) failed; ignored"
+                    )
 
         versions: Dict[str, str] = {}
         for file_name in dirty:
@@ -181,13 +213,24 @@ class SessionService:
                 )
             except FileNotFoundError:
                 continue
+        if leaderboard_touched and "leaderboard" not in versions:
+            try:
+                versions["leaderboard"] = compute_version(
+                    self.file_store.read("leaderboard")
+                )
+            except FileNotFoundError:
+                pass
 
-        if self.history is not None and dirty:
+        if self.history is not None and (dirty or leaderboard_touched):
             try:
                 source, committer = _parse_session_label(session.label)
                 basenames = [
                     self.registry.get_config(n).path.name for n in dirty
                 ]
+                if leaderboard_touched:
+                    lb_name = self.registry.get_config("leaderboard").path.name
+                    if lb_name not in basenames:
+                        basenames.append(lb_name)
                 self.history.finalize_save(
                     source=source,
                     committer=committer,

@@ -97,10 +97,11 @@ export const editorApi = {
     );
   },
 
-  async commit(sessionId: string) {
+  async commit(sessionId: string, leaderboard?: any) {
+    const body = leaderboard !== undefined ? { leaderboard } : {};
     return request<{ files: Record<string, string> }>(
       `/api/sessions/${sessionId}/commit`,
-      { method: 'POST' },
+      { method: 'POST', body: JSON.stringify(body) },
     );
   },
 

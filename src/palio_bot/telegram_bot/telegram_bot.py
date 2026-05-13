@@ -281,32 +281,21 @@ class PalioTelegramBot:
             logger.error(f"Error in games_status: {e}", exc_info=True)
             await update.message.reply_text(f"❌ Errore: {str(e)}")
             
-    def _make_leaderboard_updater(self):
-        from palio_bot.leaderboard_updater import LeaderboardUpdater
-        return LeaderboardUpdater(
-            self.config.palio_file_path,
-            self.config.palio_games_status_path,
-            self.config.leaderboard_file_path,
-        )
-
-    def _game_names(self) -> Dict[str, str]:
-        try:
-            with open(self.config.palio_file_path, "r", encoding="utf-8") as f:
-                palio = json.load(f)
-        except Exception:
-            return {}
-        return {g.get("id"): g.get("name", g.get("id", "")) for g in palio.get("games", []) if g.get("id")}
-
     async def leaderboard(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle /leaderboard — preview + confirm flow."""
+        """Handle /leaderboard — preview + confirm flow.
+
+        Standalone (no active agent session): goes through core's
+        /api/leaderboard/{preview,apply} so the write is committed to
+        the history layer and `last_save` advances.
+        """
         if not self.validate(update):
             return
 
         processing_message = await update.message.reply_text("📊 Calcolo classifica in corso…")
 
         try:
-            updater = self._make_leaderboard_updater()
-            proposed, changed_ids = await asyncio.to_thread(updater.compute)
+            client = self.container.core_client()
+            preview = await asyncio.to_thread(client.preview_leaderboard)
         except Exception as e:
             logger.error(f"Error computing leaderboard: {e}", exc_info=True)
             await processing_message.edit_text(
@@ -315,7 +304,10 @@ class PalioTelegramBot:
             )
             return
 
-        if not changed_ids:
+        proposed = preview.get("proposed") or {}
+        changed_games = preview.get("changed_games") or []
+
+        if not changed_games:
             await processing_message.edit_text(
                 "ℹ️ Nessun gioco cambierebbe. Niente da aggiornare."
             )
@@ -325,8 +317,7 @@ class PalioTelegramBot:
         # without recomputing (avoids a race if game_status changes meanwhile).
         context.user_data["pending_leaderboard"] = proposed
 
-        names = self._game_names()
-        lines = "\n".join(f"• {names.get(gid, gid)}" for gid in changed_ids)
+        lines = "\n".join(f"• {g.get('name', g.get('id', ''))}" for g in changed_games)
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton("✅ Applica", callback_data="lb:apply"),
             InlineKeyboardButton("❌ Annulla", callback_data="lb:cancel"),
@@ -360,8 +351,8 @@ class PalioTelegramBot:
             return
 
         try:
-            updater = self._make_leaderboard_updater()
-            await asyncio.to_thread(updater.write_leaderboard, proposed)
+            client = self.container.core_client()
+            await asyncio.to_thread(client.apply_leaderboard, proposed)
         except Exception as e:
             logger.error(f"Error applying leaderboard: {e}", exc_info=True)
             await query.edit_message_text(

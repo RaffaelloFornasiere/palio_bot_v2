@@ -5,6 +5,8 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
+from fastapi import Body
+
 from palio_bot.core.auth import require_auth
 from palio_bot.core.file_store_local import ReadOnlyFile, UnknownFile
 from palio_bot.core.session_service import SessionService, ValidationFailed
@@ -24,6 +26,12 @@ class CreateSessionBody(BaseModel):
 class PutFileBody(BaseModel):
     content: Dict[str, Any]
     tool: Optional[str] = None
+
+
+class CommitBody(BaseModel):
+    # Optional recomputed leaderboard to bundle into the same save commit
+    # (write_atomic + record_write + finalize_save in one atomic flow).
+    leaderboard: Optional[Dict[str, Any]] = None
 
 
 @router.post("")
@@ -73,12 +81,18 @@ async def put_file(
 
 
 @router.post("/{session_id}/commit")
-async def commit(session_id: str, request: Request):
+async def commit(
+    session_id: str,
+    request: Request,
+    body: CommitBody = Body(default_factory=CommitBody),
+):
     svc = _service(request)
     try:
-        versions = svc.commit(session_id)
+        versions = svc.commit(session_id, leaderboard=body.leaderboard)
     except UnknownSession:
         raise HTTPException(status_code=404, detail=f"unknown session {session_id}")
+    except ValidationFailed as exc:
+        raise HTTPException(status_code=422, detail=exc.message)
     return {"files": versions}
 
 

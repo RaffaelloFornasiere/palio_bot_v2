@@ -32,7 +32,7 @@ export interface UseEditorSession<T> {
   committing: boolean;
   setContent: (updater: (prev: T) => T) => void;
   save: () => Promise<void>;
-  saveAndCommit: () => Promise<void>;
+  saveAndCommit: (leaderboard?: any) => Promise<void>;
   discard: () => Promise<void>;
 }
 
@@ -189,13 +189,13 @@ export function useEditorSession<T = any>(
     }
   }, [fileName]);
 
-  const saveAndCommit = useCallback(async () => {
+  const saveAndCommit = useCallback(async (leaderboard?: any) => {
     await save();
     const { sessionId } = stateRef.current;
     if (!sessionId) return;
     setState((s) => ({ ...s, committing: true }));
     try {
-      await editorApi.commit(sessionId);
+      await editorApi.commit(sessionId, leaderboard);
       committedRef.current = true;
       setState((s) => ({ ...s, committing: false, dirty: false }));
     } catch (e: any) {

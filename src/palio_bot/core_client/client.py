@@ -101,12 +101,31 @@ class CoreClient:
         )
         return data["version"]
 
-    def commit(self, session_id: str) -> Dict[str, str]:
-        data = self._request("POST", f"/api/sessions/{session_id}/commit")
+    def commit(
+        self,
+        session_id: str,
+        leaderboard: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, str]:
+        body: Dict[str, Any] = {}
+        if leaderboard is not None:
+            body["leaderboard"] = leaderboard
+        data = self._request(
+            "POST", f"/api/sessions/{session_id}/commit", json=body
+        )
         return data["files"]
 
     def discard(self, session_id: str) -> None:
         self._request("POST", f"/api/sessions/{session_id}/discard")
+
+    # ---------- leaderboard (standalone) ----------
+
+    def preview_leaderboard(self) -> Dict[str, Any]:
+        return self._request("POST", "/api/leaderboard/preview")
+
+    def apply_leaderboard(self, proposed: Dict[str, Any]) -> Dict[str, Any]:
+        return self._request(
+            "POST", "/api/leaderboard/apply", json={"proposed": proposed}
+        )
 
     def session_history(
         self, session_id: str, file_name: str, limit: int = 10

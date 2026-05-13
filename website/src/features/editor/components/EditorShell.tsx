@@ -31,7 +31,7 @@ export function EditorShell<T>({
   const navigate = useNavigate();
   const {
     loading, content, error, externallyChanged, dirty, saving, committing,
-    saveAndCommit, discard,
+    save, saveAndCommit, discard,
   } = session;
 
   const handleBack = async () => {
@@ -51,20 +51,26 @@ export function EditorShell<T>({
 
   const handleCommit = async () => {
     try {
-      await saveAndCommit();
       if (!promptRecomputeLeaderboard) {
+        await saveAndCommit();
         navigate('/edit', { replace: true });
         return;
       }
-      // Auto-preview: only bother the user if something actually changed.
+      // Persist pending edits via write-through so the preview sees
+      // them, then run the recompute preview BEFORE finalising the
+      // commit. If the leaderboard would change, prompt the user and
+      // bundle the recompute into the same save commit.
+      await save();
       let preview;
       try {
         preview = await editorApi.previewLeaderboard();
       } catch {
+        await saveAndCommit();
         navigate('/edit', { replace: true });
         return;
       }
       if (!preview.changed_games?.length) {
+        await saveAndCommit();
         navigate('/edit', { replace: true });
         return;
       }
@@ -77,9 +83,27 @@ export function EditorShell<T>({
     }
   };
 
-  const handleRecomputeClose = () => {
-    setRecompute(null);
-    navigate('/edit', { replace: true });
+  const handleRecomputeApply = async () => {
+    if (!recompute) return;
+    try {
+      await saveAndCommit(recompute.proposed);
+    } catch {
+      // error / externallyChanged already in session state
+    } finally {
+      setRecompute(null);
+      navigate('/edit', { replace: true });
+    }
+  };
+
+  const handleRecomputeSkip = async () => {
+    try {
+      await saveAndCommit();
+    } catch {
+      // error / externallyChanged already in session state
+    } finally {
+      setRecompute(null);
+      navigate('/edit', { replace: true });
+    }
   };
 
   const handleDiscard = async () => {
@@ -145,8 +169,8 @@ export function EditorShell<T>({
 
       <RecomputeLeaderboardDialog
         open={recompute != null}
-        onClose={handleRecomputeClose}
-        proposed={recompute?.proposed}
+        onApply={handleRecomputeApply}
+        onSkip={handleRecomputeSkip}
         changedGames={recompute?.changedGames ?? []}
       />
     </Box>

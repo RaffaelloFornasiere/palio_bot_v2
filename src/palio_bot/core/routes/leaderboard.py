@@ -1,6 +1,6 @@
 """Leaderboard preview / apply endpoints.
 
-Two-step flow used by the web editor and the Telegram bot:
+Two-step flow:
 
   1. POST /api/leaderboard/preview
      Recomputes the leaderboard from current inputs (palio.json +
@@ -9,12 +9,16 @@ Two-step flow used by the web editor and the Telegram bot:
      current leaderboard.json.
 
   2. POST /api/leaderboard/apply
-     Persists a previously-previewed leaderboard. The client must pass
-     the `proposed` dict back, so the apply is idempotent and immune to
-     races (two clients can't accidentally commit each other's preview).
+     Standalone save of a previously-previewed leaderboard. Writes
+     through the history layer (record_write + finalize_save) so
+     `refs/palio/last_save` advances and the public webapp sees the
+     new values.
 
-The auto-recompute on commit was removed; callers MUST use this flow to
-ever update the leaderboard.
+Callers that already have an open session (e.g. the web editor saving
+palio_games_status edits) should pass `leaderboard` to
+`POST /api/sessions/{id}/commit` instead — that bundles the recompute
+into the same squashed save commit. `/apply` exists for the standalone
+case (Telegram `/leaderboard`, CLI) where there is no active session.
 """
 
 import json
@@ -101,12 +105,36 @@ def apply(body: ApplyRequest, request: Request) -> Dict[str, str]:
 
     file_store = request.app.state.file_store
     stream = request.app.state.stream
+    history = getattr(request.app.state, "history", None)
+    registry = request.app.state.registry
 
     try:
         version = file_store.write_atomic("leaderboard", body.proposed)
     except Exception as exc:
         logger.exception("leaderboard apply: write_atomic failed")
         raise HTTPException(status_code=500, detail=f"write failed: {exc}")
+
+    if history is not None:
+        lb_name = registry.get_config("leaderboard").path.name
+        try:
+            history.record_write(
+                file_name=lb_name,
+                source="leaderboard_apply",
+                committer=None,
+                session_id=None,
+                tool="leaderboard_recompute",
+            )
+            history.finalize_save(
+                source="leaderboard_apply",
+                committer=None,
+                session_id=None,
+                files_touched=[lb_name],
+            )
+        except Exception:
+            logger.exception(
+                "leaderboard apply: history layer failed; on-disk file "
+                "was written but last_save did not advance"
+            )
 
     stream.broadcast(
         FileChangedEvent(session_id="core", file="leaderboard", version=version)
