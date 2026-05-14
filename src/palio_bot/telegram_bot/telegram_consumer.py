@@ -42,9 +42,33 @@ logger = logging.getLogger(__name__)
 # regular text channel.
 _THINKING_RE = re.compile(r"<thinking>.*?</thinking>", re.DOTALL | re.IGNORECASE)
 
+# Fenced code blocks (```…```), possibly with a language tag. Stripped in
+# simple mode — the model often dumps the JSON it just wrote, which is
+# debug noise for the humanized view.
+_FENCED_CODE_RE = re.compile(r"```[^\n]*\n.*?```", re.DOTALL)
+
+# Inline `…` code spans. Also stripped in simple mode to keep the reply
+# prose-only.
+_INLINE_CODE_RE = re.compile(r"`[^`\n]+`")
+
+# Collapse runs of 3+ blank lines that the strips above can leave behind.
+_BLANK_LINES_RE = re.compile(r"\n{3,}")
+
 
 def _strip_thinking(text: str) -> str:
     return _THINKING_RE.sub("", text).strip()
+
+
+def _humanize(text: str) -> str:
+    """Strip thinking, fenced code blocks and inline code from a reply.
+
+    Used for simple-mode rendering so users only see the prose answer.
+    """
+    text = _THINKING_RE.sub("", text)
+    text = _FENCED_CODE_RE.sub("", text)
+    text = _INLINE_CODE_RE.sub("", text)
+    text = _BLANK_LINES_RE.sub("\n\n", text)
+    return text.strip()
 
 
 class TelegramConsumer:
@@ -163,10 +187,12 @@ class TelegramConsumer:
             await self._update_message(event.session_id, updated_text + "\n\n⏳ Thinking...")
         else:
             # Simple mode: replace the placeholder with the latest reply
-            # AFTER stripping <thinking>…</thinking>. The agent typically
-            # emits a thinking-heavy update before tool calls and a clean
-            # summary at the end; we want the user to see the latter.
-            stripped = _strip_thinking("\n".join(text_parts))
+            # AFTER stripping <thinking>…</thinking>, fenced code blocks
+            # and inline code spans. The agent typically emits a
+            # thinking-heavy update before tool calls and a clean summary
+            # at the end; we want the user to see the latter as prose
+            # only — no raw JSON dumps.
+            stripped = _humanize("\n".join(text_parts))
             if not stripped:
                 return  # keep "Sto lavorando…" — nothing user-facing yet
             self.simple_reply[event.session_id] = stripped
