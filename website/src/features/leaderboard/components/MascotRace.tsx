@@ -10,22 +10,18 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import { Leaderboard, PalioData } from '../../../generated/types.gen';
 import { getLeaderboardDataForYear, getPalioDataForYear } from '../../../utils/yearApi';
 import { useYear } from '../../../contexts/YearContext';
-import { hexToRgb } from '../../../utils/colorUtils';
+import { hexToRgb, curatedVillageColor } from '../../../utils/colorUtils';
+import { MASCOTS, FALLBACK_EMOJI } from '../../../utils/villages';
 import YearSelector from '../../../components/YearSelector';
 import './MascotRace.css';
 
 /* Animated leaderboard replay. MUI shell + a custom race field/podium
    themed from the MUI theme. The 60fps engine is imperative (refs + rAF)
-   so there are no per-frame re-renders. Data is real: cumulative
-   per-game points are reconstructed from game_leaderboards (division
-   games averaged), then each series is anchored so its final frame
-   equals the official palio_leaderboard total exactly. */
-
-// The API has no mascots — map the festival's 5 borghi by name.
-const MASCOTS: Record<string, string> = {
-  Sornico: '🐿️', Sottocastello: '🐎', Salt: '🦐', Sottomonte: '🐰', Villa: '🐼',
-};
-const FALLBACK_EMOJI = '🏁';
+   so there are no per-frame re-renders. Data is real: each game's
+   `overall_leaderboard` already sums that game's per-division points, so
+   the cumulative sum of `overall_leaderboard` across every scheduled game
+   reproduces `palio_leaderboard` exactly — no averaging, no anchoring.
+   The track spans all games in palio.json, not only the played ones. */
 
 const MEDALS       = ['🥇', '🥈', '🥉', '4°', '5°'];
 const RANK_TO_SLOT = [2, 1, 3, 0, 4];                 // Olympic order 4·2·1·3·5
@@ -47,51 +43,58 @@ function textOn(hex: string): string {
 interface RaceData {
   villages: string[];
   colors: Record<string, string>;
-  series: Record<string, number[]>;   // cumulative points, index 0..steps
+  series: Record<string, number[]>;   // cumulative points, index 0..totalGames
   gameNames: string[];                // index 0 = "Partenza"
-  steps: number;
+  steps: number;                      // games with results — animate/count to here
+  totalGames: number;                 // all scheduled games — "/ N" + track ceiling
 }
 
-// Reconstruct cumulative per-game points, then anchor each village's final
-// value to its official palio_leaderboard total.
+// Build the cumulative per-village series over every scheduled game.
+// `overall_leaderboard` for a game already sums that game's per-division
+// points, so the running sum of `overall_leaderboard` reproduces
+// `palio_leaderboard` exactly — no division averaging, no final anchor.
+// Games are ordered by calendar date (palio.json array order is NOT
+// execution order); only games that have results become keyframes, so
+// the counter reads completed-count / total-scheduled and the animation
+// steps through exactly the games played, skipping the missing ones.
+const startOf = (dates?: Array<{ start_datetime?: string | null }>): number => {
+  const ts = (dates || [])
+    .map((d) => Date.parse(d.start_datetime || ''))
+    .filter((n) => !Number.isNaN(n));
+  return ts.length ? Math.min(...ts) : Number.MAX_SAFE_INTEGER;
+};
+
 function buildRaceData(lb: Leaderboard, palio: PalioData): RaceData {
   const villages = (palio.villages?.length ? palio.villages : lb.villages).slice();
-  const colors = palio.villages_colors || {};
-  const order = Object.keys(lb.game_leaderboards).sort();   // G01, G02, …
+  const rawColors = palio.villages_colors || {};
+  const colors: Record<string, string> = {};
+  villages.forEach((v) => { colors[v] = curatedVillageColor(rawColors[v] || '#888888'); });
+
+  // Every scheduled game, sorted by when it is actually played.
+  const scheduled = (palio.games?.length
+    ? palio.games.map((g) => ({ id: g.id, name: g.name, t: startOf(g.dates) }))
+    : Object.keys(lb.game_leaderboards).sort().map((id, i) => ({
+        id, name: lb.game_leaderboards[id].game_name || id, t: i,
+      }))
+  ).sort((a, b) => a.t - b.t || a.id.localeCompare(b.id));
+  const totalGames = scheduled.length;
+
+  // Keyframes = only the games that have results, in calendar order.
+  const played = scheduled.filter((g) => {
+    const ov = lb.game_leaderboards[g.id]?.overall_leaderboard;
+    return ov && Object.keys(ov).length > 0;
+  });
 
   const cum: Record<string, number> = {};
   const series: Record<string, number[]> = {};
   villages.forEach((v) => { cum[v] = 0; series[v] = [0]; });
-
-  for (const gid of order) {
-    const e = lb.game_leaderboards[gid];
-    const gp: Record<string, number> = {};
-    villages.forEach((v) => { gp[v] = 0; });
-
-    if (e.divisions && e.divisions.length) {
-      const n = e.divisions.length;
-      for (const d of e.divisions) {
-        for (const [v, info] of Object.entries(d.leaderboard || {})) {
-          if (v in gp) gp[v] += (info.points || 0) / n;
-        }
-      }
-    }
-    for (const [v, info] of Object.entries(e.overall_leaderboard || {})) {
-      if (v in gp) gp[v] += info.points || 0;
-    }
-    villages.forEach((v) => { cum[v] += gp[v]; series[v].push(cum[v]); });
+  for (const g of played) {
+    const ov = lb.game_leaderboards[g.id]?.overall_leaderboard || {};
+    villages.forEach((v) => { cum[v] += ov[v]?.points || 0; series[v].push(cum[v]); });
   }
 
-  for (const v of villages) {
-    const official = lb.palio_leaderboard[v]?.points ?? 0;
-    const last = series[v][series[v].length - 1];
-    const k = last > 0 ? official / last : 0;
-    series[v] = series[v].map((x) => x * k);
-    series[v][series[v].length - 1] = official;          // exact final
-  }
-
-  const gameNames = ['Partenza', ...order.map((g) => lb.game_leaderboards[g].game_name || g)];
-  return { villages, colors, series, gameNames, steps: order.length };
+  const gameNames = ['Partenza', ...played.map((g) => g.name)];
+  return { villages, colors, series, gameNames, steps: played.length, totalGames };
 }
 
 const MascotRace: React.FC = () => {
@@ -144,7 +147,7 @@ const MascotRace: React.FC = () => {
     if (!data) return;
     const { villages, series, gameNames } = data;
     const STEPS = data.steps;
-    const MAXPTS = STEPS * 10 + 10;          // rule ceiling, fixed scale
+    const MAXPTS = data.totalGames * 10 + 10;   // rule ceiling, all games — fixed scale
     const posPct = (p: number) => (p / MAXPTS) * 100;
 
     const perGame = () => MOVE_MS + HOLD_MS;
@@ -306,7 +309,7 @@ const MascotRace: React.FC = () => {
             <Typography variant="h5" component="div" sx={{ fontVariantNumeric: 'tabular-nums' }}>
               <span ref={dayNRef}>0</span>
               <Typography component="span" variant="body2" color="text.secondary">
-                {' / ' + data.steps}
+                {' / ' + data.totalGames}
               </Typography>
             </Typography>
             <Typography
