@@ -18,6 +18,8 @@ import GameStatusListView from './features/editor/pages/GameStatusListView';
 import GameStatusDetailView from './features/editor/pages/GameStatusDetailView';
 import RequireAuth from './features/editor/components/RequireAuth';
 import ArcadeGamePage from './features/arcade/pages/ArcadeGamePage';
+import DinoGamePage from './features/arcade/pages/DinoGamePage';
+import MiniGamesPage from './features/arcade/pages/MiniGamesPage';
 import './App.css';
 
 // Component to handle backward compatibility redirects
@@ -55,7 +57,11 @@ function App() {
               <Route path="giochi" element={<GamesPage />} />
               <Route path="giochi/:gameId" element={<GiocoDettagliPage />} />
               <Route path="calendario" element={<CalendarPage />} />
-              <Route path="gioco" element={<ArcadeGamePage />} />
+              <Route path="gioco">
+                <Route index element={<MiniGamesPage />} />
+                <Route path="bros" element={<ArcadeGamePage />} />
+                <Route path="dino" element={<DinoGamePage />} />
+              </Route>
 
               {/* Year-first routes */}
               <Route path=":year">
@@ -64,7 +70,11 @@ function App() {
                 <Route path="giochi" element={<GamesPage />} />
                 <Route path="giochi/:gameId" element={<GiocoDettagliPage />} />
                 <Route path="calendario" element={<CalendarPage />} />
-                <Route path="gioco" element={<ArcadeGamePage />} />
+                <Route path="gioco">
+                  <Route index element={<MiniGamesPage />} />
+                  <Route path="bros" element={<ArcadeGamePage />} />
+                  <Route path="dino" element={<DinoGamePage />} />
+                </Route>
               </Route>
               
               {/* Backward compatibility redirects */}

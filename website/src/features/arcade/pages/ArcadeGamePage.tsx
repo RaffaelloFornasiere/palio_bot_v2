@@ -1,4 +1,5 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
+import {Link as RouterLink} from 'react-router-dom';
 import {
    Container,
    Typography,
@@ -722,9 +723,14 @@ const ArcadeGamePage: React.FC = () => {
       <Container maxWidth="lg">
          <Box sx={{mt: 4, mb: 4}}>
             <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3}}>
-               <Typography variant="h4" component="h1">
-                  Mini-giochi
-               </Typography>
+               <Box sx={{display: 'flex', alignItems: 'baseline', gap: 1.5}}>
+                  <Button component={RouterLink} to=".." size="small" sx={{minWidth: 0}}>
+                     ← Mini-giochi
+                  </Button>
+                  <Typography variant="h4" component="h1">
+                     Super Borgo Bros
+                  </Typography>
+               </Box>
                <YearSelector/>
             </Box>
 
