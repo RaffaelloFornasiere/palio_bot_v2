@@ -38,6 +38,14 @@ class CoreConfig(BaseSettings):
     core_url: str = Field(default="http://localhost:8000", alias="PALIO_CORE_URL")
     bearer_token: Optional[str] = Field(default=None, alias="PALIO_CORE_TOKEN")
 
+    # Cloudflare Turnstile secret for the public borgo poll. Unset =>
+    # verification skipped (dev/loopback), like the bearer token.
+    turnstile_secret: Optional[str] = Field(default=None, alias="TURNSTILE_SECRET")
+
+    # Operational state for the public popularity poll. Gitignored, NOT
+    # part of the FileRegistry / history layer (see core/poll_store.py).
+    borgo_poll_path: Path = Path("data/borgo_poll.json")
+
     @property
     def port(self) -> int:
         parsed = urlsplit(self.core_url)
