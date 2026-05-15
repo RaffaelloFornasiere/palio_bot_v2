@@ -41,54 +41,170 @@ const GOOMBA_FOOT = '#000000';
 const SKIN = '#FCBC8C';
 const OVERALLS = '#0058F8';
 const SHOE = '#7C2C00';
+const MUSH_CAP = '#E03030';
 
 const TILE = 32;
 const VIEW_W = TILE * 17; // 544
 const VIEW_H = TILE * 14; // 448
 
-const GRAVITY = 2400;
-const WALK_ACCEL = 1100;
+// Physics modelled on the documented SMB engine: asymmetric gravity
+// (low while rising with jump held, high when falling / button released
+// -> that IS the variable-height jump), jump strength scaled by run
+// speed, plus the standard coyote-time + jump-buffer for tight feel.
+const GRAVITY_JUMP = 1250; // while ascending and jump held
+const GRAVITY_FALL = 2600; // falling, or jump released mid-rise
+const WALK_ACCEL = 1150;
 const RUN_MAX = 380;
 const WALK_MAX = 230;
-const FRICTION = 1500;
-const JUMP_V = -780;
-const JUMP_CUT = 0.45; // releasing jump early shortens the hop
+const FRICTION = 1600;
+const JUMP_V = -560; // standstill jump impulse
+const JUMP_SPEED_BONUS = 130; // extra impulse at full run speed
+const COYOTE = 0.09;
+const JUMP_BUFFER = 0.12;
 const MAX_FALL = 900;
 const GOOMBA_SPEED = 55;
 const START_TIME = 300;
 
 const P_W = 24;
-const P_H = 30;
+const P_H_SMALL = 30;
+const P_H_BIG = 46;
 
-// Compact but iconic level. Rows top->bottom, 14 tall. '.' empty,
-// 'X' solid ground/block, 'B' brick, '?' question (coin), 'o' coin,
-// 'g' goomba, 'p' pipe (top-left anchor; height by stacked 'p'),
-// '|' pipe body, 'F' flag base. Bottom 2 rows are ground (with pits).
-const LEVEL: string[] = [
-   '.............................................................................................',
-   '.............................................................................................',
-   '.............................................................................................',
-   '...........................o.o.o.............................................................',
-   '..................?.......BBB?BBB..................o.o........................................',
-   '.............................................................B?B.............................',
-   '..............................................p.............................................',
-   '............?...B?B?B.....g........g..........p|.......g....g.................F...............',
-   '.......................................p.....p|.............................XF...............',
-   '......................g................p|....p|.....g......................XXF...............',
-   '....g................................p.p|....p|...........................XXXF...............',
-   '..................................p..p.p|....p|.........................XXXXF.....C..........',
-   'XXXXXXXXX...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-   'XXXXXXXXX...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-];
+const TILES_W = 116;
+const GROUND_ROW = 12; // rows 12 & 13 are ground
+const GROUND_Y = GROUND_ROW * TILE; // 384 (top surface of the ground)
+const CLUSTER_ROW = 9; // y=288, ~3 tiles above ground -> always jump-reachable
+const LEVEL_W = TILES_W * TILE;
 
 type Solid = {x: number; y: number; w: number; h: number};
 interface Block extends Solid {
    kind: 'ground' | 'brick' | 'question' | 'pipe';
+   gives?: 'coin' | 'mushroom';
    used?: boolean;
-   bump?: number; // animation offset when hit from below
+   broken?: boolean;
+   bump?: number;
 }
 interface Coin {x: number; y: number; t: number; got?: boolean}
 interface Goomba {x: number; y: number; vx: number; vy: number; w: number; h: number; dead: number; alive: boolean}
+interface Mushroom {x: number; y: number; vx: number; vy: number; w: number; h: number; active: boolean; emerge: number}
+
+const ri = (a: number, b: number) => Math.floor(a + Math.random() * (b - a + 1));
+
+function buildLevel() {
+   const solid: boolean[] = new Array(TILES_W).fill(true);
+   // pits only in the mid-section; start (0..10) and end zone stay solid
+   let c = 12;
+   while (c < TILES_W - 20) {
+      if (Math.random() < 0.17) {
+         const w = ri(2, 3); // jumpable (max horizontal jump ~6 tiles)
+         for (let i = 0; i < w && c + i < TILES_W - 20; i++) solid[c + i] = false;
+         c += w + ri(5, 9);
+      } else {
+         c += ri(2, 4);
+      }
+   }
+
+   let blocks: Block[] = [];
+   for (let col = 0; col < TILES_W; col++) {
+      if (solid[col]) {
+         blocks.push({x: col * TILE, y: GROUND_Y, w: TILE, h: TILE, kind: 'ground'});
+         blocks.push({x: col * TILE, y: GROUND_Y + TILE, w: TILE, h: TILE, kind: 'ground'});
+      }
+   }
+
+   // pipes (2-3 tiles tall -> jumpable over)
+   const pipeCols: number[] = [];
+   for (let attempt = 0; attempt < ri(2, 4); attempt++) {
+      const col = ri(18, TILES_W - 24);
+      if (!solid[col] || !solid[col - 1] || !solid[col + 1]) continue;
+      if (pipeCols.some((pc) => Math.abs(pc - col) < 6)) continue;
+      const h = ri(2, 3);
+      for (let k = 1; k <= h; k++) {
+         blocks.push({x: col * TILE, y: GROUND_Y - k * TILE, w: TILE, h: TILE, kind: 'pipe'});
+      }
+      pipeCols.push(col);
+   }
+   const isPipeCol = (col: number) => pipeCols.includes(col);
+
+   // elevated brick/? clusters at a reachable row
+   const questions: Block[] = [];
+   for (let attempt = 0; attempt < ri(3, 5); attempt++) {
+      const len = ri(3, 6);
+      const start = ri(16, TILES_W - 26);
+      let ok = true;
+      for (let i = 0; i < len; i++) {
+         if (!solid[start + i] || isPipeCol(start + i) || start + i >= TILES_W - 16) ok = false;
+      }
+      if (!ok) continue;
+      let hasQ = false;
+      const made: Block[] = [];
+      for (let i = 0; i < len; i++) {
+         const isQ = Math.random() < 0.45;
+         if (isQ) hasQ = true;
+         const b: Block = {
+            x: (start + i) * TILE, y: CLUSTER_ROW * TILE, w: TILE, h: TILE,
+            kind: isQ ? 'question' : 'brick',
+            gives: isQ ? 'coin' : undefined,
+         };
+         made.push(b);
+      }
+      if (!hasQ) {
+         const mid = made[Math.floor(len / 2)];
+         mid.kind = 'question';
+         mid.gives = 'coin';
+      }
+      made.forEach((b) => {
+         blocks.push(b);
+         if (b.kind === 'question') questions.push(b);
+      });
+   }
+   // a couple of ? blocks dispense a growth mushroom
+   for (let i = 0; i < Math.min(questions.length, ri(1, 2)); i++) {
+      const q = questions[ri(0, questions.length - 1)];
+      q.gives = 'mushroom';
+   }
+
+   // random reachable coins
+   const coins: Coin[] = [];
+   const overlapsBlock = (cx: number, cy: number) =>
+      blocks.some((b) => cx > b.x - 12 && cx < b.x + b.w + 12 && cy > b.y - 16 && cy < b.y + b.h + 16);
+   for (let i = 0; i < ri(16, 24); i++) {
+      for (let t = 0; t < 8; t++) {
+         const col = ri(11, TILES_W - 16);
+         if (!solid[col] || isPipeCol(col)) continue;
+         const cy = GROUND_Y - TILE * ri(1, 3) + 6;
+         const cx = col * TILE + TILE / 2;
+         if (overlapsBlock(cx, cy)) continue;
+         coins.push({x: cx, y: cy, t: Math.random() * 6});
+         break;
+      }
+   }
+
+   // random goombas on solid ground, away from the very start
+   const goombas: Goomba[] = [];
+   for (let i = 0; i < ri(4, 7); i++) {
+      for (let t = 0; t < 8; t++) {
+         const col = ri(16, TILES_W - 20);
+         if (!solid[col] || isPipeCol(col)) continue;
+         goombas.push({
+            x: col * TILE, y: GROUND_Y - 26,
+            vx: Math.random() < 0.5 ? -GOOMBA_SPEED : GOOMBA_SPEED,
+            vy: 0, w: 26, h: 26, dead: 0, alive: true,
+         });
+         break;
+      }
+   }
+
+   // end staircase (1-tile steps, climbable) + flag
+   for (let s = 0; s < 4; s++) {
+      const col = TILES_W - 15 + s;
+      for (let k = 1; k <= s + 1; k++) {
+         blocks.push({x: col * TILE, y: GROUND_Y - k * TILE, w: TILE, h: TILE, kind: 'ground'});
+      }
+   }
+   const flagX = (TILES_W - 7) * TILE;
+
+   return {blocks, coins, goombas, flagX};
+}
 
 const ArcadeGamePage: React.FC = () => {
    const [palioData, setPalioData] = useState<PalioData | null>(null);
@@ -144,34 +260,17 @@ const ArcadeGamePage: React.FC = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const levelW = LEVEL[0].length * TILE;
-      const blocks: Block[] = [];
-      const coins: Coin[] = [];
-      const goombas: Goomba[] = [];
-      let flagX = levelW - TILE * 3;
+      let {blocks, coins, goombas, flagX} = buildLevel();
+      const mushrooms: Mushroom[] = [];
 
-      LEVEL.forEach((row, r) => {
-         for (let c = 0; c < row.length; c++) {
-            const ch = row[c];
-            const x = c * TILE;
-            const y = r * TILE;
-            if (ch === 'X') blocks.push({x, y, w: TILE, h: TILE, kind: 'ground'});
-            else if (ch === 'B') blocks.push({x, y, w: TILE, h: TILE, kind: 'brick'});
-            else if (ch === '?') blocks.push({x, y, w: TILE, h: TILE, kind: 'question'});
-            else if (ch === 'p' || ch === '|')
-               blocks.push({x, y, w: TILE, h: TILE, kind: 'pipe'});
-            else if (ch === 'o') coins.push({x: x + TILE / 2, y: y + TILE / 2, t: Math.random() * 6});
-            else if (ch === 'g')
-               goombas.push({x, y: y + TILE - 26, vx: -GOOMBA_SPEED, vy: 0, w: 26, h: 26, dead: 0, alive: true});
-            else if (ch === 'F') flagX = x;
-         }
-      });
-
-      const startPos = {x: TILE * 2, y: VIEW_H - TILE * 2 - P_H};
       const p = {
-         x: startPos.x, y: startPos.y, vx: 0, vy: 0,
-         onGround: false, face: 1, walkT: 0, dead: false, deadT: 0, win: false, winT: 0,
+         x: TILE * 2, y: GROUND_Y - P_H_SMALL, vx: 0, vy: 0,
+         onGround: false, face: 1, walkT: 0, big: false, invuln: 0,
+         coyote: 0, jumpBuf: 0, prevJump: false,
+         dead: false, deadT: 0, win: false, winT: 0,
       };
+      const ph = () => (p.big ? P_H_BIG : P_H_SMALL);
+
       let cameraX = 0;
       let time = START_TIME;
       let timeAcc = 0;
@@ -196,11 +295,9 @@ const ArcadeGamePage: React.FC = () => {
          const dt = Math.min((now - last) / 1000, 0.033);
          last = now;
 
-         // ---------- update ----------
          if (p.win) {
             p.winT += dt;
-            // slide down flag then walk into castle
-            if (p.y + P_H < VIEW_H - TILE * 2) p.y += 180 * dt;
+            if (p.y + ph() < GROUND_Y) p.y += 180 * dt;
             else p.x += 90 * dt;
             if (p.winT > 2.4) {
                setHud({coins: coinCount, score, lives, time: Math.ceil(time)});
@@ -209,7 +306,7 @@ const ArcadeGamePage: React.FC = () => {
             }
          } else if (p.dead) {
             p.deadT += dt;
-            p.vy = Math.min(p.vy + GRAVITY * dt, MAX_FALL);
+            p.vy = Math.min(p.vy + GRAVITY_FALL * dt, MAX_FALL);
             p.y += p.vy * dt;
             if (p.deadT > 1.3) {
                const remaining = lives - 1;
@@ -223,13 +320,13 @@ const ArcadeGamePage: React.FC = () => {
                return;
             }
          } else {
+            if (p.invuln > 0) p.invuln -= dt;
+
             timeAcc += dt;
             if (timeAcc >= 1) {
                timeAcc -= 1;
                time -= 1;
-               if (time <= 0) {
-                  die();
-               }
+               if (time <= 0) die();
             }
 
             const k = keys.current;
@@ -253,35 +350,45 @@ const ArcadeGamePage: React.FC = () => {
             }
             p.vx = Math.max(-maxSpeed, Math.min(maxSpeed, p.vx));
 
-            if (jumpHeld && p.onGround) {
-               p.vy = JUMP_V;
+            // coyote time + jump buffering (standard platformer feel)
+            p.coyote = p.onGround ? COYOTE : Math.max(0, p.coyote - dt);
+            const jumpPressed = jumpHeld && !p.prevJump;
+            p.jumpBuf = jumpPressed ? JUMP_BUFFER : Math.max(0, p.jumpBuf - dt);
+            p.prevJump = jumpHeld;
+            if (p.jumpBuf > 0 && p.coyote > 0) {
+               p.vy = JUMP_V - (Math.abs(p.vx) / RUN_MAX) * JUMP_SPEED_BONUS;
                p.onGround = false;
+               p.coyote = 0;
+               p.jumpBuf = 0;
             }
-            if (!jumpHeld && p.vy < 0) p.vy *= 1 - JUMP_CUT * Math.min(1, dt * 60);
+            // asymmetric gravity = authentic SMB variable-height jump:
+            // gentle while rising with jump held, heavy otherwise.
+            const gravNow = p.vy < 0 && jumpHeld ? GRAVITY_JUMP : GRAVITY_FALL;
+            p.vy = Math.min(p.vy + gravNow * dt, MAX_FALL);
 
-            p.vy = Math.min(p.vy + GRAVITY * dt, MAX_FALL);
+            const H = ph();
 
-            // ---- horizontal move + collide ----
+            // horizontal
             p.x += p.vx * dt;
             if (p.x < 0) {
                p.x = 0;
                p.vx = 0;
             }
             for (const b of blocks) {
-               if (aabb(p.x, p.y, P_W, P_H, b)) {
+               if (aabb(p.x, p.y, P_W, H, b)) {
                   if (p.vx > 0) p.x = b.x - P_W;
                   else if (p.vx < 0) p.x = b.x + b.w;
                   p.vx = 0;
                }
             }
 
-            // ---- vertical move + collide ----
+            // vertical
             p.y += p.vy * dt;
             p.onGround = false;
             for (const b of blocks) {
-               if (aabb(p.x, p.y, P_W, P_H, b)) {
+               if (aabb(p.x, p.y, P_W, H, b)) {
                   if (p.vy > 0) {
-                     p.y = b.y - P_H;
+                     p.y = b.y - H;
                      p.vy = 0;
                      p.onGround = true;
                   } else if (p.vy < 0) {
@@ -290,29 +397,40 @@ const ArcadeGamePage: React.FC = () => {
                      if (b.kind === 'question' && !b.used) {
                         b.used = true;
                         b.bump = 8;
-                        coinCount += 1;
-                        score += 200;
-                        if (coinCount >= 100) {
-                           coinCount = 0;
+                        if (b.gives === 'mushroom') {
+                           mushrooms.push({
+                              x: b.x, y: b.y, vx: 70, vy: 0, w: 24, h: 24,
+                              active: true, emerge: TILE,
+                           });
+                           score += 100;
+                        } else {
+                           coinCount += 1;
+                           score += 200;
+                           if (coinCount >= 100) coinCount = 0;
                         }
-                     } else if (b.kind === 'brick' || b.kind === 'ground') {
-                        b.bump = 6;
+                     } else if (b.kind === 'brick') {
+                        if (p.big) {
+                           b.broken = true;
+                           score += 50;
+                        } else {
+                           b.bump = 6;
+                        }
+                     } else if (b.kind === 'ground') {
+                        b.bump = 4;
                      }
                   }
                }
             }
+            if (blocks.some((b) => b.broken)) blocks = blocks.filter((b) => !b.broken);
             blocks.forEach((b) => {
                if (b.bump && b.bump > 0) b.bump = Math.max(0, b.bump - 60 * dt);
             });
 
-            // walk animation
             if (Math.abs(p.vx) > 10 && p.onGround) p.walkT += dt * Math.abs(p.vx) * 0.04;
             else p.walkT = 0;
 
-            // pit / fall death
             if (p.y > VIEW_H + 80) die();
 
-            // flag
             if (!p.win && p.x + P_W > flagX && p.x < flagX + TILE) {
                p.win = true;
                p.vx = 0;
@@ -321,17 +439,16 @@ const ArcadeGamePage: React.FC = () => {
                p.x = flagX - 2;
             }
 
-            // ---- goombas ----
+            // goombas
             for (const g of goombas) {
                if (!g.alive) {
                   if (g.dead > 0) g.dead -= dt;
                   continue;
                }
-               g.vy = Math.min(g.vy + GRAVITY * dt, MAX_FALL);
+               g.vy = Math.min(g.vy + GRAVITY_FALL * dt, MAX_FALL);
                g.x += g.vx * dt;
-               // turn at walls
                for (const b of blocks) {
-                  if (aabb(g.x, g.y, g.w, g.h, b)) {
+                  if (aabb(g.x, g.y, g.w, g.h, b) && b.y < g.y + g.h - 4) {
                      if (g.vx > 0) g.x = b.x - g.w;
                      else g.x = b.x + b.w;
                      g.vx = -g.vx;
@@ -339,45 +456,83 @@ const ArcadeGamePage: React.FC = () => {
                }
                g.y += g.vy * dt;
                for (const b of blocks) {
-                  if (aabb(g.x, g.y, g.w, g.h, b)) {
-                     if (g.vy > 0) {
-                        g.y = b.y - g.h;
-                        g.vy = 0;
-                     }
+                  if (aabb(g.x, g.y, g.w, g.h, b) && g.vy > 0) {
+                     g.y = b.y - g.h;
+                     g.vy = 0;
                   }
                }
                if (g.y > VIEW_H + 80) g.alive = false;
 
-               // player vs goomba
-               if (!p.dead && !p.win && aabb(p.x, p.y, P_W, P_H, g)) {
-                  const stomp = p.vy > 0 && p.y + P_H - g.y < 16;
+               if (!p.dead && !p.win && aabb(p.x, p.y, P_W, H, g)) {
+                  const stomp = p.vy > 0 && p.y + H - g.y < 18;
                   if (stomp) {
                      g.alive = false;
                      g.dead = 0.5;
                      p.vy = -420;
                      score += 100;
-                  } else {
-                     die();
+                  } else if (p.invuln <= 0) {
+                     if (p.big) {
+                        p.big = false;
+                        p.y += P_H_BIG - P_H_SMALL;
+                        p.invuln = 2;
+                     } else {
+                        die();
+                     }
                   }
                }
             }
 
-            // ---- coins ----
-            for (const c of coins) {
-               if (c.got) continue;
-               c.t += dt * 6;
-               if (aabb(p.x, p.y, P_W, P_H, {x: c.x - 10, y: c.y - 14, w: 20, h: 28})) {
-                  c.got = true;
+            // coins
+            for (const co of coins) {
+               if (co.got) continue;
+               co.t += dt * 6;
+               if (aabb(p.x, p.y, P_W, H, {x: co.x - 10, y: co.y - 14, w: 20, h: 28})) {
+                  co.got = true;
                   coinCount += 1;
                   score += 200;
                   if (coinCount >= 100) coinCount = 0;
                }
             }
+
+            // mushrooms
+            for (const m of mushrooms) {
+               if (!m.active) continue;
+               if (m.emerge > 0) {
+                  const rise = 64 * dt;
+                  m.y -= rise;
+                  m.emerge -= rise;
+               } else {
+                  m.vy = Math.min(m.vy + GRAVITY_FALL * dt, MAX_FALL);
+                  m.x += m.vx * dt;
+                  for (const b of blocks) {
+                     if (aabb(m.x, m.y, m.w, m.h, b) && b.y < m.y + m.h - 4) {
+                        if (m.vx > 0) m.x = b.x - m.w;
+                        else m.x = b.x + b.w;
+                        m.vx = -m.vx;
+                     }
+                  }
+                  m.y += m.vy * dt;
+                  for (const b of blocks) {
+                     if (aabb(m.x, m.y, m.w, m.h, b) && m.vy > 0) {
+                        m.y = b.y - m.h;
+                        m.vy = 0;
+                     }
+                  }
+                  if (m.y > VIEW_H + 80) m.active = false;
+                  if (m.active && aabb(p.x, p.y, P_W, H, m)) {
+                     m.active = false;
+                     score += 1000;
+                     if (!p.big) {
+                        p.big = true;
+                        p.y -= P_H_BIG - P_H_SMALL;
+                     }
+                  }
+               }
+            }
          }
 
-         // camera
          const target = p.x - VIEW_W * 0.38;
-         cameraX = Math.max(0, Math.min(levelW - VIEW_W, Math.max(cameraX, target)));
+         cameraX = Math.max(0, Math.min(LEVEL_W - VIEW_W, Math.max(cameraX, target)));
 
          setHud((h) =>
             h.coins === coinCount && h.score === score && h.time === Math.ceil(time)
@@ -388,30 +543,18 @@ const ArcadeGamePage: React.FC = () => {
          // ---------- draw ----------
          ctx.fillStyle = SKY;
          ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-
          ctx.save();
          ctx.translate(-Math.round(cameraX), 0);
 
-         // background: hills + clouds + bushes (parallax-light)
-         const groundY = VIEW_H - TILE * 2;
-         drawHill(ctx, 120, groundY, 1.4);
-         drawHill(ctx, 760, groundY, 1.0);
-         drawHill(ctx, 1700, groundY, 1.4);
-         drawHill(ctx, 2500, groundY, 1.0);
-         drawCloud(ctx, 260, 70, 1);
-         drawCloud(ctx, 620, 110, 1.4);
-         drawCloud(ctx, 1150, 60, 1);
-         drawCloud(ctx, 1850, 90, 1.2);
-         drawCloud(ctx, 2400, 70, 1);
-         drawBush(ctx, 480, groundY, 1.3);
-         drawBush(ctx, 1300, groundY, 1);
-         drawBush(ctx, 2100, groundY, 1.5);
+         for (let i = 0; i < 6; i++) {
+            drawHill(ctx, 200 + i * 620 + (i % 2) * 140, GROUND_Y, i % 2 ? 1 : 1.4);
+            drawCloud(ctx, 260 + i * 560, 60 + (i % 3) * 26, 1 + (i % 2) * 0.3);
+            drawBush(ctx, 470 + i * 540, GROUND_Y, 1 + (i % 2) * 0.4);
+         }
 
-         // flag pole + castle
-         drawFlag(ctx, flagX, groundY, borgoColor);
-         drawCastle(ctx, levelW - TILE * 2.2, groundY);
+         drawFlag(ctx, flagX, GROUND_Y, borgoColor);
+         drawCastle(ctx, LEVEL_W - TILE * 3, GROUND_Y);
 
-         // blocks
          for (const b of blocks) {
             const by = b.y - (b.bump || 0);
             if (b.kind === 'ground') drawGround(ctx, b.x, by);
@@ -420,24 +563,23 @@ const ArcadeGamePage: React.FC = () => {
             else if (b.kind === 'pipe') drawPipe(ctx, b.x, by);
          }
 
-         // coins
-         for (const c of coins) {
-            if (c.got) continue;
-            drawCoin(ctx, c.x, c.y, c.t);
+         for (const co of coins) {
+            if (co.got) continue;
+            drawCoin(ctx, co.x, co.y, co.t);
          }
-
-         // goombas
+         for (const m of mushrooms) {
+            if (!m.active) continue;
+            drawMushroom(ctx, m.x, m.y, m.w, m.h);
+         }
          for (const g of goombas) {
             if (!g.alive && g.dead <= 0) continue;
             drawGoomba(ctx, g.x, g.y, g.w, g.h, !g.alive, now);
          }
 
-         // player
-         drawMario(ctx, p.x, p.y, p.face, borgoColor, p.onGround, p.walkT, p.dead);
+         const blink = p.invuln > 0 && Math.floor(now / 90) % 2 === 0;
+         if (!blink) drawMario(ctx, p.x, p.y, P_W, ph(), p.face, borgoColor, p.onGround, p.walkT, p.dead, p.big);
 
          ctx.restore();
-
-         // HUD (screen-fixed)
          drawHUD(ctx, selectedBorgo!, coinCount, score, Math.max(0, Math.ceil(time)), lives);
 
          raf = requestAnimationFrame(step);
@@ -515,18 +657,18 @@ const ArcadeGamePage: React.FC = () => {
 
    const padSx = {
       ...noSelect,
-      width: 76,
-      height: 64,
+      width: {xs: 46, sm: 58},
+      height: {xs: 42, sm: 50},
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 2,
       bgcolor: borgoColor,
       color: '#fff',
-      fontSize: 26,
+      fontSize: {xs: 18, sm: 22},
       fontWeight: 700,
       cursor: 'pointer',
-      boxShadow: 3,
+      boxShadow: 2,
       '&:active': {filter: 'brightness(0.85)'},
    };
 
@@ -535,7 +677,7 @@ const ArcadeGamePage: React.FC = () => {
          <Box sx={{mt: 4, mb: 4}}>
             <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3}}>
                <Typography variant="h4" component="h1">
-                  Gioco
+                  Mini-giochi
                </Typography>
                <YearSelector/>
             </Box>
@@ -547,7 +689,8 @@ const ArcadeGamePage: React.FC = () => {
                         Scegli il tuo borgo
                      </Typography>
                      <Typography variant="body2" color="text.secondary" sx={{mb: 3}}>
-                        Super Borgo Bros! Corri, salta sui Goomba e raggiungi la bandiera.
+                        Super Borgo Bros! Corri, salta sui Goomba, prendi i funghi per
+                        diventare grande e raggiungi la bandiera. Ogni partita è diversa.
                         Tastiera: ← → muovi, ↑ / Spazio salta, Shift corri.
                      </Typography>
                      <FormControl sx={{minWidth: 260}}>
@@ -673,10 +816,11 @@ const ArcadeGamePage: React.FC = () => {
                            display: 'flex',
                            justifyContent: 'space-between',
                            alignItems: 'center',
-                           gap: 2,
+                           flexWrap: 'wrap',
+                           gap: 1,
                         }}
                      >
-                        <Box sx={{display: 'flex', gap: 1.5}}>
+                        <Box sx={{display: 'flex', gap: 1}}>
                            <Box sx={padSx} {...hold('ArrowLeft')}>
                               ◀
                            </Box>
@@ -684,11 +828,11 @@ const ArcadeGamePage: React.FC = () => {
                               ▶
                            </Box>
                         </Box>
-                        <Box sx={{display: 'flex', gap: 1.5}}>
-                           <Box sx={{...padSx, fontSize: 16}} {...hold('Shift')}>
+                        <Box sx={{display: 'flex', gap: 1}}>
+                           <Box sx={{...padSx, fontSize: {xs: 11, sm: 13}}} {...hold('Shift')}>
                               CORRI
                            </Box>
-                           <Box sx={{...padSx, width: 96}} {...hold(' ')}>
+                           <Box sx={{...padSx, width: {xs: 64, sm: 78}}} {...hold(' ')}>
                               SALTA
                            </Box>
                         </Box>
@@ -744,16 +888,14 @@ function drawQ(ctx: CanvasRenderingContext2D, x: number, y: number, used: boolea
    ctx.strokeStyle = '#000';
    ctx.lineWidth = 2;
    ctx.strokeRect(x + 1, y + 1, TILE - 2, TILE - 2);
-   // rivets
-   const rv = '#000';
    [
       [x + 4, y + 4],
       [x + TILE - 7, y + 4],
       [x + 4, y + TILE - 7],
       [x + TILE - 7, y + TILE - 7],
-   ].forEach(([rx, ry]) => px(ctx, rx, ry, 3, 3, rv));
+   ].forEach(([rx, ry]) => px(ctx, rx, ry, 3, 3, '#000'));
    if (!used) {
-      ctx.fillStyle = `rgb(${255},${255},${Math.round(180 + pulse)})`;
+      ctx.fillStyle = `rgb(255,255,${Math.round(180 + pulse)})`;
       ctx.font = 'bold 20px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -778,6 +920,26 @@ function drawCoin(ctx: CanvasRenderingContext2D, cx: number, cy: number, t: numb
    ctx.fillRect(cx - 1.5, cy - 7, 3, 14);
 }
 
+function drawMushroom(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+   // cap
+   ctx.fillStyle = MUSH_CAP;
+   ctx.beginPath();
+   ctx.arc(x + w / 2, y + h * 0.45, w / 2, Math.PI, 0);
+   ctx.fill();
+   px(ctx, x, y + h * 0.42, w, h * 0.13, MUSH_CAP);
+   // white spots
+   ctx.fillStyle = '#fff';
+   ctx.beginPath();
+   ctx.arc(x + w * 0.28, y + h * 0.38, 3, 0, Math.PI * 2);
+   ctx.arc(x + w * 0.72, y + h * 0.38, 3, 0, Math.PI * 2);
+   ctx.arc(x + w * 0.5, y + h * 0.22, 3.5, 0, Math.PI * 2);
+   ctx.fill();
+   // stalk + eyes
+   px(ctx, x + w * 0.2, y + h * 0.55, w * 0.6, h * 0.45, SKIN);
+   px(ctx, x + w * 0.34, y + h * 0.66, 3, 5, '#000');
+   px(ctx, x + w * 0.56, y + h * 0.66, 3, 5, '#000');
+}
+
 function drawGoomba(
    ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dead: boolean, t: number,
 ) {
@@ -788,18 +950,15 @@ function drawGoomba(
       return;
    }
    const swap = Math.floor(t / 160) % 2 === 0;
-   // body
    ctx.fillStyle = GOOMBA;
    ctx.beginPath();
    ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
    ctx.fill();
    px(ctx, x + 2, y + 3, w - 4, 4, '#C87830');
-   // eyes
    px(ctx, x + 5, y + 9, 5, 6, '#fff');
    px(ctx, x + w - 10, y + 9, 5, 6, '#fff');
    px(ctx, x + (swap ? 7 : 6), y + 11, 2, 3, '#000');
    px(ctx, x + w - (swap ? 8 : 9), y + 11, 2, 3, '#000');
-   // brows
    ctx.strokeStyle = '#000';
    ctx.lineWidth = 2;
    ctx.beginPath();
@@ -808,21 +967,20 @@ function drawGoomba(
    ctx.moveTo(x + w - 4, y + 7);
    ctx.lineTo(x + w - 11, y + 11);
    ctx.stroke();
-   // feet
    px(ctx, x + (swap ? 1 : 3), y + h - 5, 9, 5, GOOMBA_FOOT);
    px(ctx, x + w - (swap ? 10 : 12), y + h - 5, 9, 5, GOOMBA_FOOT);
 }
 
 function drawMario(
    ctx: CanvasRenderingContext2D,
-   x: number, y: number, face: number, color: string,
-   onGround: boolean, walkT: number, dead: boolean,
+   x: number, y: number, w: number, h: number, face: number, color: string,
+   onGround: boolean, walkT: number, dead: boolean, big: boolean,
 ) {
-   const f = face >= 0 ? 1 : -1;
    ctx.save();
-   ctx.translate(Math.round(x + P_W / 2), Math.round(y));
-   ctx.scale(f, 1);
-   ctx.translate(-P_W / 2, 0);
+   ctx.translate(Math.round(x + w / 2), Math.round(y));
+   ctx.scale(face >= 0 ? 1 : -1, 1);
+   ctx.translate(-12, 0);
+   ctx.scale(w / 24, h / 32); // sprite authored in a 24x32 box
 
    if (dead) {
       px(ctx, 4, 4, 16, 6, color);
@@ -833,27 +991,21 @@ function drawMario(
    }
 
    const airborne = !onGround;
-   const stride = Math.sin(walkT) ;
-   // cap
+   const stride = Math.sin(walkT);
+   const torso = big ? '#FFFFFF' : color; // big Mario gets a white shirt under coloured cap
+
    px(ctx, 4, 0, 16, 6, color);
    px(ctx, 2, 4, 6, 3, color);
-   // face
    px(ctx, 5, 6, 15, 9, SKIN);
-   // hair / sideburn
    px(ctx, 4, 8, 3, 6, '#7C2C00');
-   // eye
    px(ctx, 14, 8, 3, 4, '#000');
-   // mustache
    px(ctx, 12, 12, 8, 3, '#7C2C00');
-   // shirt + overalls
-   px(ctx, 3, 15, 18, 9, color);
+   px(ctx, 3, 15, 18, 9, torso);
    px(ctx, 7, 17, 10, 13, OVERALLS);
-   px(ctx, 6, 17, 2, 9, OVERALLS); // strap
+   px(ctx, 6, 17, 2, 9, OVERALLS);
    px(ctx, 16, 17, 2, 9, OVERALLS);
-   // button
    px(ctx, 11, 21, 2, 2, '#FAC000');
 
-   // arms
    if (airborne) {
       px(ctx, 1, 15, 4, 7, SKIN);
       px(ctx, 19, 13, 4, 7, SKIN);
@@ -862,7 +1014,6 @@ function drawMario(
       px(ctx, 18, 17, 4, 7, SKIN);
    }
 
-   // legs / shoes
    if (airborne) {
       px(ctx, 6, 26, 6, 5, OVERALLS);
       px(ctx, 13, 24, 6, 5, OVERALLS);
@@ -892,14 +1043,14 @@ function drawCloud(ctx: CanvasRenderingContext2D, x: number, y: number, s: numbe
 
 function drawHill(ctx: CanvasRenderingContext2D, x: number, groundY: number, s: number) {
    const w = 130 * s;
-   const h = 70 * s;
+   const hh = 70 * s;
    ctx.fillStyle = HILL;
    ctx.beginPath();
    ctx.moveTo(x - w / 2, groundY);
-   ctx.quadraticCurveTo(x, groundY - h * 1.6, x + w / 2, groundY);
+   ctx.quadraticCurveTo(x, groundY - hh * 1.6, x + w / 2, groundY);
    ctx.fill();
    ctx.fillStyle = HILL_DARK;
-   [[-w * 0.12, -h * 0.7], [w * 0.1, -h * 0.5]].forEach(([dx, dy]) => {
+   [[-w * 0.12, -hh * 0.7], [w * 0.1, -hh * 0.5]].forEach(([dx, dy]) => {
       ctx.beginPath();
       ctx.ellipse(x + dx, groundY + dy, 6 * s, 9 * s, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -937,7 +1088,9 @@ function drawCastle(ctx: CanvasRenderingContext2D, x: number, groundY: number) {
    const w = TILE * 5;
    const h = TILE * 5;
    px(ctx, x, groundY - h, w, h, BRICK);
-   for (let i = 0; i < 5; i++) px(ctx, x + i * (w / 5), groundY - h - 12, w / 5 - 6, 12, i % 2 ? BRICK : 'transparent');
+   for (let i = 0; i < 5; i++) {
+      if (i % 2) px(ctx, x + i * (w / 5), groundY - h - 12, w / 5 - 6, 12, BRICK);
+   }
    px(ctx, x + w / 2 - 14, groundY - 40, 28, 40, '#000');
    px(ctx, x + w / 2 - 5, groundY - h - 44, 10, 32, '#fff');
 }
