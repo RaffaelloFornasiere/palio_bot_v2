@@ -1,0 +1,131 @@
+/* Only the genuinely-custom animation primitives live here. Colours come
+   from CSS variables that MascotRace.tsx feeds from the MUI theme, so the
+   field always matches the app. All selectors scoped under .mascot-race. */
+
+.mascot-race { --max: 180; --podH: 150px; --tok: 30px; overflow-x: hidden; }
+.mascot-race *,
+.mascot-race *::before,
+.mascot-race *::after { box-sizing: border-box; }
+
+/* ---- race board ---------------------------------------------------------- */
+.mascot-race .lane {
+  display: grid; grid-template-columns: 160px 1fr 52px;
+  align-items: center; gap: 14px; padding: 9px 0;
+}
+.mascot-race .lane + .lane { border-top: 1px dashed var(--mr-line); }
+.mascot-race .who { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.mascot-race .swatch {
+  width: 13px; height: 13px; border-radius: 3px; flex: none;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.18) inset;
+}
+.mascot-race .name {
+  font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mascot-race .crown {
+  width: 17px; text-align: center; opacity: 0;
+  transition: opacity .25s; flex: none;
+}
+.mascot-race .crown.on { opacity: 1; }
+
+.mascot-race .track {
+  position: relative; height: 38px;
+  border-radius: 8px; border: 1px solid var(--mr-line); overflow: hidden;
+}
+.mascot-race .rail { position: absolute; top: 0; bottom: 0; left: 15px; right: 15px; }
+.mascot-race .rail::before {                    /* minor grid every 10 pts */
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg,
+    transparent 0, transparent calc(100% * 10 / var(--max) - 1px),
+    var(--mr-grid-min) calc(100% * 10 / var(--max) - 1px),
+    var(--mr-grid-min) calc(100% * 10 / var(--max)));
+}
+.mascot-race .rail::after {                       /* major mark every 50 pts */
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg,
+    transparent 0, transparent calc(100% * 50 / var(--max) - 1px),
+    var(--mr-grid-maj) calc(100% * 50 / var(--max) - 1px),
+    var(--mr-grid-maj) calc(100% * 50 / var(--max)));
+}
+
+.mascot-race .token {
+  position: absolute; top: 50%; left: 0;
+  transform: translate(-50%, -50%);
+  width: var(--tok); height: var(--tok); border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: calc(var(--tok) * .57);
+  box-shadow: 0 2px 8px rgba(0,0,0,.45), 0 0 0 2px rgba(255,255,255,.25) inset;
+  will-change: left; z-index: 2;
+}
+.mascot-race .token.win { animation: mr-bounce .6s ease 2; }
+@keyframes mr-bounce {
+  0%,100% { transform: translate(-50%,-50%); }
+  40%     { transform: translate(-50%,-50%) scale(1.18) rotate(-6deg); }
+  70%     { transform: translate(-50%,-50%) scale(1.05) rotate(4deg); }
+}
+
+.mascot-race .pts {
+  text-align: right; font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 15px; position: relative;
+}
+.mascot-race .delta {
+  position: absolute; right: 0; top: -15px;
+  font-size: 12px; font-weight: 700; color: var(--mr-accent);
+  opacity: 0; pointer-events: none;
+}
+.mascot-race .delta.show { animation: mr-pop 900ms ease; }
+@keyframes mr-pop {
+  15%  { opacity: 1; transform: translateY(-2px); }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+
+/* ---- podium -------------------------------------------------------------- */
+.mascot-race .podium {
+  position: relative; height: calc(var(--podH) + 92px); margin: 0 0 6px;
+}
+.mascot-race .podium.pre .ptok { display: none; }
+.mascot-race .podium::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 26px;
+  height: 2px; background: var(--mr-line);
+}
+.mascot-race .step {
+  position: absolute; bottom: 28px; width: calc(20% - 14px);
+  border-radius: 8px 8px 0 0;
+  background: var(--mr-panel); border: 1px solid var(--mr-line);
+  border-bottom: none;
+  box-shadow: inset 0 -40px 40px -30px rgba(0,0,0,.45);
+}
+.mascot-race .step .place {
+  position: absolute; bottom: 6px; left: 0; right: 0;
+  text-align: center; font-size: 17px; font-weight: 700; color: var(--mr-muted);
+}
+.mascot-race .ptok {
+  position: absolute; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  z-index: 3;
+  transition: left .55s cubic-bezier(.4,0,.2,1),
+              bottom .55s cubic-bezier(.4,0,.2,1);
+}
+.mascot-race .ptok .dot {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 21px;
+  box-shadow: 0 3px 8px rgba(0,0,0,.5), 0 0 0 2px rgba(255,255,255,.3) inset;
+}
+.mascot-race .ptok .tp {
+  font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums;
+  background: rgba(0,0,0,.45); color: #fff;
+  padding: 1px 7px; border-radius: 999px;
+}
+
+@media (max-width: 560px) {
+  .mascot-race { --podH: 114px; --tok: 27px; }
+  .mascot-race .lane { grid-template-columns: 24px 1fr 40px; gap: 10px; }
+  .mascot-race .name { display: none; }
+  .mascot-race .swatch { width: 14px; height: 14px; }
+  .mascot-race .crown { position: absolute; margin-top: -22px; }
+  .mascot-race .who { position: relative; }
+  .mascot-race .track { height: 34px; }
+  .mascot-race .step { width: calc(20% - 8px); }
+  .mascot-race .step .place { font-size: 14px; }
+  .mascot-race .ptok .dot { width: 32px; height: 32px; font-size: 18px; }
+  .mascot-race .ptok .tp  { font-size: 12px; padding: 1px 6px; }
+}

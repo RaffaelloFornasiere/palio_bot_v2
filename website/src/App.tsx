@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'rea
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { YearProvider } from './contexts/YearContext';
 import Layout from './components/Layout';
-import LeaderboardPage from './features/leaderboard/pages/ClassificaPage';
+import LeaderboardPage from './features/leaderboard/components/MascotRace';
 import GamesPage from './features/games/pages/GiochiPage';
 import GiocoDettagliPage from './features/games/pages/GiocoDettagliPage';
 import CalendarPage from './features/calendar/pages/CalendarioPage';
