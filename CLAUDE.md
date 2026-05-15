@@ -222,9 +222,18 @@ scripts/                           # restore.sh, run_all_evals.sh, build_results
 results/                           # Per-model eval result JSONs + viewer HTML
 ```
 
-## CLI commands
+## Adapter commands
 
-`/close` save · `/cancel` discard · `/status` · `/stop` interrupt current run · `/quit`
+CLI: `/close` save · `/cancel` discard · `/status` · `/stop` interrupt
+current run · `/quit`
+
+Telegram: `/start` · `/status` · `/games_status` · `/leaderboard`
+(preview + inline-confirm apply, straight through core, no agent session)
+· `/save` · `/cancel` · `/close` · `/stop` · `/mode` (toggle verbose vs
+simple render — see Notes). Voice messages are transcribed via Whisper
+(Groq) and treated as text. `ALLOWED_USER_ID` gates by user;
+`ALLOWED_CHAT_ID`, when set, drops every update from any other chat
+(DMs included) before it reaches the handlers.
 
 ## Notes for edits
 
@@ -235,7 +244,19 @@ results/                           # Per-model eval result JSONs + viewer HTML
   `ToolResult` error to the LLM if any are missing — avoids opaque
   Python `TypeError` reaching the model.
 - `session.json` and `*.backup_*.json` are gitignored (project root and
-  inside `data/`).
+  inside `data/`). `data/telegram_settings.json` is also gitignored — it
+  persists the Telegram `/mode` render setting (verbose vs simple) per
+  chat. Verbose = full event stream (thinking, tool calls/results, token
+  counts); simple = a "working…" placeholder replaced by the agent's
+  final reply, with `<thinking>` blocks and code fences stripped. Mode is
+  read live per event, so `/mode` takes effect on the next run without a
+  restart. Path is `Config.telegram_settings_path`; the value is built by
+  `Container.telegram_settings()` and injected into `TelegramConsumer`.
+- The leaderboard `apply` route (`core/routes/leaderboard.py`) writes
+  through `HistoryService` (record_write + finalize_save) and advances
+  `refs/palio/last_save`, so a recomputed leaderboard is immediately
+  visible to the anonymous public read path — not left as an uncommitted
+  working-tree change.
 - CORS for core is restricted to localhost dev ports; override via
   `CORS_ALLOWED_ORIGINS=...` (comma-separated).
 - Year-scoped API routes (`/api/palio/{year}`, etc.) are bounded

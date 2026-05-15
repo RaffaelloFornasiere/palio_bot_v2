@@ -72,6 +72,7 @@ cd website && npm install && npm run dev
 | `EDITOR_ALLOWED_EMAILS` | Allowlist of Google emails for the editor (comma-separated) | — |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token | — (if using Telegram) |
 | `ALLOWED_USER_ID` | Authorized user ID (Telegram) | — |
+| `ALLOWED_CHAT_ID` | Restrict the bot to a single chat/group; updates from any other chat (DMs included) are dropped | — (no chat restriction) |
 | `GROQ_API_KEY` | Groq API key for Whisper (Telegram audio) | — (if receiving audio) |
 | `CORS_ALLOWED_ORIGINS` | CORS allow-list (comma-separated) | localhost dev ports |
 
@@ -100,8 +101,18 @@ CLI (`python -m palio_bot`):
 - `/quit` — exit.
 
 Telegram (`python -m palio_bot.telegram_bot`):
-- `/start` — start the bot.
+- `/start` — start the bot (shows your user ID if `ALLOWED_USER_ID` is unset).
 - `/status` `/close` `/cancel` `/stop` — same as CLI.
+- `/save` — save the session without closing it.
+- `/games_status` — show game state.
+- `/leaderboard` — preview the recomputed leaderboard and apply it with an
+  inline confirm button (goes straight through core, no agent session).
+- `/mode` — toggle the render mode between **verbose** (thinking, tool
+  calls, token counts) and **simple** (a "working…" placeholder replaced
+  by the agent's final reply; `<thinking>` blocks and code fences stripped).
+  The setting is shared per chat and persisted to
+  `data/telegram_settings.json` (gitignored); it takes effect on the next
+  run without restarting.
 - Audio messages: auto-transcribed via Whisper (Groq).
 
 ## Agent tools
@@ -139,7 +150,9 @@ Three files in `data/`:
 
 The leaderboard is derived data from the previous two files. Recomputation
 runs via `POST /api/leaderboard/apply` (with preview via
-`POST /api/leaderboard/preview`).
+`POST /api/leaderboard/preview`). `apply` writes through the git history
+layer and advances `refs/palio/last_save`, so the recomputed leaderboard
+is immediately visible to the public (anonymous) read path.
 
 Archived past years live in `data/<YYYY>/` and are served read-only from
 `/api/{file}/{year}` (e.g. `/api/palio/2024`).
