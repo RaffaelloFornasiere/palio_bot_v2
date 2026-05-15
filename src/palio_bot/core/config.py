@@ -42,9 +42,13 @@ class CoreConfig(BaseSettings):
     # verification skipped (dev/loopback), like the bearer token.
     turnstile_secret: Optional[str] = Field(default=None, alias="TURNSTILE_SECRET")
 
-    # Operational state for the public popularity poll. Gitignored, NOT
-    # part of the FileRegistry / history layer (see core/poll_store.py).
-    borgo_poll_path: Path = Path("data/borgo_poll.json")
+    # Operational state for the public popularity poll. Lives OUTSIDE
+    # data/ on purpose: data/ holds only official festival data (owned
+    # by the inner data/.git history repo and restored from it on a
+    # fresh machine). The poll is operational counter state, NOT part of
+    # the FileRegistry / history layer (see core/poll_store.py), so a
+    # data/ restore or clean must never be able to wipe it. Gitignored.
+    borgo_poll_path: Path = Path("state/borgo_poll.json")
 
     @property
     def port(self) -> int:

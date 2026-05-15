@@ -11,7 +11,8 @@ browser-generated UUID kept in ``localStorage`` — best-effort device
 identity, not authentication. Real flood resistance is Cloudflare
 Turnstile on the route, not this file.
 
-On-disk shape (``data/borgo_poll.json``, gitignored)::
+On-disk shape (``state/borgo_poll.json``, gitignored — deliberately
+OUTSIDE ``data/`` so a ``data/`` restore/clean can never wipe it)::
 
     {
       "version": 1,

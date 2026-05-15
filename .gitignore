@@ -31,6 +31,9 @@ data_old/
 
 # Runtime state — owned by the inner history repo at data/.git/, not this one
 /data/
+# Operational counter state (borgo poll); separate from data/ so a
+# data/ restore can never wipe it. Not tracked by any repo.
+/state/
 logs/
 .pytest_cache/
 **/.DS_Store
