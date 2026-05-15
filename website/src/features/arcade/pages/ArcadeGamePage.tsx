@@ -75,6 +75,49 @@ const BUSHES = [
    {x: 660, s: 0.9},
 ];
 
+// Green pipes (you can stand on top; classic SMB obstacle).
+const PIPE_W = 56;
+const PIPES = [
+   {x: 360, h: 64},
+   {x: 690, h: 48},
+];
+
+const GOOMBA_W = 28;
+const GOOMBA_H = 26;
+const GOOMBA_SPEED = 55;
+
+interface Goomba {
+   x: number;
+   y: number;
+   dir: number;
+   alive: boolean;
+}
+
+// Authentic-ish Super Mario Bros. palette.
+const C = {
+   sky: '#5c94fc',
+   brick: '#c84c0c',
+   brickHi: '#fc9838',
+   mortar: '#000000',
+   block: '#fac000',
+   blockEdge: '#e45c10',
+   pipe: '#00a800',
+   pipeHi: '#80d010',
+   pipeDark: '#007800',
+   green: '#00a800',
+   greenHi: '#80d010',
+   greenDark: '#007800',
+   white: '#ffffff',
+   coin: '#fac000',
+   coinHi: '#fff4b8',
+   coinEdge: '#b86010',
+   goomba: '#b86010',
+   goombaFoot: '#000000',
+   skin: '#f8b080',
+   eye: '#000000',
+   boot: '#5b3a1a',
+};
+
 const ArcadeGamePage: React.FC = () => {
    const [palioData, setPalioData] = useState<PalioData | null>(null);
    const [loading, setLoading] = useState(true);
@@ -87,7 +130,13 @@ const ArcadeGamePage: React.FC = () => {
    const keysRef = useRef<Record<string, boolean>>({});
    const playerRef = useRef({x: 80, y: GROUND_TOP - PLAYER_H, vx: 0, vy: 0, onGround: true, facing: 1});
    const coinsRef = useRef<Coin[]>([]);
+   const goombasRef = useRef<Goomba[]>([]);
    const scoreRef = useRef(0);
+
+   const makeGoombas = (): Goomba[] => [
+      {x: 300, y: GROUND_TOP - GOOMBA_H, dir: -1, alive: true},
+      {x: 560, y: GROUND_TOP - GOOMBA_H, dir: 1, alive: true},
+   ];
 
    useEffect(() => {
       const fetchData = async () => {
@@ -117,6 +166,7 @@ const ArcadeGamePage: React.FC = () => {
    const resetGame = useCallback(() => {
       playerRef.current = {x: 80, y: GROUND_TOP - PLAYER_H, vx: 0, vy: 0, onGround: true, facing: 1};
       coinsRef.current = [];
+      goombasRef.current = makeGoombas();
       scoreRef.current = 0;
       setScore(0);
    }, []);
@@ -134,6 +184,13 @@ const ArcadeGamePage: React.FC = () => {
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
+      ctx.imageSmoothingEnabled = false;
+      if (goombasRef.current.length === 0) goombasRef.current = makeGoombas();
+
+      // Pipe collision tops (stand on the pipe rim).
+      const pipeTops: Rect[] = PIPES.map((pp) => ({
+         x: pp.x, y: GROUND_TOP - pp.h, w: PIPE_W, h: pp.h,
+      }));
 
       let raf = 0;
       let lastTime = performance.now();
@@ -178,7 +235,11 @@ const ArcadeGamePage: React.FC = () => {
          const newBottom = newY + PLAYER_H;
          p.onGround = false;
 
-         const solids: Rect[] = [{x: 0, y: GROUND_TOP, w: GAME_WIDTH, h: GROUND_HEIGHT}, ...PLATFORMS];
+         const solids: Rect[] = [
+            {x: 0, y: GROUND_TOP, w: GAME_WIDTH, h: GROUND_HEIGHT},
+            ...PLATFORMS,
+            ...pipeTops,
+         ];
          for (const s of solids) {
             const horizontallyOver = p.x + PLAYER_W > s.x && p.x < s.x + s.w;
             if (
@@ -215,155 +276,224 @@ const ArcadeGamePage: React.FC = () => {
             return !hit;
          });
 
-         // ---- Draw ----
-         // Sky (classic Super Mario light blue)
-         ctx.fillStyle = '#5c94fc';
-         ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-         // Hills
-         for (const h of HILLS) {
-            ctx.fillStyle = '#3aa239';
-            ctx.beginPath();
-            ctx.arc(h.x, GROUND_TOP, h.r, Math.PI, 2 * Math.PI);
-            ctx.fill();
-            ctx.fillStyle = '#2f8a30';
-            ctx.beginPath();
-            ctx.arc(h.x, GROUND_TOP, h.r * 0.6, Math.PI, 2 * Math.PI);
-            ctx.fill();
+         // Goombas: patrol the ground, get stomped, or knock the player back
+         for (const g of goombasRef.current) {
+            if (!g.alive) continue;
+            g.x += g.dir * GOOMBA_SPEED * dt;
+            if (g.x < 30) {
+               g.x = 30;
+               g.dir = 1;
+            } else if (g.x > GAME_WIDTH - 30 - GOOMBA_W) {
+               g.x = GAME_WIDTH - 30 - GOOMBA_W;
+               g.dir = -1;
+            }
+            const overlap =
+               p.x + PLAYER_W > g.x &&
+               p.x < g.x + GOOMBA_W &&
+               p.y + PLAYER_H > g.y &&
+               p.y < g.y + GOOMBA_H;
+            if (overlap) {
+               if (p.vy > 0 && prevBottom <= g.y + 10) {
+                  g.alive = false;
+                  scoreRef.current += 2;
+                  setScore(scoreRef.current);
+                  p.vy = -380;
+               } else {
+                  p.x = 80;
+                  p.y = GROUND_TOP - PLAYER_H;
+                  p.vx = 0;
+                  p.vy = 0;
+               }
+            }
          }
 
-         // Clouds
+         // ---- Draw (pixel-art Super Mario Bros. style) ----
+         const t = now / 1000;
+         const R = Math.round;
+
+         // Sky
+         ctx.fillStyle = C.sky;
+         ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+         // Clouds (blocky, scalloped)
          for (const cl of CLOUDS) {
-            ctx.fillStyle = '#ffffff';
-            const cy = cl.y;
-            for (const [ox, oy, rr] of [[-26, 4, 16], [-6, -6, 22], [18, 2, 18], [0, 10, 20]] as const) {
-               ctx.beginPath();
-               ctx.arc(cl.x + ox * cl.s, cy + oy * cl.s, rr * cl.s, 0, Math.PI * 2);
-               ctx.fill();
+            const w = R(60 * cl.s), bx = R(cl.x - w / 2), by = R(cl.y);
+            ctx.fillStyle = '#3cbcfc';
+            ctx.fillRect(bx - 2, by + 12, w + 4, 16);
+            ctx.fillStyle = C.white;
+            ctx.fillRect(bx, by + 10, w, 14);
+            ctx.fillRect(bx + 8, by, 16, 14);
+            ctx.fillRect(bx + w - 26, by + 2, 18, 12);
+            ctx.fillRect(R(bx + w / 2 - 8), by - 6, 18, 16);
+         }
+
+         // Hills (stacked green blocks)
+         for (const h of HILLS) {
+            for (let i = 0; i < 5; i++) {
+               const ww = R(h.r * 2 - i * h.r * 0.34);
+               const hh = 13;
+               const hx = R(h.x - ww / 2);
+               const hy = GROUND_TOP - (i + 1) * hh;
+               ctx.fillStyle = C.green;
+               ctx.fillRect(hx, hy, ww, hh);
+               ctx.fillStyle = C.greenHi;
+               ctx.fillRect(hx + 4, hy + 2, 6, 3);
+               ctx.fillStyle = C.greenDark;
+               ctx.fillRect(hx, hy + hh - 2, ww, 2);
             }
          }
 
          // Bushes
          for (const b of BUSHES) {
-            ctx.fillStyle = '#27a300';
-            for (const [ox, rr] of [[-22, 16], [0, 22], [22, 16]] as const) {
-               ctx.beginPath();
-               ctx.arc(b.x + ox * b.s, GROUND_TOP, rr * b.s, Math.PI, 2 * Math.PI);
-               ctx.fill();
+            const s = b.s;
+            ctx.fillStyle = C.green;
+            ctx.fillRect(R(b.x - 30 * s), GROUND_TOP - 16, R(60 * s), 16);
+            ctx.fillRect(R(b.x - 18 * s), GROUND_TOP - 24, R(20 * s), 24);
+            ctx.fillRect(R(b.x + 2 * s), GROUND_TOP - 22, R(16 * s), 22);
+            ctx.fillStyle = C.greenDark;
+            ctx.fillRect(R(b.x - 30 * s), GROUND_TOP - 2, R(60 * s), 2);
+         }
+
+         // Pipes
+         for (const pp of PIPES) {
+            const ptop = GROUND_TOP - pp.h;
+            ctx.fillStyle = C.pipe;
+            ctx.fillRect(pp.x + 4, ptop + 16, PIPE_W - 8, pp.h - 16);
+            ctx.fillStyle = C.pipeHi;
+            ctx.fillRect(pp.x + 8, ptop + 16, 8, pp.h - 16);
+            ctx.fillStyle = C.pipeDark;
+            ctx.fillRect(pp.x + PIPE_W - 12, ptop + 16, 8, pp.h - 16);
+            ctx.fillStyle = C.pipe;
+            ctx.fillRect(pp.x - 4, ptop, PIPE_W + 8, 16);
+            ctx.fillStyle = C.pipeHi;
+            ctx.fillRect(pp.x, ptop + 3, 10, 10);
+            ctx.fillStyle = C.pipeDark;
+            ctx.fillRect(pp.x + PIPE_W - 6, ptop, 10, 16);
+            ctx.fillStyle = C.mortar;
+            ctx.fillRect(pp.x - 4, ptop, PIPE_W + 8, 2);
+         }
+
+         // Ground (orange brick tiles)
+         for (let gx = 0; gx < GAME_WIDTH; gx += 16) {
+            for (let gy = GROUND_TOP; gy < GAME_HEIGHT; gy += 16) {
+               ctx.fillStyle = C.brick;
+               ctx.fillRect(gx, gy, 16, 16);
+               ctx.fillStyle = C.brickHi;
+               ctx.fillRect(gx + 1, gy + 1, 14, 3);
+               ctx.fillStyle = C.mortar;
+               ctx.fillRect(gx + 15, gy, 1, 16);
+               ctx.fillRect(gx, gy + 15, 16, 1);
             }
          }
 
-         // Ground: grass strip + brick dirt
-         ctx.fillStyle = '#c87f3a';
-         ctx.fillRect(0, GROUND_TOP, GAME_WIDTH, GROUND_HEIGHT);
-         ctx.fillStyle = '#7a431f';
-         for (let bx = 0; bx < GAME_WIDTH; bx += 32) {
-            for (let by = GROUND_TOP + 10; by < GAME_HEIGHT; by += 16) {
-               const off = ((by - GROUND_TOP) / 16) % 2 === 0 ? 0 : 16;
-               ctx.strokeStyle = '#7a431f';
-               ctx.lineWidth = 2;
-               ctx.strokeRect(bx + off, by, 32, 16);
-            }
-         }
-         ctx.fillStyle = '#3aa239';
-         ctx.fillRect(0, GROUND_TOP, GAME_WIDTH, 10);
-         ctx.fillStyle = '#2f8a30';
-         ctx.fillRect(0, GROUND_TOP + 8, GAME_WIDTH, 2);
-
-         // Platforms: brick blocks
+         // Platforms (golden ? blocks)
          for (const pf of PLATFORMS) {
-            ctx.fillStyle = '#d99a3e';
-            ctx.fillRect(pf.x, pf.y, pf.w, pf.h);
-            ctx.fillStyle = '#a5621f';
-            ctx.fillRect(pf.x, pf.y + pf.h - 5, pf.w, 5);
-            ctx.strokeStyle = '#6e3d12';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(pf.x, pf.y, pf.w, pf.h);
-            for (let sx = pf.x + 22; sx < pf.x + pf.w; sx += 22) {
-               ctx.beginPath();
-               ctx.moveTo(sx, pf.y);
-               ctx.lineTo(sx, pf.y + pf.h);
-               ctx.stroke();
+            for (let qx = pf.x; qx < pf.x + pf.w - 1; qx += pf.h) {
+               const bw = Math.min(pf.h, pf.x + pf.w - qx);
+               ctx.fillStyle = C.block;
+               ctx.fillRect(qx, pf.y, bw, pf.h);
+               ctx.fillStyle = C.blockEdge;
+               ctx.fillRect(qx, pf.y, bw, 3);
+               ctx.fillRect(qx, pf.y, 3, pf.h);
+               ctx.fillRect(qx, pf.y + pf.h - 3, bw, 3);
+               ctx.fillRect(qx + bw - 3, pf.y, 3, pf.h);
+               ctx.fillStyle = C.mortar;
+               ctx.fillRect(qx + 4, pf.y + 4, 2, 2);
+               ctx.fillRect(qx + bw - 6, pf.y + 4, 2, 2);
+               ctx.fillRect(qx + 4, pf.y + pf.h - 6, 2, 2);
+               ctx.fillRect(qx + bw - 6, pf.y + pf.h - 6, 2, 2);
+               ctx.fillStyle = C.coinHi;
+               ctx.fillRect(R(qx + bw / 2 - 2), R(pf.y + pf.h / 2 - 2), 4, 4);
             }
          }
 
-         // Coins: spinning gold
-         const t = now / 1000;
+         // Coins (blocky spinning)
          for (const c of coinsRef.current) {
-            const sw = Math.abs(Math.cos(t * 4 + c.x)) * COIN_RADIUS + 2;
-            ctx.fillStyle = '#f4c430';
-            ctx.beginPath();
-            ctx.ellipse(c.x, c.y, sw, COIN_RADIUS, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#b8860b';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.fillStyle = '#fff4b8';
-            ctx.beginPath();
-            ctx.ellipse(c.x - sw * 0.3, c.y - 2, sw * 0.25, COIN_RADIUS * 0.45, 0, 0, Math.PI * 2);
-            ctx.fill();
+            const sw = R(Math.abs(Math.cos(t * 6 + c.x)) * 7) + 4;
+            const ck = R(c.x), cyk = R(c.y);
+            ctx.fillStyle = C.coinEdge;
+            ctx.fillRect(ck - sw, cyk - 10, sw * 2, 20);
+            ctx.fillStyle = C.coin;
+            ctx.fillRect(ck - sw + 2, cyk - 9, Math.max(1, sw * 2 - 4), 18);
+            ctx.fillStyle = C.coinHi;
+            ctx.fillRect(ck - 1, cyk - 7, Math.max(1, R(sw / 2)), 14);
          }
 
-         // Player character (borgo-colored body, cap, walking feet, emoji face)
-         const px = p.x, py = p.y;
+         // Goombas
+         for (const g of goombasRef.current) {
+            if (!g.alive) continue;
+            const gx = R(g.x), gy = R(g.y);
+            const wob = Math.floor(t * 6) % 2 === 0 ? 0 : 2;
+            ctx.fillStyle = C.goomba;
+            ctx.fillRect(gx + 2, gy, GOOMBA_W - 4, 6);
+            ctx.fillRect(gx, gy + 6, GOOMBA_W, GOOMBA_H - 12);
+            ctx.fillStyle = '#f4d8b0';
+            ctx.fillRect(gx + 4, gy + GOOMBA_H - 12, GOOMBA_W - 8, 6);
+            ctx.fillStyle = C.white;
+            ctx.fillRect(gx + 5, gy + 8, 6, 7);
+            ctx.fillRect(gx + GOOMBA_W - 11, gy + 8, 6, 7);
+            ctx.fillStyle = C.eye;
+            ctx.fillRect(gx + 8, gy + 9, 3, 5);
+            ctx.fillRect(gx + GOOMBA_W - 8, gy + 9, 3, 5);
+            ctx.fillRect(gx + 4, gy + 6, 8, 2);
+            ctx.fillRect(gx + GOOMBA_W - 12, gy + 6, 8, 2);
+            ctx.fillStyle = C.goombaFoot;
+            ctx.fillRect(gx + 1, gy + GOOMBA_H - 5 - wob, 11, 5);
+            ctx.fillRect(gx + GOOMBA_W - 12, gy + GOOMBA_H - 5 - (2 - wob), 11, 5);
+         }
+
+         // Player (pixel-art, suit tinted with the borgo color)
+         const px = R(p.x), py = R(p.y);
          const cx = px + PLAYER_W / 2;
+         const f = p.facing >= 0 ? 1 : -1;
          const moving = Math.abs(p.vx) > 1 && p.onGround;
-         const legStep = moving ? (Math.floor(px / 7) % 2 === 0 ? 1 : -1) : 0;
+         const phase = moving ? Math.floor(p.x / 6) % 2 : -1;
+         const air = !p.onGround;
 
-         // Shadow
          ctx.fillStyle = 'rgba(0,0,0,0.18)';
-         ctx.beginPath();
-         ctx.ellipse(cx, GROUND_TOP + 4, PLAYER_W * 0.55, 5, 0, 0, Math.PI * 2);
-         ctx.fill();
+         ctx.fillRect(px + 2, GROUND_TOP - 2, PLAYER_W - 4, 3);
 
-         // Feet
-         ctx.fillStyle = '#5b3a1a';
-         ctx.fillRect(px + 3, py + PLAYER_H - 4 + (legStep > 0 ? -2 : 0), 9, 6);
-         ctx.fillRect(px + PLAYER_W - 12, py + PLAYER_H - 4 + (legStep < 0 ? -2 : 0), 9, 6);
-
-         // Body
-         const r = 7;
-         ctx.fillStyle = borgoColor;
-         ctx.beginPath();
-         ctx.moveTo(px + r, py + 6);
-         ctx.arcTo(px + PLAYER_W, py + 6, px + PLAYER_W, py + PLAYER_H, r);
-         ctx.arcTo(px + PLAYER_W, py + PLAYER_H, px, py + PLAYER_H, r);
-         ctx.arcTo(px, py + PLAYER_H, px, py + 6, r);
-         ctx.arcTo(px, py + 6, px + PLAYER_W, py + 6, r);
-         ctx.closePath();
-         ctx.fill();
-         ctx.lineWidth = 2;
-         ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-         ctx.stroke();
-
-         // Cap
-         ctx.fillStyle = 'rgba(0,0,0,0.45)';
-         ctx.beginPath();
-         ctx.moveTo(px - 1, py + 8);
-         ctx.quadraticCurveTo(cx, py - 9, px + PLAYER_W + 1, py + 8);
-         ctx.lineTo(px + PLAYER_W + 1, py + 12);
-         ctx.lineTo(px - 1, py + 12);
-         ctx.closePath();
-         ctx.fill();
-         // Cap brim points the way the player faces
-         ctx.beginPath();
-         if (p.facing >= 0) {
-            ctx.moveTo(px + PLAYER_W - 2, py + 9);
-            ctx.lineTo(px + PLAYER_W + 9, py + 11);
-            ctx.lineTo(px + PLAYER_W - 2, py + 13);
+         ctx.fillStyle = C.boot;
+         if (air) {
+            ctx.fillRect(px + 4, py + PLAYER_H - 7, 9, 7);
+            ctx.fillRect(px + PLAYER_W - 13, py + PLAYER_H - 9, 9, 7);
+         } else if (phase === 0) {
+            ctx.fillRect(px + 2, py + PLAYER_H - 5, 10, 5);
+            ctx.fillRect(px + PLAYER_W - 12, py + PLAYER_H - 5, 10, 5);
+         } else if (phase === 1) {
+            ctx.fillRect(px + 5, py + PLAYER_H - 5, 10, 5);
+            ctx.fillRect(px + PLAYER_W - 15, py + PLAYER_H - 5, 10, 5);
          } else {
-            ctx.moveTo(px + 2, py + 9);
-            ctx.lineTo(px - 9, py + 11);
-            ctx.lineTo(px + 2, py + 13);
+            ctx.fillRect(px + 4, py + PLAYER_H - 5, 9, 5);
+            ctx.fillRect(px + PLAYER_W - 13, py + PLAYER_H - 5, 9, 5);
          }
-         ctx.closePath();
-         ctx.fill();
 
-         // Emoji face
-         ctx.font = '18px serif';
-         ctx.textAlign = 'center';
-         ctx.textBaseline = 'middle';
-         ctx.fillText(borgoEmoji, cx, py + 26);
+         ctx.fillStyle = borgoColor;
+         ctx.fillRect(px + 4, py + 24, PLAYER_W - 8, PLAYER_H - 28);
+         ctx.fillRect(px + 3, py + 16, PLAYER_W - 6, 10);
+
+         const armY = py + 17 + (moving && phase === 1 ? 2 : 0);
+         ctx.fillRect(px - 1, armY, 5, 8);
+         ctx.fillRect(px + PLAYER_W - 4, armY, 5, 8);
+         ctx.fillStyle = C.skin;
+         ctx.fillRect(px - 1, armY + 8, 5, 3);
+         ctx.fillRect(px + PLAYER_W - 4, armY + 8, 5, 3);
+
+         ctx.fillStyle = C.skin;
+         ctx.fillRect(px + 7, py + 6, PLAYER_W - 14, 11);
+         ctx.fillStyle = C.eye;
+         ctx.fillRect(f > 0 ? px + PLAYER_W - 12 : px + 9, py + 9, 3, 4);
+         ctx.fillRect(px + 8, py + 14, PLAYER_W - 16, 3);
+
+         ctx.fillStyle = borgoColor;
+         ctx.fillRect(px + 5, py + 1, PLAYER_W - 10, 6);
+         ctx.fillRect(px + 7, py - 2, PLAYER_W - 14, 4);
+         if (f > 0) ctx.fillRect(px + PLAYER_W - 8, py + 5, 10, 3);
+         else ctx.fillRect(px - 2, py + 5, 10, 3);
+         ctx.fillStyle = C.mortar;
+         ctx.fillRect(px + 5, py + 6, PLAYER_W - 10, 1);
+         ctx.fillStyle = C.white;
+         ctx.fillRect(R(cx - 2), py + 2, 4, 3);
 
          raf = requestAnimationFrame(step);
       };
