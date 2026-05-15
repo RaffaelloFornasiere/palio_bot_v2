@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import theme from './theme';
 import { YearProvider } from './contexts/YearContext';
 import Layout from './components/Layout';
 import LeaderboardPage from './features/leaderboard/components/MascotRace';
@@ -23,12 +24,6 @@ const BackwardCompatRedirect: React.FC<{ type: string }> = ({ type }) => {
   const { year } = useParams<{ year: string }>();
   return <Navigate to={`/${year}/${type}`} replace />;
 };
-
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-});
 
 function App() {
   return (

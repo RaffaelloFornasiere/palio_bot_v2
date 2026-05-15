@@ -5,12 +5,12 @@ import {
   Box, 
   Card, 
   CardContent, 
-  Chip, 
-  Button,
+  Chip,
   CircularProgress,
   Alert,
   useTheme
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { 
   getPalioGamesStatusForYear,
@@ -27,7 +27,8 @@ import {
 import { useYear } from '../../../contexts/YearContext';
 import YearSelector from '../../../components/YearSelector';
 import { getStatusText, formatDate, getStatusColor } from '../utils';
-import { getVillageBackgroundColor } from '../../../utils/colorUtils';
+import { curatedVillageColor } from '../../../utils/colorUtils';
+import VillageToken from '../../../components/VillageToken';
 
 type GameData = ScoreBasedGameStatus | RoundRobinGameStatus;
 
@@ -88,16 +89,6 @@ const GiochiPage: React.FC = () => {
     return palioData?.villages_colors?.[village];
   };
 
-  const getWinnerBackgroundColor = (village: string): string | undefined => {
-    if (!village) return undefined;
-    const villageColor = getVillageColor(village);
-    if (!villageColor) return undefined;
-    
-    // Get the current theme background color
-    const backgroundColor = theme.palette.mode === 'dark' ? '#121212' : '#ffffff';
-    return getVillageBackgroundColor(villageColor, backgroundColor, 0.4);
-  };
-
   const sortGamesByStatus = (games: [string, GameData][]): [string, GameData][] => {
     const statusOrder: { [key: string]: number } = {
       'in-progress': 1,
@@ -150,82 +141,96 @@ const GiochiPage: React.FC = () => {
           </Typography>
         )}
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(auto-fill, minmax(290px, 1fr))' },
+            gap: 2.5,
+          }}
+        >
           {gamesData && sortGamesByStatus(Object.entries(gamesData.game_scores)).map(([gameId, gameData]) => {
             const winner = getWinner(gameId);
-            const winnerBgColor = getWinnerBackgroundColor(winner);
-            
+            const winnerColor = getVillageColor(winner);
+            const statusAccent =
+              gameData.status === 'completed' ? theme.palette.success.main :
+              gameData.status === 'in-progress' ? theme.palette.warning.main :
+              theme.palette.divider;
+            const accent = winner
+              ? curatedVillageColor(winnerColor || '#888888')
+              : statusAccent;
+            const go = () =>
+              navigate(selectedYear ? `/${selectedYear}/giochi/${gameId}` : `/giochi/${gameId}`);
+
             return (
-              <Card 
-                key={gameId} 
-                sx={{ 
-                  height: '100%',
-                  backgroundColor: winnerBgColor || 'inherit',
-                  transition: 'background-color 0.3s ease'
+              <Card
+                key={gameId}
+                onClick={go}
+                sx={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderLeft: `3px solid ${winnerColor || accent}`,
+                  '&:hover': {
+                    transform: 'translateY(-3px)',
+                    borderColor: 'primary.main',
+                    boxShadow: `0 12px 30px ${alpha('#000', 0.45)}`,
+                  },
                 }}
               >
-                <CardContent>
-                  <Typography variant="h6" component="h2" gutterBottom>
-                    {getGameName(gameId)}
-                  </Typography>
-                  
-                  <Box sx={{ mb: 2 }}>
-                    <Chip 
-                      label={getStatusText(gameData.status)} 
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, flex: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+                    <Typography variant="h6" component="h2" sx={{ lineHeight: 1.25 }}>
+                      {getGameName(gameId)}
+                    </Typography>
+                    <Chip
+                      label={getStatusText(gameData.status)}
                       color={getStatusColor(gameData.status) as any}
                       size="small"
+                      sx={{ flexShrink: 0 }}
                     />
                   </Box>
 
-                  {/* Show divisions if they exist */}
                   {gameData.divisions && gameData.divisions.length > 0 && (
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        <strong>Divisioni:</strong>
-                      </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                       {(gameData.divisions as any[]).map((division: any, index: number) => (
-                        <Box key={index} sx={{ ml: 1, mb: 1 }}>
-                          <Chip 
-                            label={`${division.name}: ${getStatusText(division.status)}`}
-                            color={getStatusColor(division.status) as any}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </Box>
+                        <Chip
+                          key={index}
+                          label={`${division.name} · ${getStatusText(division.status)}`}
+                          color={getStatusColor(division.status) as any}
+                          size="small"
+                          variant="outlined"
+                        />
                       ))}
                     </Box>
                   )}
 
-                  <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>Vincitore:</strong>
-                    </Typography>
-                    {winner && (
-                      <Chip 
-                        label={winner}
-                        size="small"
-                        sx={{ 
-                          backgroundColor: getVillageColor(winner) || 'default',
-                          color: '#fff',
-                          fontWeight: 'bold'
-                        }}
-                      />
-                    )}
-                    {!winner && (
-                      <Typography variant="body2" color="text.secondary">
-                        -
-                      </Typography>
-                    )}
-                  </Box>
+                  <Box sx={{ flex: 1 }} />
 
-                  <Box sx={{ mt: 2 }}>
-                    <Button 
-                      variant="outlined" 
-                      size="small"
-                      onClick={() => navigate(selectedYear ? `/${selectedYear}/giochi/${gameId}` : `/giochi/${gameId}`)}
-                    >
-                      Vedi Dettagli
-                    </Button>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
+                      >
+                        Vincitore
+                      </Typography>
+                      {winner ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                          <VillageToken village={winner} rawColor={winnerColor} size={24} />
+                          <Typography variant="body2" fontWeight={700} noWrap>
+                            {winner}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          —
+                        </Typography>
+                      )}
+                    </Box>
+                    <Typography variant="body2" color="primary" sx={{ fontWeight: 600, flexShrink: 0 }}>
+                      Dettagli ›
+                    </Typography>
                   </Box>
                 </CardContent>
               </Card>

@@ -88,19 +88,41 @@ const Layout: React.FC = () => {
     return false;
   };
 
+  const brand = (
+    <Box
+      onClick={handleSecretTap}
+      sx={{ userSelect: 'none', cursor: 'default', lineHeight: 1, minWidth: 0 }}
+    >
+      <Typography
+        noWrap
+        sx={{
+          fontFamily: "'Cinzel', serif",
+          fontWeight: 700,
+          fontSize: '1.05rem',
+          letterSpacing: '.5px',
+          color: 'primary.main',
+        }}
+      >
+        Palio dei Borghi
+      </Typography>
+      <Typography
+        noWrap
+        sx={{
+          fontSize: '.66rem',
+          letterSpacing: '.34em',
+          textTransform: 'uppercase',
+          color: 'text.secondary',
+          mt: '2px',
+        }}
+      >
+        Artegna
+      </Typography>
+    </Box>
+  );
+
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography
-          variant="h6"
-          noWrap
-          component="div"
-          onClick={handleSecretTap}
-          sx={{ userSelect: 'none', cursor: 'default' }}
-        >
-          Palio
-        </Typography>
-      </Toolbar>
+      <Toolbar>{brand}</Toolbar>
       <Divider />
       <List>
         {menuItems.map((item) => (
@@ -142,15 +164,7 @@ const Layout: React.FC = () => {
             >
               <MenuIcon />
             </IconButton>
-            <Typography
-              variant="h6"
-              noWrap
-              component="div"
-              onClick={handleSecretTap}
-              sx={{ userSelect: 'none', cursor: 'default' }}
-            >
-              Palio
-            </Typography>
+            {brand}
           </Toolbar>
         </AppBar>
       )}
