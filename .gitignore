@@ -29,9 +29,8 @@ palio_updated.json
 logs
 data_old/
 
-# Runtime / derived data
-data/**/*.backup_*.json
-data/**/*_tmp.json
+# Runtime state — owned by the inner history repo at data/.git/, not this one
+/data/
 logs/
 .pytest_cache/
 **/.DS_Store

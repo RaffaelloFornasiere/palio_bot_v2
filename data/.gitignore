@@ -1,6 +1,0 @@
-session.json
-telegram_settings.json
-*.backup_*.json
-*_tmp.json
-*.writing
-/[0-9][0-9][0-9][0-9]/
