@@ -141,12 +141,22 @@ const DinoGamePage: React.FC = () => {
 
       const score = () => Math.floor(distance * SCORE_COEFF);
 
-      const trexBox = () => ({
-         x: TREX_X + 4,
-         y: t.y + 4,
-         w: (t.ducking ? TREX_W_DUCK : TREX_W) - 8,
-         h: (t.ducking ? TREX_H_DUCK : TREX_H) - 6,
-      });
+      const trexBox = () =>
+         t.ducking
+            ? {
+                 // ducking: short box anchored to the ground so high
+                 // pterodactyls pass over (matches the drawn sprite)
+                 x: TREX_X + 4,
+                 y: GROUND_Y - TREX_H_DUCK + 3,
+                 w: TREX_W_DUCK - 16,
+                 h: TREX_H_DUCK - 5,
+              }
+            : {
+                 x: TREX_X + 5,
+                 y: t.y + 4,
+                 w: TREX_W - 12,
+                 h: TREX_H - 6,
+              };
 
       const spawn = () => {
          const canPtero = speed > PTERO_MIN_SPEED && Math.random() < 0.3;
