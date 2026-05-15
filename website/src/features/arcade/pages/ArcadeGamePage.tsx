@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import {PalioData} from '../../../generated/types.gen';
 import {getPalioDataForYear} from '../../../utils/yearApi';
+import {submitMiniGameScore} from '../../../utils/minigameApi';
 import {useYear} from '../../../contexts/YearContext';
 
 // ---- Authentic-ish NES Super Mario Bros palette ----
@@ -294,6 +295,19 @@ const ArcadeGamePage: React.FC = () => {
       setStatus('playing');
       setRunKey((k) => k + 1);
    }, []);
+
+   // Report the finished game to the goliardic mini-podium. Bros
+   // accumulates (server sums every finished game's total onto the
+   // borgo). 'dead' is mid-game (score carries to the next life), so
+   // only the terminal gameover/clear submits. Once per finished game.
+   const submittedRun = useRef(-1);
+   useEffect(() => {
+      const finished = status === 'gameover' || status === 'clear';
+      if (finished && selectedBorgo && submittedRun.current !== runKey) {
+         submittedRun.current = runKey;
+         submitMiniGameScore({game: 'bros', borgo: selectedBorgo, score: hud.score});
+      }
+   }, [status, runKey, selectedBorgo, hud.score]);
 
    // ---- The game ----
    useEffect(() => {

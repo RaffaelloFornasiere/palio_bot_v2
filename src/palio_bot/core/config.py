@@ -50,6 +50,11 @@ class CoreConfig(BaseSettings):
     # data/ restore or clean must never be able to wipe it. Gitignored.
     borgo_poll_path: Path = Path("state/borgo_poll.json")
 
+    # Goliardic mini-games scoreboard. Same rationale/location as the
+    # poll: operational counter state, NOT editorial — lives in state/,
+    # gitignored, bypasses the history layer (see core/minigame_store.py).
+    minigame_scores_path: Path = Path("state/minigame_scores.json")
+
     @property
     def port(self) -> int:
         parsed = urlsplit(self.core_url)

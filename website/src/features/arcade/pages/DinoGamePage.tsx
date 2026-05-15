@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import {PalioData} from '../../../generated/types.gen';
 import {getPalioDataForYear} from '../../../utils/yearApi';
+import {submitMiniGameScore} from '../../../utils/minigameApi';
 import {useYear} from '../../../contexts/YearContext';
 
 // ---- Constants taken verbatim from the Chromium t-rex-runner source
@@ -113,6 +114,16 @@ const DinoGamePage: React.FC = () => {
       setStatus('play');
       setRunKey((k) => k + 1);
    }, []);
+
+   // Report the finished run to the goliardic mini-podium. Dino keeps
+   // the borgo's best (server takes max). Once per finished run.
+   const submittedRun = useRef(-1);
+   useEffect(() => {
+      if (status === 'gameover' && selectedBorgo && submittedRun.current !== runKey) {
+         submittedRun.current = runKey;
+         submitMiniGameScore({game: 'dino', borgo: selectedBorgo, score: hud.score});
+      }
+   }, [status, runKey, selectedBorgo, hud.score]);
 
    useEffect(() => {
       if (!selectedBorgo || status === 'gameover') return;
