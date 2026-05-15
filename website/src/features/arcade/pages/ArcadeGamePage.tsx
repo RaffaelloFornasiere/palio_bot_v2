@@ -89,17 +89,25 @@ interface Mushroom {x: number; y: number; vx: number; vy: number; w: number; h: 
 
 const ri = (a: number, b: number) => Math.floor(a + Math.random() * (b - a + 1));
 
-function buildLevel() {
+// Max empty-column run the player can clear. Small Mario's standstill
+// jump arc (apex ~125px / airtime ~0.76s) covers ~5 tiles even at walk
+// speed and ~9 at run speed; 4 keeps a safe margin for imperfect timing.
+const MAX_GAP = 4;
+
+// One constructive attempt: a single-height ground "spine" with pits
+// isolated by guaranteed run-up + landing, low jump-over pipes never
+// next to a pit, and bonus clusters/coins/mushrooms that sit ABOVE a
+// fully-solid stretch so they can never block the path.
+function generateOnce() {
    const solid: boolean[] = new Array(TILES_W).fill(true);
-   // pits only in the mid-section; start (0..10) and end zone stay solid
-   let c = 12;
-   while (c < TILES_W - 20) {
-      if (Math.random() < 0.17) {
-         const w = ri(2, 3); // jumpable (max horizontal jump ~6 tiles)
-         for (let i = 0; i < w && c + i < TILES_W - 20; i++) solid[c + i] = false;
-         c += w + ri(5, 9);
-      } else {
-         c += ri(2, 4);
+   let c = 10; // 0..9 always solid (safe start / run-up)
+   while (c < TILES_W - 22) {
+      c += ri(5, 10); // flat run = breathing room / run-up
+      if (c >= TILES_W - 22) break;
+      if (Math.random() < 0.55) {
+         const gap = ri(2, MAX_GAP - 1); // 2..3, strictly below the cap
+         for (let i = 0; i < gap; i++) solid[c + i] = false;
+         c += gap + ri(4, 7); // guaranteed landing + run-up after the pit
       }
    }
 
@@ -110,13 +118,18 @@ function buildLevel() {
          blocks.push({x: col * TILE, y: GROUND_Y + TILE, w: TILE, h: TILE, kind: 'ground'});
       }
    }
+   const spanSolid = (a: number, b: number) => {
+      for (let col = a; col < b; col++) if (!solid[col]) return false;
+      return true;
+   };
 
-   // pipes (2-3 tiles tall -> jumpable over)
+   // pipes: only with solid ground for a few tiles around -> always
+   // jump-over-able and never adjacent to a pit
    const pipeCols: number[] = [];
    for (let attempt = 0; attempt < ri(2, 4); attempt++) {
-      const col = ri(18, TILES_W - 24);
-      if (!solid[col] || !solid[col - 1] || !solid[col + 1]) continue;
-      if (pipeCols.some((pc) => Math.abs(pc - col) < 6)) continue;
+      const col = ri(18, TILES_W - 26);
+      if (!spanSolid(col - 2, col + 3)) continue;
+      if (pipeCols.some((pc) => Math.abs(pc - col) < 7)) continue;
       const h = ri(2, 3);
       for (let k = 1; k <= h; k++) {
          blocks.push({x: col * TILE, y: GROUND_Y - k * TILE, w: TILE, h: TILE, kind: 'pipe'});
@@ -125,27 +138,26 @@ function buildLevel() {
    }
    const isPipeCol = (col: number) => pipeCols.includes(col);
 
-   // elevated brick/? clusters at a reachable row
+   // bonus clusters at a jump-reachable row, only over fully-solid
+   // ground (3-tile clearance underneath -> never a wall)
    const questions: Block[] = [];
    for (let attempt = 0; attempt < ri(3, 5); attempt++) {
       const len = ri(3, 6);
       const start = ri(16, TILES_W - 26);
-      let ok = true;
-      for (let i = 0; i < len; i++) {
-         if (!solid[start + i] || isPipeCol(start + i) || start + i >= TILES_W - 16) ok = false;
-      }
-      if (!ok) continue;
+      if (!spanSolid(start - 1, start + len + 1)) continue;
+      let blocked = false;
+      for (let i = 0; i < len; i++) if (isPipeCol(start + i)) blocked = true;
+      if (blocked) continue;
       let hasQ = false;
       const made: Block[] = [];
       for (let i = 0; i < len; i++) {
          const isQ = Math.random() < 0.45;
          if (isQ) hasQ = true;
-         const b: Block = {
+         made.push({
             x: (start + i) * TILE, y: CLUSTER_ROW * TILE, w: TILE, h: TILE,
             kind: isQ ? 'question' : 'brick',
             gives: isQ ? 'coin' : undefined,
-         };
-         made.push(b);
+         });
       }
       if (!hasQ) {
          const mid = made[Math.floor(len / 2)];
@@ -157,13 +169,16 @@ function buildLevel() {
          if (b.kind === 'question') questions.push(b);
       });
    }
-   // a couple of ? blocks dispense a growth mushroom
-   for (let i = 0; i < Math.min(questions.length, ri(1, 2)); i++) {
-      const q = questions[ri(0, questions.length - 1)];
-      q.gives = 'mushroom';
+   // guarantee at least one ? exists, then always >=1 mushroom dispenser
+   // (purely a bonus; bricks are platforms, never required to finish)
+   if (questions.length === 0) {
+      const b: Block = {x: 16 * TILE, y: CLUSTER_ROW * TILE, w: TILE, h: TILE, kind: 'question', gives: 'coin'};
+      blocks.push(b);
+      questions.push(b);
    }
+   const nMush = Math.max(1, Math.min(questions.length, ri(1, 2)));
+   for (let i = 0; i < nMush; i++) questions[ri(0, questions.length - 1)].gives = 'mushroom';
 
-   // random reachable coins
    const coins: Coin[] = [];
    const overlapsBlock = (cx: number, cy: number) =>
       blocks.some((b) => cx > b.x - 12 && cx < b.x + b.w + 12 && cy > b.y - 16 && cy < b.y + b.h + 16);
@@ -179,7 +194,6 @@ function buildLevel() {
       }
    }
 
-   // random goombas on solid ground, away from the very start
    const goombas: Goomba[] = [];
    for (let i = 0; i < ri(4, 7); i++) {
       for (let t = 0; t < 8; t++) {
@@ -194,16 +208,45 @@ function buildLevel() {
       }
    }
 
-   // end staircase (1-tile steps, climbable) + flag
    for (let s = 0; s < 4; s++) {
       const col = TILES_W - 15 + s;
       for (let k = 1; k <= s + 1; k++) {
          blocks.push({x: col * TILE, y: GROUND_Y - k * TILE, w: TILE, h: TILE, kind: 'ground'});
       }
    }
-   const flagX = (TILES_W - 7) * TILE;
+   const flagCol = TILES_W - 7;
+   return {blocks, coins, goombas, flagX: flagCol * TILE, solid, flagCol};
+}
 
-   return {blocks, coins, goombas, flagX};
+// Sound under-approximation: with single-height ground, the level is
+// beatable iff every empty run before the flag is within one jump and
+// the flag stands on solid ground. If this passes the level is truly
+// completable (it may reject some beatable ones -> we just regenerate).
+function isBeatable(solid: boolean[], flagCol: number) {
+   let run = 0;
+   for (let c = 0; c < flagCol; c++) {
+      if (solid[c]) run = 0;
+      else if (++run > MAX_GAP) return false;
+   }
+   return solid[flagCol];
+}
+
+function buildLevel() {
+   for (let attempt = 0; attempt < 24; attempt++) {
+      const lvl = generateOnce();
+      if (isBeatable(lvl.solid, lvl.flagCol)) return lvl;
+   }
+   // deterministic safe fallback (flat ground + one mushroom + flag)
+   const blocks: Block[] = [];
+   for (let col = 0; col < TILES_W; col++) {
+      blocks.push({x: col * TILE, y: GROUND_Y, w: TILE, h: TILE, kind: 'ground'});
+      blocks.push({x: col * TILE, y: GROUND_Y + TILE, w: TILE, h: TILE, kind: 'ground'});
+   }
+   blocks.push({x: 30 * TILE, y: CLUSTER_ROW * TILE, w: TILE, h: TILE, kind: 'question', gives: 'mushroom'});
+   return {
+      blocks, coins: [] as Coin[], goombas: [] as Goomba[],
+      flagX: (TILES_W - 7) * TILE, solid: new Array(TILES_W).fill(true), flagCol: TILES_W - 7,
+   };
 }
 
 const ArcadeGamePage: React.FC = () => {
@@ -370,9 +413,12 @@ const ArcadeGamePage: React.FC = () => {
 
             // horizontal
             p.x += p.vx * dt;
-            if (p.x < 0) {
-               p.x = 0;
-               p.vx = 0;
+            // SMB one-way camera: a solid wall at the visible left edge
+            // (cameraX only ever increases) so you can't walk off-screen.
+            const leftWall = cameraX;
+            if (p.x < leftWall) {
+               p.x = leftWall;
+               if (p.vx < 0) p.vx = 0;
             }
             for (const b of blocks) {
                if (aabb(p.x, p.y, P_W, H, b)) {
