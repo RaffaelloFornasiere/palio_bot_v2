@@ -148,6 +148,8 @@ export function singleGameStatusHintFor(type?: GameVariant): Hint {
       keyHint: 'village',
       value: { kind: 'numberOrString' },
       defaultValue: () => 0,
+      presentation: 'table',
+      valueColumnLabel: 'Punti',
     },
     defaultValue: () => ({}),
   };
@@ -220,6 +222,8 @@ export function singleGameStatusHintFor(type?: GameVariant): Hint {
         keyHint: 'village',
         value: { kind: 'numberOrString' },
         defaultValue: () => 0,
+        presentation: 'table',
+        valueColumnLabel: 'Punti',
       },
     });
   }

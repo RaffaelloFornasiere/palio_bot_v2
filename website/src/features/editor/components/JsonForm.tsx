@@ -32,9 +32,12 @@ export type Hint =
       defaultValue: () => any;
       // presented keys (e.g., all villages) so we can offer add-missing
       suggestedKeys?: string[];
-      // 'table' renders one row per entry, columns = value's object fields.
-      // Requires value.kind === 'object' with scalar field hints.
+      // 'table' renders one row per entry. Object-valued dicts get one
+      // column per field; scalar-valued dicts get a single value column.
       presentation?: 'table';
+      // Header for the single value column when `presentation: 'table'`
+      // and `value` is scalar. Defaults to 'Valore'.
+      valueColumnLabel?: string;
       // Optional: derive the entry's user-facing label from its value
       // instead of showing the raw key. Used when the key is an internal
       // identifier the user shouldn't see (e.g. game_id).
@@ -362,8 +365,9 @@ const DictNode: React.FC<NodeProps & { hint: Extract<Hint, { kind: 'dict' }> }> 
 
   const count = isVillageDict ? orderedKeys.length : dataKeys.length;
 
-  if (hint.presentation === 'table' && hint.value.kind === 'object') {
-    const fields = hint.value.fields;
+  if (hint.presentation === 'table') {
+    const objectValue = hint.value.kind === 'object' ? hint.value : null;
+    const fields = objectValue?.fields ?? null;
     const keyLabel = hint.keyHint === 'village' ? 'Borgo' : 'Chiave';
     return (
       <Box>
@@ -372,36 +376,59 @@ const DictNode: React.FC<NodeProps & { hint: Extract<Hint, { kind: 'dict' }> }> 
           <TableHead>
             <TableRow>
               <TableCell sx={{ pl: 0, pr: 1 }}>{keyLabel}</TableCell>
-              {fields.map((f) => (
-                <TableCell key={f.name} sx={{ px: 1 }}>{f.label ?? f.name}</TableCell>
-              ))}
+              {fields ? (
+                fields.map((f) => (
+                  <TableCell key={f.name} sx={{ px: 1 }}>{f.label ?? f.name}</TableCell>
+                ))
+              ) : (
+                <TableCell sx={{ px: 1 }}>{hint.valueColumnLabel ?? 'Valore'}</TableCell>
+              )}
               <TableCell sx={{ width: 40, pl: 1, pr: 0 }} />
             </TableRow>
           </TableHead>
           <TableBody>
             {orderedKeys.map((k) => {
-              const row = (valueFor(k) ?? {}) as Record<string, any>;
+              const raw = valueFor(k);
               return (
                 <TableRow key={k}>
                   <TableCell sx={{ pl: 0, pr: 1 }}>
                     <Chip label={k} size="small" color={hint.keyHint === 'village' ? 'primary' : 'default'} />
                   </TableCell>
-                  {fields.map((f) => (
+                  {fields ? (
+                    fields.map((f) => {
+                      const row = (raw ?? {}) as Record<string, any>;
+                      return (
+                        <TableCell
+                          key={f.name}
+                          sx={{
+                            px: 1,
+                            '& .MuiOutlinedInput-input': { px: 1 },
+                          }}
+                        >
+                          <FieldNode
+                            value={row[f.name]}
+                            onChange={(nv) => onChange({ ...data, [k]: { ...row, [f.name]: nv } })}
+                            hint={f.hint}
+                            ctx={ctx}
+                          />
+                        </TableCell>
+                      );
+                    })
+                  ) : (
                     <TableCell
-                      key={f.name}
                       sx={{
                         px: 1,
                         '& .MuiOutlinedInput-input': { px: 1 },
                       }}
                     >
                       <FieldNode
-                        value={row[f.name]}
-                        onChange={(nv) => onChange({ ...data, [k]: { ...row, [f.name]: nv } })}
-                        hint={f.hint}
+                        value={raw}
+                        onChange={(nv) => onChange({ ...data, [k]: nv })}
+                        hint={hint.value}
                         ctx={ctx}
                       />
                     </TableCell>
-                  ))}
+                  )}
                   <TableCell sx={{ pl: 1, pr: 0 }}>
                     {!isMasterVillage(k) && (
                       <IconButton size="small" onClick={() => removeKey(k)} aria-label="rimuovi">
