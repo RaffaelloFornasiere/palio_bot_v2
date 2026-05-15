@@ -721,15 +721,13 @@ const ArcadeGamePage: React.FC = () => {
    return (
       <Container maxWidth="lg">
          <Box sx={{mt: 4, mb: 4}}>
-            <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3}}>
-               <Box sx={{display: 'flex', alignItems: 'baseline', gap: 1.5}}>
-                  <Button component={RouterLink} to=".." size="small" sx={{minWidth: 0}}>
-                     ← Mini-giochi
-                  </Button>
-                  <Typography variant="h4" component="h1">
-                     Super Borgo Bros
-                  </Typography>
-               </Box>
+            <Box sx={{mb: 3}}>
+               <Button component={RouterLink} to=".." size="small" sx={{minWidth: 0, pl: 0, mb: 0.5}}>
+                  ← Mini-giochi
+               </Button>
+               <Typography variant="h4" component="h1">
+                  Super Borgo Bros
+               </Typography>
             </Box>
 
             {!selectedBorgo ? (
