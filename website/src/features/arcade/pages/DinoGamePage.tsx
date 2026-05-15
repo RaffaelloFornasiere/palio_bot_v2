@@ -471,9 +471,14 @@ const DinoGamePage: React.FC = () => {
                            gap: 1,
                         }}
                      >
-                        <Typography variant="h6" sx={noSelect}>
-                           {selectedBorgo} — 🏆 {hud.hi} · punti {hud.score}
-                        </Typography>
+                        <Box sx={{...noSelect, display: 'flex', flexDirection: 'column'}}>
+                           <Typography variant="h6" sx={noSelect}>
+                              {selectedBorgo}
+                           </Typography>
+                           <Typography variant="body2" color="text.secondary" sx={noSelect}>
+                              🏆 record {hud.hi} · punti {hud.score}
+                           </Typography>
+                        </Box>
                         <Box sx={{display: 'flex', gap: 1}}>
                            <Button variant="outlined" size="small" onClick={restart}>
                               Ricomincia
