@@ -55,7 +55,7 @@ cp .env.example .env   # if present, else create empty .env
 # edit .env with at least OPENROUTER_API_KEY
 
 # 3. Frontend (optional, dev mode)
-cd website && npm install && npm run dev
+cd website && npm install && npm start
 # production: npm run build → palio-core serves the static build at /
 ```
 
@@ -87,8 +87,8 @@ python -m palio_bot                  # interactive CLI
 python -m palio_bot.telegram_bot     # Telegram bot
 ```
 
-The React frontend in dev mode runs separately (`npm run dev` inside
-`website/`, port 5173). In production `palio-core` serves the built
+The React frontend in dev mode runs separately (`npm start` inside
+`website/`, port 3000). In production `palio-core` serves the built
 static assets at `/`.
 
 ## Adapter commands
@@ -212,9 +212,8 @@ src/palio_bot/        # Python code
 
 data/                 # runtime state + git history repo
 tests/                # pytest suite + eval scenarios
-website/              # React frontend (Vite + types generated from OpenAPI)
+website/              # React frontend (CRA + types generated from OpenAPI)
 docs/                 # refactor plans + TODO + audit
-docker/               # Dockerfile + compose
 scripts/              # restore, eval runner, viewer builder
 results/              # per-model eval output
 ```
@@ -222,8 +221,8 @@ results/              # per-model eval output
 ## Tech stack
 
 - **Backend**: Python 3.11+, FastAPI, Pydantic, pygit2.
-- **Frontend**: React, TypeScript, Vite, types auto-generated from
-  OpenAPI.
+- **Frontend**: React, TypeScript, Create React App, types
+  auto-generated from OpenAPI.
 - **LLM**: OpenRouter (default) or Ollama (local). Provider adapters in
   `llm_clients/`. Default model: `anthropic/claude-3.5-haiku`.
 - **Audio**: Whisper via Groq (Telegram voice messages).

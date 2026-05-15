@@ -217,7 +217,6 @@ tests/                             # pytest suite (unit + integration)
 └── …
 docs/                              # TODO, refactor plans, audit/
 website/                           # React frontend (types generated from FastAPI)
-docker/                            # Dockerfiles + compose
 scripts/                           # restore.sh, run_all_evals.sh, build_results_viewer.py
 results/                           # Per-model eval result JSONs + viewer HTML
 ```
