@@ -43,7 +43,7 @@ const INVERT_DISTANCE = 700; // score units between day/night flips
 const PTERO_MIN_SPEED = 8.5;
 
 const CW = 600;
-const CH = 160;
+const CH = 240;
 const GROUND_Y = CH - 16; // top of the ground line
 const TREX_GROUND = GROUND_Y - TREX_H;
 
@@ -299,18 +299,18 @@ const DinoGamePage: React.FC = () => {
 
          drawTrex(ctx, t.y, t.ducking, t.jumping, Math.floor(t.run) % 2 === 0, crashed, dino);
 
-         // HUD
+         // HUD — borgo name and score on separate lines
          ctx.fillStyle = fg;
-         ctx.font = 'bold 18px monospace';
          ctx.textBaseline = 'top';
-         ctx.textAlign = 'right';
-         ctx.fillText(
-            `HI ${String(hi).padStart(5, '0')}  ${String(score()).padStart(5, '0')}`,
-            CW - 14, 12,
-         );
          ctx.textAlign = 'left';
          ctx.font = 'bold 13px monospace';
-         ctx.fillText(selectedBorgo!.toUpperCase(), 14, 12);
+         ctx.fillText(selectedBorgo!.toUpperCase(), 14, 10);
+         ctx.textAlign = 'right';
+         ctx.font = 'bold 18px monospace';
+         ctx.fillText(
+            `HI ${String(hi).padStart(5, '0')}  ${String(score()).padStart(5, '0')}`,
+            CW - 14, 30,
+         );
 
          if (!started) {
             ctx.fillStyle = fg;
