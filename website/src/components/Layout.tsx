@@ -19,10 +19,12 @@ import {
   Leaderboard as LeaderboardIcon,
   SportsEsports as GamesIcon,
   CalendarMonth as CalendarIcon,
+  FavoriteRounded as HeartIcon,
   Menu as MenuIcon
 } from '@mui/icons-material';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useYear } from '../contexts/YearContext';
+import BorgoPollPrompt from '../features/poll/BorgoPollPrompt';
 
 const drawerWidth = 240;
 
@@ -68,6 +70,8 @@ const Layout: React.FC = () => {
     { text: 'Classifica', icon: <LeaderboardIcon />, path: selectedYear ? `/${selectedYear}/classifica` : '/classifica' },
     { text: 'Giochi', icon: <GamesIcon />, path: selectedYear ? `/${selectedYear}/giochi` : '/giochi' },
     { text: 'Calendario', icon: <CalendarIcon />, path: selectedYear ? `/${selectedYear}/calendario` : '/calendario' },
+    // Poll is always live (current year) — deliberately not year-aware.
+    { text: 'Borgo più amato', icon: <HeartIcon />, path: '/borgo-amato' },
   ];
 
   // Helper function to check if current path matches menu item
@@ -218,6 +222,9 @@ const Layout: React.FC = () => {
       >
         <Outlet />
       </Box>
+
+      {/* First-visit vote prompt (dismissable); silent if poll/backend off */}
+      <BorgoPollPrompt />
     </Box>
   );
 };

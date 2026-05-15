@@ -8,6 +8,7 @@ import LeaderboardPage from './features/leaderboard/components/MascotRace';
 import GamesPage from './features/games/pages/GiochiPage';
 import GiocoDettagliPage from './features/games/pages/GiocoDettagliPage';
 import CalendarPage from './features/calendar/pages/CalendarioPage';
+import BorgoPollPage from './features/poll/BorgoPollPage';
 import LoginPage from './features/editor/pages/LoginPage';
 import EditorHomePage from './features/editor/pages/EditorHomePage';
 import EditLeaderboardPage from './features/editor/pages/EditLeaderboardPage';
@@ -54,7 +55,10 @@ function App() {
               <Route path="giochi" element={<GamesPage />} />
               <Route path="giochi/:gameId" element={<GiocoDettagliPage />} />
               <Route path="calendario" element={<CalendarPage />} />
-              
+
+              {/* Borgo popularity poll — always current/live, no year variant */}
+              <Route path="borgo-amato" element={<BorgoPollPage />} />
+
               {/* Year-first routes */}
               <Route path=":year">
                 <Route index element={<Navigate to="classifica" replace />} />

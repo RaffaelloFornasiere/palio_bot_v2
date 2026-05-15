@@ -17,8 +17,17 @@ from palio_bot.core.config import CoreConfig
 from palio_bot.core.history import HistoryService
 from palio_bot.core.stream import Stream
 from palio_bot.core.file_store_local import LocalFileStore
+from palio_bot.core.poll_store import PollStore
 from palio_bot.core.registry_factory import build_registry
-from palio_bot.core.routes import admin, editor, events_ws, files, leaderboard, sessions
+from palio_bot.core.routes import (
+    admin,
+    editor,
+    events_ws,
+    files,
+    leaderboard,
+    poll,
+    sessions,
+)
 from palio_bot.core.session_service import SessionService
 from palio_bot.core.session_store import SessionStore
 
@@ -65,6 +74,7 @@ def create_app(
     app.state.stream = stream
     app.state.history = history
     app.state.session_service = session_service
+    app.state.poll_store = PollStore(config.borgo_poll_path)
 
     app.add_middleware(
         CORSMiddleware,
@@ -80,6 +90,7 @@ def create_app(
     app.include_router(editor.router)
     app.include_router(events_ws.router)
     app.include_router(leaderboard.router)
+    app.include_router(poll.router)
 
     _mount_events_viewer(app)
     _mount_react_app(app)
