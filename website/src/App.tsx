@@ -17,6 +17,7 @@ import EditGameStatusPage from './features/editor/pages/EditGameStatusPage';
 import GameStatusListView from './features/editor/pages/GameStatusListView';
 import GameStatusDetailView from './features/editor/pages/GameStatusDetailView';
 import RequireAuth from './features/editor/components/RequireAuth';
+import ArcadeGamePage from './features/arcade/pages/ArcadeGamePage';
 import './App.css';
 
 // Component to handle backward compatibility redirects
@@ -54,7 +55,8 @@ function App() {
               <Route path="giochi" element={<GamesPage />} />
               <Route path="giochi/:gameId" element={<GiocoDettagliPage />} />
               <Route path="calendario" element={<CalendarPage />} />
-              
+              <Route path="gioco" element={<ArcadeGamePage />} />
+
               {/* Year-first routes */}
               <Route path=":year">
                 <Route index element={<Navigate to="classifica" replace />} />
@@ -62,6 +64,7 @@ function App() {
                 <Route path="giochi" element={<GamesPage />} />
                 <Route path="giochi/:gameId" element={<GiocoDettagliPage />} />
                 <Route path="calendario" element={<CalendarPage />} />
+                <Route path="gioco" element={<ArcadeGamePage />} />
               </Route>
               
               {/* Backward compatibility redirects */}
