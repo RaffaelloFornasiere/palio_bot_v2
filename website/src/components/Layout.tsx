@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { 
   Box, 
   Drawer, 
@@ -21,21 +21,47 @@ import {
   CalendarMonth as CalendarIcon,
   Menu as MenuIcon
 } from '@mui/icons-material';
-import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
+import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useYear } from '../contexts/YearContext';
 
 const drawerWidth = 240;
 
+// Hidden entrance to the edit section: tap the "Palio" title 7 times.
+// Pure discoverability — real access control is Firebase auth on /edit.
+const SECRET_TAP_COUNT = 7;
+const SECRET_TAP_WINDOW_MS = 2000;
+
 const Layout: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { selectedYear } = useYear();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
+
+  // Count taps on the title; reach SECRET_TAP_COUNT within the window to
+  // reveal the edit section. The window resets the counter if taps stall.
+  const handleSecretTap = useCallback(() => {
+    if (tapTimerRef.current) {
+      clearTimeout(tapTimerRef.current);
+    }
+    tapCountRef.current += 1;
+    if (tapCountRef.current >= SECRET_TAP_COUNT) {
+      tapCountRef.current = 0;
+      navigate('/edit');
+      return;
+    }
+    tapTimerRef.current = setTimeout(() => {
+      tapCountRef.current = 0;
+    }, SECRET_TAP_WINDOW_MS);
+  }, [navigate]);
 
   // Create year-aware menu items
   const menuItems = [
@@ -65,7 +91,13 @@ const Layout: React.FC = () => {
   const drawer = (
     <div>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div">
+        <Typography
+          variant="h6"
+          noWrap
+          component="div"
+          onClick={handleSecretTap}
+          sx={{ userSelect: 'none', cursor: 'default' }}
+        >
           Palio
         </Typography>
       </Toolbar>
@@ -110,7 +142,13 @@ const Layout: React.FC = () => {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" noWrap component="div">
+            <Typography
+              variant="h6"
+              noWrap
+              component="div"
+              onClick={handleSecretTap}
+              sx={{ userSelect: 'none', cursor: 'default' }}
+            >
               Palio
             </Typography>
           </Toolbar>
