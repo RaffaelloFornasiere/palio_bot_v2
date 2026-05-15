@@ -1,7 +1,6 @@
 import React from 'react';
 import {Link as RouterLink} from 'react-router-dom';
 import {Container, Typography, Box, Card, CardActionArea, CardContent} from '@mui/material';
-import YearSelector from '../../../components/YearSelector';
 
 const GAMES = [
    {
@@ -21,11 +20,10 @@ const GAMES = [
 const MiniGamesPage: React.FC = () => (
    <Container maxWidth="lg">
       <Box sx={{mt: 4, mb: 4}}>
-         <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3}}>
+         <Box sx={{mb: 3}}>
             <Typography variant="h4" component="h1">
                Mini-giochi
             </Typography>
-            <YearSelector/>
          </Box>
 
          <Box

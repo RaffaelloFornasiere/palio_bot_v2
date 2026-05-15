@@ -17,7 +17,6 @@ import {
 import {PalioData} from '../../../generated/types.gen';
 import {getPalioDataForYear} from '../../../utils/yearApi';
 import {useYear} from '../../../contexts/YearContext';
-import YearSelector from '../../../components/YearSelector';
 
 // ---- Authentic-ish NES Super Mario Bros palette ----
 const SKY = '#5C94FC';
@@ -731,7 +730,6 @@ const ArcadeGamePage: React.FC = () => {
                      Super Borgo Bros
                   </Typography>
                </Box>
-               <YearSelector/>
             </Box>
 
             {!selectedBorgo ? (

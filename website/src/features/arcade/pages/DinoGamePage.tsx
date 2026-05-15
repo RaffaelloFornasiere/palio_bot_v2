@@ -17,7 +17,6 @@ import {
 import {PalioData} from '../../../generated/types.gen';
 import {getPalioDataForYear} from '../../../utils/yearApi';
 import {useYear} from '../../../contexts/YearContext';
-import YearSelector from '../../../components/YearSelector';
 
 // ---- Constants taken verbatim from the Chromium t-rex-runner source
 // (per-frame @60fps). The loop normalises real dt into "frames elapsed"
@@ -421,7 +420,6 @@ const DinoGamePage: React.FC = () => {
                      Borgo Dino
                   </Typography>
                </Box>
-               <YearSelector/>
             </Box>
 
             {!selectedBorgo ? (
