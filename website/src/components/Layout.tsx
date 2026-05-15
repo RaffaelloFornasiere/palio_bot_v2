@@ -19,6 +19,7 @@ import {
   Leaderboard as LeaderboardIcon,
   SportsEsports as GamesIcon,
   CalendarMonth as CalendarIcon,
+  VideogameAsset as ArcadeIcon,
   Menu as MenuIcon
 } from '@mui/icons-material';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
@@ -42,6 +43,7 @@ const Layout: React.FC = () => {
     { text: 'Classifica', icon: <LeaderboardIcon />, path: selectedYear ? `/${selectedYear}/classifica` : '/classifica' },
     { text: 'Giochi', icon: <GamesIcon />, path: selectedYear ? `/${selectedYear}/giochi` : '/giochi' },
     { text: 'Calendario', icon: <CalendarIcon />, path: selectedYear ? `/${selectedYear}/calendario` : '/calendario' },
+    { text: 'Gioco', icon: <ArcadeIcon />, path: selectedYear ? `/${selectedYear}/gioco` : '/gioco' },
   ];
 
   // Helper function to check if current path matches menu item

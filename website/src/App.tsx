@@ -7,6 +7,7 @@ import LeaderboardPage from './features/leaderboard/pages/ClassificaPage';
 import GamesPage from './features/games/pages/GiochiPage';
 import GiocoDettagliPage from './features/games/pages/GiocoDettagliPage';
 import CalendarPage from './features/calendar/pages/CalendarioPage';
+import ArcadeGamePage from './features/arcade/pages/ArcadeGamePage';
 import './App.css';
 
 // Component to handle backward compatibility redirects
@@ -36,7 +37,8 @@ function App() {
               <Route path="giochi" element={<GamesPage />} />
               <Route path="giochi/:gameId" element={<GiocoDettagliPage />} />
               <Route path="calendario" element={<CalendarPage />} />
-              
+              <Route path="gioco" element={<ArcadeGamePage />} />
+
               {/* Year-first routes */}
               <Route path=":year">
                 <Route index element={<Navigate to="classifica" replace />} />
@@ -44,6 +46,7 @@ function App() {
                 <Route path="giochi" element={<GamesPage />} />
                 <Route path="giochi/:gameId" element={<GiocoDettagliPage />} />
                 <Route path="calendario" element={<CalendarPage />} />
+                <Route path="gioco" element={<ArcadeGamePage />} />
               </Route>
               
               {/* Backward compatibility redirects */}
