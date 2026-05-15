@@ -110,6 +110,7 @@ const gameRoundHint: Hint = {
         itemLabel: (_, v) => v?.village || 'borgo',
         defaultItem: () => ({ village: '', points: 0 }),
         item: roundRobinScoreHint,
+        presentation: 'table',
       },
     },
     {

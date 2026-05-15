@@ -24,6 +24,10 @@ export type Hint =
       item: Hint;
       itemLabel?: (i: number, val: any) => string;
       defaultItem: () => any;
+      // 'table' renders one row per array item with one column per field
+      // of the item object. Requires item.kind === 'object'; falls back to
+      // the stacked layout otherwise.
+      presentation?: 'table';
     }
   | {
       kind: 'dict';
@@ -254,6 +258,71 @@ const ArrayNode: React.FC<NodeProps & { hint: Extract<Hint, { kind: 'array' }> }
   value, onChange, hint, ctx, label,
 }) => {
   const items: any[] = Array.isArray(value) ? value : [];
+
+  if (hint.presentation === 'table' && hint.item.kind === 'object') {
+    const fields = hint.item.fields;
+    return (
+      <Box>
+        {label && <Typography variant="subtitle2" sx={{ mb: 1 }}>{label} ({items.length})</Typography>}
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              {fields.map((f) => (
+                <TableCell key={f.name} sx={{ px: 1 }}>{f.label ?? f.name}</TableCell>
+              ))}
+              <TableCell sx={{ width: 40, pl: 1, pr: 0 }} />
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {items.map((item, i) => {
+              const row = (item ?? {}) as Record<string, any>;
+              return (
+                <TableRow key={i}>
+                  {fields.map((f) => (
+                    <TableCell
+                      key={f.name}
+                      sx={{ px: 1, '& .MuiOutlinedInput-input': { px: 1 } }}
+                    >
+                      <FieldNode
+                        value={row[f.name]}
+                        onChange={(nv) => {
+                          const next = [...items];
+                          next[i] = { ...row, [f.name]: nv };
+                          onChange(next);
+                        }}
+                        hint={f.hint}
+                        ctx={ctx}
+                      />
+                    </TableCell>
+                  ))}
+                  <TableCell sx={{ pl: 1, pr: 0 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        const next = [...items]; next.splice(i, 1); onChange(next);
+                      }}
+                      aria-label="rimuovi"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => onChange([...items, hint.defaultItem()])}
+          sx={{ mt: 1 }}
+        >
+          Aggiungi
+        </Button>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       {label && <Typography variant="subtitle2" sx={{ mb: 1 }}>{label} ({items.length})</Typography>}
