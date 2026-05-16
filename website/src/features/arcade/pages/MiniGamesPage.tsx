@@ -96,15 +96,6 @@ const MiniGamesPage: React.FC = () => {
 
             <Card variant="outlined" sx={{mb: 3}}>
                <CardContent sx={{pt: 1.5, px: 2, pb: 2, '&:last-child': {pb: 2}}}>
-                  <Typography variant="h6" gutterBottom>
-                     🏆 Mini-podio
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{mb: 1}}>
-                     Per ogni gioco i borghi prendono 10 · 7 · 5 · 3 · 1 punti come
-                     nei giochi ufficiali; qui la somma. Goliardico — <b>non</b> conta
-                     per la classifica ufficiale del Palio.
-                  </Typography>
-
                   {loading ? (
                      <Box sx={{display: 'flex', justifyContent: 'center', py: 4}}>
                         <CircularProgress size={28} />
