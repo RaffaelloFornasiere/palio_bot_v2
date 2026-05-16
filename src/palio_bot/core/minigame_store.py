@@ -54,6 +54,12 @@ _SCHEMA_VERSION = 1
 GAMES: Dict[str, Dict[str, str]] = {
     "dino": {"label": "Borgo Dino", "agg": "max"},
     "bros": {"label": "Super Borgo Bros", "agg": "sum"},
+    # Reaction game: the browser submits a "speed score" derived from the
+    # average reaction time over 3 rounds (higher = faster), so the
+    # generic max-aggregation keeps a borgo's best (most consistent) run.
+    "reazione": {"label": "Tempo di Reazione", "agg": "max"},
+    "sequenza": {"label": "Ripeti la Sequenza", "agg": "max"},
+    "flappy": {"label": "Flappy Borgo", "agg": "max"},
 }
 
 # Same scheme as the official games (leaderboard_updater POINT

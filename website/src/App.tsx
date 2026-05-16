@@ -20,6 +20,9 @@ import GameStatusDetailView from './features/editor/pages/GameStatusDetailView';
 import RequireAuth from './features/editor/components/RequireAuth';
 import ArcadeGamePage from './features/arcade/pages/ArcadeGamePage';
 import DinoGamePage from './features/arcade/pages/DinoGamePage';
+import ReactionGamePage from './features/arcade/pages/ReactionGamePage';
+import SequenceGamePage from './features/arcade/pages/SequenceGamePage';
+import FlappyGamePage from './features/arcade/pages/FlappyGamePage';
 import MiniGamesPage from './features/arcade/pages/MiniGamesPage';
 import './App.css';
 
@@ -62,6 +65,9 @@ function App() {
                 <Route index element={<MiniGamesPage />} />
                 <Route path="bros" element={<ArcadeGamePage />} />
                 <Route path="dino" element={<DinoGamePage />} />
+                <Route path="reazione" element={<ReactionGamePage />} />
+                <Route path="sequenza" element={<SequenceGamePage />} />
+                <Route path="flappy" element={<FlappyGamePage />} />
               </Route>
 
               {/* Borgo popularity poll — always current/live, no year variant */}
@@ -78,6 +84,9 @@ function App() {
                   <Route index element={<MiniGamesPage />} />
                   <Route path="bros" element={<ArcadeGamePage />} />
                   <Route path="dino" element={<DinoGamePage />} />
+                  <Route path="reazione" element={<ReactionGamePage />} />
+                  <Route path="sequenza" element={<SequenceGamePage />} />
+                  <Route path="flappy" element={<FlappyGamePage />} />
                 </Route>
               </Route>
               

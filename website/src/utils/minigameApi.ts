@@ -3,7 +3,7 @@
 // the Cloudflare tunnel without CORS gymnastics.
 import { getApiBaseUrl } from './api';
 
-export type MiniGameId = 'dino' | 'bros';
+export type MiniGameId = 'dino' | 'bros' | 'reazione' | 'sequenza' | 'flappy';
 
 export interface GameRankRow {
   borgo: string;

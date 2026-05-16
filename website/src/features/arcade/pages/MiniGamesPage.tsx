@@ -36,6 +36,24 @@ const GAMES = [
       title: 'Borgo Dino',
       rule: 'Conta solo il record (la partita migliore).',
    },
+   {
+      to: 'flappy',
+      emoji: '🐤',
+      title: 'Flappy Borgo',
+      rule: 'Conta solo il record (la partita migliore).',
+   },
+   {
+      to: 'reazione',
+      emoji: '🔔',
+      title: 'Tempo di Reazione',
+      rule: 'Punteggio dalla media di 3 turni: più alto = più veloce.',
+   },
+   {
+      to: 'sequenza',
+      emoji: '🔁',
+      title: 'Ripeti la Sequenza',
+      rule: 'La sequenza più lunga ripetuta correttamente.',
+   },
 ];
 
 // Same podium geometry as MascotRace.
