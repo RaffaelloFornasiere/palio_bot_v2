@@ -46,7 +46,7 @@ const GAMES = [
       to: 'reazione',
       emoji: '🔔',
       title: 'Tempo di Reazione',
-      rule: 'Punteggio dalla media di 3 turni: più alto = più veloce.',
+      rule: 'Media di 3 turni — vince il tempo più basso.',
    },
    {
       to: 'sequenza',
@@ -67,6 +67,14 @@ function textOn(hex: string): string {
    if (!rgb) return '#fff';
    const l = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
    return l > 0.6 ? '#000' : '#fff';
+}
+
+// Tempo di Reazione stores a derived speed score (higher = faster) so
+// the generic max-aggregation keeps a borgo's best run; show it back as
+// the readable average reaction time.
+function fmtScore(gameId: string, score: number): string {
+   if (gameId === 'reazione') return `${Math.round(100000 / Math.max(1, score))} ms`;
+   return String(score);
 }
 
 const MiniGamesPage: React.FC = () => {
@@ -271,7 +279,7 @@ const MiniGamesPage: React.FC = () => {
                                              color="text.secondary"
                                              sx={{flexShrink: 0}}
                                           >
-                                             {r.score} · <b>{r.points} pt</b>
+                                             {fmtScore(g.to, r.score)} · <b>{r.points} pt</b>
                                           </Typography>
                                        </Box>
                                     );

@@ -282,34 +282,43 @@ const SequenceGamePage: React.FC = () => {
 
                      <Box
                         sx={{
-                           display: 'grid',
-                           gridTemplateColumns: '1fr 1fr',
-                           gap: 1.5,
-                           maxWidth: 360,
+                           position: 'relative',
+                           width: '100%',
+                           maxWidth: 340,
+                           aspectRatio: '1 / 1',
                            mx: 'auto',
                            userSelect: 'none',
                            touchAction: 'manipulation',
                         }}
                      >
-                        {PADS.map((p, i) => (
-                           <Box
-                              key={i}
-                              onPointerDown={(e) => {
-                                 e.preventDefault();
-                                 handlePad(i);
-                              }}
-                              sx={{
-                                 height: {xs: 110, sm: 140},
-                                 borderRadius: 2,
-                                 border: '1px solid rgba(255,255,255,0.10)',
-                                 gridColumn: i === PADS.length - 1 ? 'span 2' : 'auto',
-                                 bgcolor: active === i ? p.on : p.off,
-                                 boxShadow: active === i ? `0 0 24px ${p.on}` : 2,
-                                 cursor: phase === 'input' ? 'pointer' : 'default',
-                                 transition: 'background-color .08s, box-shadow .08s',
-                              }}
-                           />
-                        ))}
+                        {PADS.map((p, i) => {
+                           // Equal-size pads on the 5 vertices of a pentagon
+                           // (first one at the top, then clockwise).
+                           const a = -Math.PI / 2 + i * ((2 * Math.PI) / PADS.length);
+                           return (
+                              <Box
+                                 key={i}
+                                 onPointerDown={(e) => {
+                                    e.preventDefault();
+                                    handlePad(i);
+                                 }}
+                                 sx={{
+                                    position: 'absolute',
+                                    width: '33%',
+                                    aspectRatio: '1 / 1',
+                                    left: `${50 + 32 * Math.cos(a)}%`,
+                                    top: `${50 + 32 * Math.sin(a)}%`,
+                                    transform: 'translate(-50%, -50%)',
+                                    borderRadius: '50%',
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    bgcolor: active === i ? p.on : p.off,
+                                    boxShadow: active === i ? `0 0 26px ${p.on}` : 3,
+                                    cursor: phase === 'input' ? 'pointer' : 'default',
+                                    transition: 'background-color .08s, box-shadow .08s',
+                                 }}
+                              />
+                           );
+                        })}
                      </Box>
 
                      {phase === 'over' && (
