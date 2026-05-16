@@ -57,9 +57,7 @@ const BorgoPollPage: React.FC = () => {
             Il borgo più amato
           </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          La sfida del cuore, decisa dal pubblico. Un voto al giorno.
-        </Typography>
+        <Box sx={{ mb: 3 }} />
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
