@@ -125,8 +125,9 @@
    wrapping Card to be overflow:visible (set in MascotRace.tsx) so the
    rising hearts aren't clipped even for the tallest 1st-place token. */
 .mascot-race .ptok .loved {
-  position: absolute; left: 50%; bottom: 24px;
-  width: 54px; height: 78px; margin-left: -27px;
+  /* bottom-right of the token, IG-live-likes corner */
+  position: absolute; left: 50%; bottom: 12px;
+  width: 42px; height: 76px; margin-left: 2px;
   z-index: 6; text-decoration: none; cursor: pointer;
 }
 .mascot-race .ptok .loved i {
