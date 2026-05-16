@@ -341,7 +341,7 @@ const MascotRace: React.FC = () => {
             </Typography>
           </Box>
 
-          <Card variant="outlined">
+          <Card variant="outlined" sx={{ overflow: 'visible' }}>
             <CardContent sx={{ pt: 1.5, px: 2, pb: 2, '&:last-child': { pb: 2 } }}>
               <Box className="mascot-race" sx={cssVars}>
                 <div className="podium pre" ref={podiumRef}>
@@ -376,7 +376,11 @@ const MascotRace: React.FC = () => {
                             aria-label="Borgo più amato — vota"
                             title="Vota il tuo borgo preferito"
                           >
-                            ❤
+                            <i aria-hidden>❤</i>
+                            <i aria-hidden>❤</i>
+                            <i aria-hidden>❤</i>
+                            <i aria-hidden>❤</i>
+                            <i aria-hidden>❤</i>
                           </RouterLink>
                         )}
                       </div>

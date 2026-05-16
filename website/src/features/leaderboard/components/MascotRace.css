@@ -119,20 +119,34 @@
   background: rgba(0,0,0,.45); color: #fff;
   padding: 1px 7px; border-radius: 999px;
 }
-/* ❤ on the most-loved borgo — deliberate curiosity hook into the
-   (nav-less) daily poll. Pulses to draw the eye. */
+/* Most-loved borgo — a stream of little hearts that float up and fade
+   (Instagram-Live-likes vibe), a deliberate curiosity hook into the
+   nav-less daily poll. The whole emitter is the link. Needs the
+   wrapping Card to be overflow:visible (set in MascotRace.tsx) so the
+   rising hearts aren't clipped even for the tallest 1st-place token. */
 .mascot-race .ptok .loved {
-  position: absolute; top: -16px; left: 50%;
-  transform: translateX(-50%);
-  font-size: 18px; line-height: 1; text-decoration: none;
-  color: #ff4d6d; z-index: 6; cursor: pointer;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.55));
-  animation: mr-heart 1.3s ease-in-out infinite;
+  position: absolute; left: 50%; bottom: 100%;
+  width: 46px; height: 70px; margin: 0 0 2px -23px;
+  z-index: 6; text-decoration: none; cursor: pointer;
 }
-.mascot-race .ptok .loved:hover { transform: translateX(-50%) scale(1.18); }
-@keyframes mr-heart {
-  0%, 100% { transform: translateX(-50%) scale(1); }
-  45%      { transform: translateX(-50%) scale(1.22); }
+.mascot-race .ptok .loved i {
+  position: absolute; left: 50%; bottom: 0;
+  font-size: 14px; line-height: 1; color: #ff4d6d; opacity: 0;
+  font-style: normal; will-change: transform, opacity;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
+  animation: mr-like 2.6s ease-in infinite;
+}
+.mascot-race .ptok .loved i:nth-child(1) { animation-delay: 0s;    --dx: -11px; }
+.mascot-race .ptok .loved i:nth-child(2) { animation-delay: .55s;  --dx: 9px;  font-size: 12px; }
+.mascot-race .ptok .loved i:nth-child(3) { animation-delay: 1.05s; --dx: -4px; font-size: 16px; }
+.mascot-race .ptok .loved i:nth-child(4) { animation-delay: 1.6s;  --dx: 13px; }
+.mascot-race .ptok .loved i:nth-child(5) { animation-delay: 2.1s;  --dx: -14px; font-size: 12px; }
+@keyframes mr-like {
+  0%   { opacity: 0; transform: translate(-50%, 4px) scale(.5) rotate(-8deg); }
+  18%  { opacity: 1; }
+  75%  { opacity: .85; }
+  100% { opacity: 0;
+         transform: translate(calc(-50% + var(--dx, 0px)), -62px) scale(1.05) rotate(6deg); }
 }
 
 @media (max-width: 560px) {
