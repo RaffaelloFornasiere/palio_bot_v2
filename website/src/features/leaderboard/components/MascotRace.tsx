@@ -12,7 +12,9 @@ import { getLeaderboardDataForYear, getPalioDataForYear } from '../../../utils/y
 import { useYear } from '../../../contexts/YearContext';
 import { hexToRgb, curatedVillageColor } from '../../../utils/colorUtils';
 import { MASCOTS, FALLBACK_EMOJI } from '../../../utils/villages';
+import { Link as RouterLink } from 'react-router-dom';
 import YearSelector from '../../../components/YearSelector';
+import { getPollStats } from '../../../utils/pollApi';
 import './MascotRace.css';
 
 /* Animated leaderboard replay. MUI shell + a custom race field/podium
@@ -104,6 +106,24 @@ const MascotRace: React.FC = () => {
   const [data, setData] = useState<RaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // The borgo currently leading the popularity poll. Gets a ❤ on its
+  // podium token that links to the (nav-less) daily voting page — the
+  // intentional "why does that borgo have a heart?" hook.
+  const [lovedBorgo, setLovedBorgo] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPollStats()
+      .then((s) => {
+        if (cancelled) return;
+        const entries = Object.entries(s.total_counts || {});
+        if (!entries.length) return;
+        entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        if (entries[0][1] > 0) setLovedBorgo(entries[0][0]);
+      })
+      .catch(() => {/* poll off/unreachable — just no heart */});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -349,6 +369,16 @@ const MascotRace: React.FC = () => {
                           {MASCOTS[v] || FALLBACK_EMOJI}
                         </span>
                         <span className="tp" ref={(el) => { tokPtsRefs.current[v] = el; }}>0</span>
+                        {v === lovedBorgo && (
+                          <RouterLink
+                            to="/borgo-amato"
+                            className="loved"
+                            aria-label="Borgo più amato — vota"
+                            title="Vota il tuo borgo preferito"
+                          >
+                            ❤
+                          </RouterLink>
+                        )}
                       </div>
                     );
                   })}

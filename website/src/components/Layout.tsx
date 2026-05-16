@@ -20,7 +20,6 @@ import {
   SportsEsports as GamesIcon,
   CalendarMonth as CalendarIcon,
   VideogameAsset as ArcadeIcon,
-  FavoriteRounded as HeartIcon,
   Menu as MenuIcon
 } from '@mui/icons-material';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -72,8 +71,8 @@ const Layout: React.FC = () => {
     { text: 'Giochi', icon: <GamesIcon />, path: selectedYear ? `/${selectedYear}/giochi` : '/giochi' },
     { text: 'Calendario', icon: <CalendarIcon />, path: selectedYear ? `/${selectedYear}/calendario` : '/calendario' },
     { text: 'Mini-giochi', icon: <ArcadeIcon />, path: selectedYear ? `/${selectedYear}/gioco` : '/gioco' },
-    // Poll is always live (current year) — deliberately not year-aware.
-    { text: 'Borgo più amato', icon: <HeartIcon />, path: '/borgo-amato' },
+    // The poll has no nav entry by design: it's discovered via the ❤
+    // on the most-loved borgo in the Classifica podium (route kept live).
   ];
 
   // Helper function to check if current path matches menu item

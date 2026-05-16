@@ -119,6 +119,21 @@
   background: rgba(0,0,0,.45); color: #fff;
   padding: 1px 7px; border-radius: 999px;
 }
+/* ❤ on the most-loved borgo — deliberate curiosity hook into the
+   (nav-less) daily poll. Pulses to draw the eye. */
+.mascot-race .ptok .loved {
+  position: absolute; top: -16px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px; line-height: 1; text-decoration: none;
+  color: #ff4d6d; z-index: 6; cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.55));
+  animation: mr-heart 1.3s ease-in-out infinite;
+}
+.mascot-race .ptok .loved:hover { transform: translateX(-50%) scale(1.18); }
+@keyframes mr-heart {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  45%      { transform: translateX(-50%) scale(1.22); }
+}
 
 @media (max-width: 560px) {
   .mascot-race { --podH: 114px; --tok: 27px; }
