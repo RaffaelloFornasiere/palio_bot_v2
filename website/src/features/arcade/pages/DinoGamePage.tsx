@@ -447,12 +447,7 @@ const DinoGamePage: React.FC = () => {
                      <Typography variant="h6" gutterBottom>
                         Scegli il tuo borgo
                      </Typography>
-                     <Typography variant="body2" color="text.secondary" sx={{mb: 3}}>
-                        Endless runner alla Chrome Dino. Salta i cactus, abbassati sotto i
-                        pterodattili, la velocità cresce all'infinito. Spazio / ↑ salta,
-                        ↓ abbassati.
-                     </Typography>
-                     <FormControl sx={{minWidth: 260}}>
+                     <FormControl sx={{minWidth: 260, mt: 1}}>
                         <InputLabel id="borgo-select-label">Borgo</InputLabel>
                         <Select
                            labelId="borgo-select-label"

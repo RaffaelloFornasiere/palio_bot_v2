@@ -750,12 +750,7 @@ const ArcadeGamePage: React.FC = () => {
                      <Typography variant="h6" gutterBottom>
                         Scegli il tuo borgo
                      </Typography>
-                     <Typography variant="body2" color="text.secondary" sx={{mb: 3}}>
-                        Super Borgo Bros! Corri, salta sui Goomba, prendi i funghi per
-                        diventare grande e raggiungi la bandiera. Ogni partita è diversa.
-                        Tastiera: ← → muovi, ↑ / Spazio salta, Shift corri.
-                     </Typography>
-                     <FormControl sx={{minWidth: 260}}>
+                     <FormControl sx={{minWidth: 260, mt: 1}}>
                         <InputLabel id="borgo-select-label">Borgo</InputLabel>
                         <Select
                            labelId="borgo-select-label"
