@@ -54,10 +54,12 @@ const BorgoPollPage: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
           <HeartIcon sx={{ color: 'secondary.main' }} />
           <Typography variant="h4" component="h1">
-            Il borgo più amato
+            Il borgo più acclamato
           </Typography>
         </Box>
-        <Box sx={{ mb: 3 }} />
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Vota ogni giorno il tuo borgo per farlo diventare il più acclamato.
+        </Typography>
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>

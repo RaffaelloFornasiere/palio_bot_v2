@@ -373,8 +373,8 @@ const MascotRace: React.FC = () => {
                           <RouterLink
                             to="/borgo-amato"
                             className="loved"
-                            aria-label="Borgo più amato — vota"
-                            title="Vota il tuo borgo preferito"
+                            aria-label="Il borgo più acclamato — vota"
+                            title="Il borgo più acclamato — vota"
                           >
                             <i aria-hidden>❤</i>
                             <i aria-hidden>❤</i>
