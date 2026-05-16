@@ -28,14 +28,12 @@ const GAMES = [
       to: 'bros',
       emoji: '🍄',
       title: 'Super Borgo Bros',
-      desc: 'Platformer alla Super Mario: corri, salta sui Goomba, prendi i funghi e raggiungi la bandiera.',
       rule: 'Somma dei punti di tutte le partite giocate.',
    },
    {
       to: 'dino',
       emoji: '🦖',
       title: 'Borgo Dino',
-      desc: 'Endless runner alla Chrome Dino: salta i cactus, schiva i pterodattili, batti il record.',
       rule: 'Conta solo il record (la partita migliore).',
    },
 ];
@@ -176,11 +174,8 @@ const MiniGamesPage: React.FC = () => {
                               <Typography variant="h2" sx={{lineHeight: 1, mb: 1}}>
                                  {g.emoji}
                               </Typography>
-                              <Typography variant="h6" gutterBottom>
+                              <Typography variant="h6">
                                  {g.title}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                 {g.desc}
                               </Typography>
                            </CardContent>
                         </CardActionArea>
