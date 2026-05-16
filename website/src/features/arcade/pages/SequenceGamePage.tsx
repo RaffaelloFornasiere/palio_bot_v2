@@ -28,6 +28,7 @@ const PADS = [
    {on: '#ef5350', off: '#b71c1c'},
    {on: '#ffee58', off: '#f9a825'},
    {on: '#42a5f5', off: '#0d47a1'},
+   {on: '#bdbdbd', off: '#121212'},
 ];
 const HI_KEY = 'sequenzaBest';
 const FLASH_MS = 420;
@@ -50,6 +51,7 @@ const SequenceGamePage: React.FC = () => {
 
    const seqRef = useRef<number[]>([]);
    const inputIdxRef = useRef(0);
+   const levelRef = useRef(0);
    const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
    useEffect(() => {
@@ -102,7 +104,12 @@ const SequenceGamePage: React.FC = () => {
    }, []);
 
    const nextRound = useCallback(() => {
-      seqRef.current = [...seqRef.current, Math.floor(Math.random() * 4)];
+      // A brand-new random sequence each round (not the previous one with
+      // one tap appended) — you can't coast on memorising a prefix.
+      levelRef.current += 1;
+      seqRef.current = Array.from({length: levelRef.current}, () =>
+         Math.floor(Math.random() * PADS.length),
+      );
       playback(seqRef.current);
    }, [playback]);
 
@@ -110,6 +117,7 @@ const SequenceGamePage: React.FC = () => {
       clearTimers();
       seqRef.current = [];
       inputIdxRef.current = 0;
+      levelRef.current = 0;
       setScore(0);
       setRunKey((k) => k + 1);
       nextRound();
@@ -291,8 +299,10 @@ const SequenceGamePage: React.FC = () => {
                                  handlePad(i);
                               }}
                               sx={{
-                                 height: {xs: 120, sm: 150},
+                                 height: {xs: 110, sm: 140},
                                  borderRadius: 2,
+                                 border: '1px solid rgba(255,255,255,0.10)',
+                                 gridColumn: i === PADS.length - 1 ? 'span 2' : 'auto',
                                  bgcolor: active === i ? p.on : p.off,
                                  boxShadow: active === i ? `0 0 24px ${p.on}` : 2,
                                  cursor: phase === 'input' ? 'pointer' : 'default',

@@ -34,7 +34,7 @@ const MIN_WAIT = 1200;
 const MAX_WAIT = 3500;
 const HI_KEY = 'reazioneBestMs';
 
-type Phase = 'idle' | 'wait' | 'go' | 'tooSoon' | 'result';
+type Phase = 'idle' | 'wait' | 'go' | 'aborted' | 'result';
 
 const speedScore = (avgMs: number) => Math.max(1, Math.round(100000 / avgMs));
 
@@ -134,12 +134,11 @@ const ReactionGamePage: React.FC = () => {
 
    const tap = useCallback(() => {
       if (phase === 'wait') {
+         // Tapping before the green voids the WHOLE run — no score.
          clearTimer();
-         setPhase('tooSoon');
-         return;
-      }
-      if (phase === 'tooSoon') {
-         armRound();
+         setTimes([]);
+         setPhase('aborted');
+         setStatus('gameover');
          return;
       }
       if (phase === 'go') {
@@ -205,7 +204,7 @@ const ReactionGamePage: React.FC = () => {
       idle: {bg: '#37474f', main: '—', sub: ''},
       wait: {bg: '#c62828', main: 'Aspetta il verde…', sub: `Turno ${times.length + 1} / ${ROUNDS}`},
       go: {bg: '#2e7d32', main: 'TOCCA!', sub: 'Adesso!'},
-      tooSoon: {bg: '#ef6c00', main: 'Troppo presto!', sub: 'Tocca per ripetere il turno'},
+      aborted: {bg: '#c62828', main: 'Troppo presto!', sub: 'Run annullata — Riprova'},
       result: {bg: borgoColor, main: `${avgMs} ms`, sub: 'media dei 3 turni'},
    }[phase];
 
@@ -335,12 +334,24 @@ const ReactionGamePage: React.FC = () => {
 
                      {status === 'gameover' && (
                         <Box sx={{mt: 2, textAlign: 'center'}}>
-                           <Typography variant="h6">
-                              Media: {avgMs} ms
-                           </Typography>
-                           <Typography variant="body2" color="text.secondary" sx={{mb: 1.5}}>
-                              Più sei costante, meglio è.
-                           </Typography>
+                           {phase === 'aborted' ? (
+                              <Typography variant="h6" color="error.main" sx={{mb: 1.5}}>
+                                 Tocco troppo presto — run annullata.
+                              </Typography>
+                           ) : (
+                              <>
+                                 <Typography variant="h6">
+                                    Media: {avgMs} ms
+                                 </Typography>
+                                 <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{mb: 1.5}}
+                                 >
+                                    Più sei costante, meglio è.
+                                 </Typography>
+                              </>
+                           )}
                            <Button variant="contained" onClick={beginRun}>
                               Riprova
                            </Button>
