@@ -131,7 +131,7 @@ const BorgoPollDialog: React.FC<Props> = ({ open, onClose, votedToday, onVoted }
           <DialogTitle sx={{ pb: 0.5 }}>Qual è il borgo migliore?</DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Vota il tuo borgo del cuore. Un voto al giorno.
+              Vota il tuo borgo preferito.
             </Typography>
 
             {loading ? (
