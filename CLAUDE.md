@@ -118,6 +118,25 @@ session: <session_id>
 files: palio_games_status.json
 ```
 
+### Two repos — never mix them
+
+The code repo (project root) ignores `/data/` entirely; `data/.git` is a
+separate inner repo that is the audit trail of every data change. Data
+edits must NEVER be committed to the code repo, and code never to the
+data repo. The data repo intentionally runs on a **detached HEAD** and
+has **no remote** — never push it or try to reattach a branch.
+
+Manual data edits (outside an agent session) follow the same protocol
+the core uses: commit in `data/` with the identity and trailers above
+(`tool: manual`, no `session:`), then advance the public ref so the
+anonymous read path sees the change:
+
+```bash
+cd data && git add <file> \
+  && git -c user.name='palio-core' -c user.email='noreply@palio' commit -m "..." \
+  && git update-ref refs/palio/last_save HEAD
+```
+
 ## Events
 
 Single unified WS bus. Core owns the broker (`core/stream.py`); adapters
